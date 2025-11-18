@@ -133,6 +133,13 @@ export class TraktClient {
   }
 
   /**
+   * Search for a specific episode
+   */
+  async searchEpisode(showId: string, season: number, episode: number) {
+    return this.get(`/shows/${showId}/seasons/${season}/episodes/${episode}`);
+  }
+
+  /**
    * Get show information
    */
   async getShow(id: string, extended?: 'full') {
@@ -193,5 +200,26 @@ export class TraktClient {
    */
   async getCalendar(startDate: string, days = 7) {
     return this.get(`/calendars/my/shows/${startDate}/${days}`);
+  }
+
+  /**
+   * Get watched progress for a show
+   */
+  async getShowProgress(showId: string) {
+    return this.get(`/shows/${showId}/progress/watched`);
+  }
+
+  /**
+   * Get user's collected shows
+   */
+  async getCollectedShows() {
+    return this.get('/sync/collection/shows');
+  }
+
+  /**
+   * Remove items from history
+   */
+  async removeFromHistory(items: unknown) {
+    return this.post('/sync/history/remove', items);
   }
 }
