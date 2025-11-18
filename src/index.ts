@@ -5,23 +5,18 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import dotenv from 'dotenv';
-
-// Load environment variables
-dotenv.config();
+import { loadConfig } from './lib/config.js';
+import { TraktOAuth } from './lib/oauth.js';
+import { TraktClient } from './lib/trakt-client.js';
 
 // Server configuration
 const SERVER_NAME = 'trakt-mcp-server';
 const SERVER_VERSION = '1.0.0';
 
-// Validate required environment variables
-const requiredEnvVars = ['TRAKT_CLIENT_ID', 'TRAKT_CLIENT_SECRET'];
-for (const varName of requiredEnvVars) {
-  if (!process.env[varName]) {
-    console.error(`Error: Missing required environment variable: ${varName}`);
-    process.exit(1);
-  }
-}
+// Load configuration and initialize clients
+const config = loadConfig();
+const oauth = new TraktOAuth(config);
+const traktClient = new TraktClient(config, oauth);
 
 // Create MCP server instance
 const server = new Server(
@@ -40,6 +35,15 @@ const server = new Server(
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
+      {
+        name: 'authenticate',
+        description:
+          'Authenticate with Trakt.tv using OAuth device flow. Returns a verification URL and code for the user to authorize.',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
       {
         name: 'search_show',
         description:
@@ -68,19 +72,71 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
-  if (name === 'search_show') {
-    // Placeholder implementation
+  try {
+    if (name === 'authenticate') {
+      // Check if already authenticated
+      if (oauth.isAuthenticated()) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: 'Already authenticated with Trakt.tv!',
+            },
+          ],
+        };
+      }
+
+      // Initiate device flow
+      const deviceCode = await oauth.initiateDeviceFlow();
+
+      // Start polling in the background
+      oauth.pollForToken(deviceCode.device_code, deviceCode.interval).catch((error) => {
+        console.error('Authentication failed:', error);
+      });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Please visit ${deviceCode.verification_url} and enter code: ${deviceCode.user_code}\n\nWaiting for authorization...`,
+          },
+        ],
+      };
+    }
+
+    if (name === 'search_show') {
+      const query = args?.query as string;
+      const type = args?.type as 'show' | 'movie' | undefined;
+
+      if (!query) {
+        throw new Error('Query parameter is required');
+      }
+
+      const results = await traktClient.search(query, type);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(results, null, 2),
+          },
+        ],
+      };
+    }
+
+    throw new Error(`Unknown tool: ${name}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return {
       content: [
         {
           type: 'text',
-          text: `Search tool called with query: ${args?.query}. (Implementation pending)`,
+          text: `Error: ${errorMessage}`,
         },
       ],
+      isError: true,
     };
   }
-
-  throw new Error(`Unknown tool: ${name}`);
 });
 
 // Start server
