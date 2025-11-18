@@ -26,8 +26,10 @@ describe('TraktOAuth', () => {
 
     // Mock fs functions
     mockedFs.existsSync = vi.fn().mockReturnValue(false);
+    // @ts-expect-error - Mock function type mismatch
     mockedFs.readFileSync = vi.fn();
     mockedFs.writeFileSync = vi.fn();
+    mockedFs.chmodSync = vi.fn();
 
     oauth = new TraktOAuth(config);
   });
@@ -96,6 +98,7 @@ describe('TraktOAuth', () => {
         },
       });
 
+      // @ts-expect-error - Mock function type mismatch
       mockedAxios.isAxiosError = vi.fn().mockReturnValue(true);
 
       await expect(oauth.pollForToken('invalid-code', 1)).rejects.toThrow(
@@ -112,6 +115,7 @@ describe('TraktOAuth', () => {
         },
       });
 
+      // @ts-expect-error - Mock function type mismatch
       mockedAxios.isAxiosError = vi.fn().mockReturnValue(true);
 
       await expect(oauth.pollForToken('expired-code', 1)).rejects.toThrow(
@@ -128,6 +132,7 @@ describe('TraktOAuth', () => {
         },
       });
 
+      // @ts-expect-error - Mock function type mismatch
       mockedAxios.isAxiosError = vi.fn().mockReturnValue(true);
 
       await expect(oauth.pollForToken('denied-code', 1)).rejects.toThrow(

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, chmodSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import {
@@ -189,6 +189,8 @@ export class TraktOAuth {
   private saveToken(token: StoredToken): void {
     try {
       writeFileSync(TOKEN_FILE_PATH, JSON.stringify(token, null, 2));
+      // Set file permissions to 0600 (user read/write only) for security
+      chmodSync(TOKEN_FILE_PATH, 0o600);
     } catch (error) {
       console.error('Failed to save token:', error);
     }
