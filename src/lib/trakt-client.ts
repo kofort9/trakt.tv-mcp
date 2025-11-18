@@ -74,8 +74,8 @@ export class TraktClient {
     this.client.interceptors.response.use(
       (response) => response,
       async (error: AxiosError) => {
-        if (error.response?.status === 401) {
-          // Token expired or invalid
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          // Token expired or invalid (Trakt.tv returns 403 for auth failures)
           throw new Error('Authentication failed. Please re-authenticate.');
         }
 
