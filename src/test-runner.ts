@@ -203,7 +203,8 @@ async function main() {
       season: -1,
       episode: 1,
     });
-    const isExpectedError = !result.success && result.error && result.error.code === 'VALIDATION_ERROR';
+    const isExpectedError =
+      !result.success && result.error && result.error.code === 'VALIDATION_ERROR';
     recordTest(
       '1.6: Negative Season',
       isExpectedError ? 'PASS' : 'FAIL',
@@ -335,7 +336,8 @@ async function main() {
       season: 1,
       episodes: 'abc-xyz',
     });
-    const isExpectedError = !result.success && result.error && result.error.code === 'VALIDATION_ERROR';
+    const isExpectedError =
+      !result.success && result.error && result.error.code === 'VALIDATION_ERROR';
     recordTest(
       '2.5: Invalid Range Format',
       isExpectedError ? 'PASS' : 'FAIL',
@@ -361,7 +363,8 @@ async function main() {
       season: undefined as never,
       episodes: undefined as never,
     });
-    const isExpectedError = !result.success && result.error && result.error.code === 'VALIDATION_ERROR';
+    const isExpectedError =
+      !result.success && result.error && result.error.code === 'VALIDATION_ERROR';
     recordTest(
       '2.6: Missing Required Fields',
       isExpectedError ? 'PASS' : 'FAIL',
@@ -522,14 +525,7 @@ async function main() {
       `Returned ${result.success && result.data ? result.data.length : 0} items`
     );
   } catch (error) {
-    recordTest(
-      '4.2: 30 Days',
-      'FAIL',
-      { days: 30 },
-      'Next 30 days of episodes',
-      '',
-      String(error)
-    );
+    recordTest('4.2: 30 Days', 'FAIL', { days: 30 }, 'Next 30 days of episodes', '', String(error));
   }
 
   try {
@@ -542,19 +538,13 @@ async function main() {
       `Returned ${result.success && result.data ? result.data.length : 0} items`
     );
   } catch (error) {
-    recordTest(
-      '4.3: 1 Day',
-      'FAIL',
-      { days: 1 },
-      "Today's episodes",
-      '',
-      String(error)
-    );
+    recordTest('4.3: 1 Day', 'FAIL', { days: 1 }, "Today's episodes", '', String(error));
   }
 
   try {
     const result = await tools.getUpcoming(client, { days: 0 });
-    const isExpectedError = !result.success && result.error && result.error.code === 'VALIDATION_ERROR';
+    const isExpectedError =
+      !result.success && result.error && result.error.code === 'VALIDATION_ERROR';
     recordTest(
       '4.4: Invalid Days (0)',
       isExpectedError ? 'PASS' : 'FAIL',
@@ -563,19 +553,13 @@ async function main() {
       JSON.stringify(result, null, 2)
     );
   } catch (error) {
-    recordTest(
-      '4.4: Invalid Days (0)',
-      'FAIL',
-      { days: 0 },
-      'VALIDATION_ERROR',
-      '',
-      String(error)
-    );
+    recordTest('4.4: Invalid Days (0)', 'FAIL', { days: 0 }, 'VALIDATION_ERROR', '', String(error));
   }
 
   try {
     const result = await tools.getUpcoming(client, { days: 31 });
-    const isExpectedError = !result.success && result.error && result.error.code === 'VALIDATION_ERROR';
+    const isExpectedError =
+      !result.success && result.error && result.error.code === 'VALIDATION_ERROR';
     recordTest(
       '4.5: Invalid Days (31)',
       isExpectedError ? 'PASS' : 'FAIL',

@@ -2,12 +2,7 @@ import axios from 'axios';
 import { readFileSync, writeFileSync, existsSync, chmodSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
-import {
-  DeviceCodeResponse,
-  TokenResponse,
-  StoredToken,
-  TraktConfig,
-} from '../types/trakt.js';
+import { DeviceCodeResponse, TokenResponse, StoredToken, TraktConfig } from '../types/trakt.js';
 
 const TOKEN_FILE_PATH = join(homedir(), '.trakt-mcp-token.json');
 

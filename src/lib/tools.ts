@@ -54,11 +54,7 @@ export async function searchEpisode(
     }
 
     // Get the specific episode
-    const episodeData = await client.searchEpisode(
-      show.ids.slug,
-      season,
-      episode
-    );
+    const episodeData = await client.searchEpisode(show.ids.slug, season, episode);
 
     return createToolSuccess<TraktEpisode>(episodeData as TraktEpisode);
   } catch (error) {
@@ -143,10 +139,7 @@ export async function logWatch(
     } else {
       // Movie
       if (!movieName) {
-        return createToolError(
-          'VALIDATION_ERROR',
-          'For movies, movieName is required'
-        );
+        return createToolError('VALIDATION_ERROR', 'For movies, movieName is required');
       }
 
       // Search for the movie
@@ -265,18 +258,12 @@ export async function bulkLog(
       for (const movieName of movieNames) {
         const searchResults = await client.search(movieName, 'movie');
         if (!Array.isArray(searchResults) || searchResults.length === 0) {
-          return createToolError(
-            'NOT_FOUND',
-            `No movie found matching "${movieName}"`
-          );
+          return createToolError('NOT_FOUND', `No movie found matching "${movieName}"`);
         }
 
         const movie = searchResults[0].movie;
         if (!movie) {
-          return createToolError(
-            'NOT_FOUND',
-            `Movie data not found for "${movieName}"`
-          );
+          return createToolError('NOT_FOUND', `Movie data not found for "${movieName}"`);
         }
 
         movieData.push({
@@ -331,7 +318,8 @@ export async function getHistory(
       if (type) {
         parts.push(`for ${type}`);
       }
-      const message = parts.join(' ') + '. Try logging some content with log_watch or bulk_log first.';
+      const message =
+        parts.join(' ') + '. Try logging some content with log_watch or bulk_log first.';
 
       return {
         success: true,
@@ -406,15 +394,10 @@ export async function summarizeHistory(
     }
 
     // Find most watched show
-    let mostWatchedShow:
-      | { show: TraktShow; episodes_watched: number }
-      | undefined = undefined;
+    let mostWatchedShow: { show: TraktShow; episodes_watched: number } | undefined = undefined;
 
     for (const [_, data] of shows) {
-      if (
-        !mostWatchedShow ||
-        data.count > mostWatchedShow.episodes_watched
-      ) {
+      if (!mostWatchedShow || data.count > mostWatchedShow.episodes_watched) {
         mostWatchedShow = {
           show: data.show,
           episodes_watched: data.count,
@@ -438,10 +421,7 @@ export async function summarizeHistory(
     return createToolSuccess(summary);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return createToolError(
-      'TRAKT_API_ERROR',
-      `Failed to summarize history: ${message}`
-    );
+    return createToolError('TRAKT_API_ERROR', `Failed to summarize history: ${message}`);
   }
 }
 
@@ -458,10 +438,7 @@ export async function getUpcoming(
     const days = args.days || 7;
 
     if (days < 1 || days > 30) {
-      return createToolError(
-        'VALIDATION_ERROR',
-        'Days must be between 1 and 30'
-      );
+      return createToolError('VALIDATION_ERROR', 'Days must be between 1 and 30');
     }
 
     // Get calendar starting from today

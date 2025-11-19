@@ -1,6 +1,4 @@
-import {
-  parseISO,
-} from 'date-fns';
+import { parseISO } from 'date-fns';
 
 /**
  * Parse natural language date strings into ISO format
@@ -26,11 +24,23 @@ export function parseNaturalDate(input: string): string {
   const currentDate = now.getUTCDate();
 
   // Handle month name patterns like "January 2025", "Jan. 2025", "Jan 2025"
-  const monthYearMatch = lowerInput.match(/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{4})$/);
+  const monthYearMatch = lowerInput.match(
+    /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{4})$/
+  );
   if (monthYearMatch) {
     const monthMap: { [key: string]: number } = {
-      jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-      jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+      jan: 0,
+      feb: 1,
+      mar: 2,
+      apr: 3,
+      may: 4,
+      jun: 5,
+      jul: 6,
+      aug: 7,
+      sep: 8,
+      oct: 9,
+      nov: 10,
+      dec: 11,
     };
     const monthIndex = monthMap[monthYearMatch[1].substring(0, 3)];
     const year = parseInt(monthYearMatch[2], 10);
@@ -75,11 +85,7 @@ export function parseNaturalDate(input: string): string {
     const parsed = parseISO(input);
     if (!isNaN(parsed.getTime())) {
       // Convert to UTC midnight
-      const utcDate = new Date(Date.UTC(
-        parsed.getFullYear(),
-        parsed.getMonth(),
-        parsed.getDate()
-      ));
+      const utcDate = new Date(Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()));
       return utcDate.toISOString();
     }
   } catch {
@@ -94,10 +100,7 @@ export function parseNaturalDate(input: string): string {
 /**
  * Parse date range from natural language
  */
-export function parseDateRange(
-  start?: string,
-  end?: string
-): { startAt?: string; endAt?: string } {
+export function parseDateRange(start?: string, end?: string): { startAt?: string; endAt?: string } {
   const result: { startAt?: string; endAt?: string } = {};
 
   if (start) {
@@ -119,11 +122,23 @@ export function parseMonthRange(input: string): { startDate: string; endDate: st
   const lowerInput = input.toLowerCase().trim();
 
   // Parse "January 2025", "Jan. 2025", "Jan 2025"
-  const monthYearMatch = lowerInput.match(/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{4})$/);
+  const monthYearMatch = lowerInput.match(
+    /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{4})$/
+  );
   if (monthYearMatch) {
     const monthMap: { [key: string]: number } = {
-      jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-      jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+      jan: 0,
+      feb: 1,
+      mar: 2,
+      apr: 3,
+      may: 4,
+      jun: 5,
+      jul: 6,
+      aug: 7,
+      sep: 8,
+      oct: 9,
+      nov: 10,
+      dec: 11,
     };
     const monthIndex = monthMap[monthYearMatch[1].substring(0, 3)];
     const year = parseInt(monthYearMatch[2], 10);
@@ -135,7 +150,7 @@ export function parseMonthRange(input: string): { startDate: string; endDate: st
 
     return {
       startDate: startDate.toISOString(),
-      endDate: endDate.toISOString()
+      endDate: endDate.toISOString(),
     };
   }
 
@@ -150,7 +165,7 @@ export function parseMonthRange(input: string): { startDate: string; endDate: st
 
     return {
       startDate: startDate.toISOString(),
-      endDate: endDate.toISOString()
+      endDate: endDate.toISOString(),
     };
   }
 

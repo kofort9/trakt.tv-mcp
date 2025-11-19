@@ -19,11 +19,9 @@ describe('utils', () => {
 
       // Verify it's actually today in UTC
       const now = new Date();
-      const expectedDate = new Date(Date.UTC(
-        now.getUTCFullYear(),
-        now.getUTCMonth(),
-        now.getUTCDate()
-      ));
+      const expectedDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+      );
       expect(result).toBe(expectedDate.toISOString());
     });
 
@@ -35,11 +33,9 @@ describe('utils', () => {
 
       // Verify it's actually yesterday in UTC
       const now = new Date();
-      const expectedDate = new Date(Date.UTC(
-        now.getUTCFullYear(),
-        now.getUTCMonth(),
-        now.getUTCDate() - 1
-      ));
+      const expectedDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1)
+      );
       expect(result).toBe(expectedDate.toISOString());
     });
 
@@ -51,11 +47,9 @@ describe('utils', () => {
 
       // Verify it's actually 7 days ago in UTC
       const now = new Date();
-      const expectedDate = new Date(Date.UTC(
-        now.getUTCFullYear(),
-        now.getUTCMonth(),
-        now.getUTCDate() - 7
-      ));
+      const expectedDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 7)
+      );
       expect(result).toBe(expectedDate.toISOString());
     });
 
@@ -67,11 +61,9 @@ describe('utils', () => {
 
       // Verify it's actually 1 month ago in UTC
       const now = new Date();
-      const expectedDate = new Date(Date.UTC(
-        now.getUTCFullYear(),
-        now.getUTCMonth() - 1,
-        now.getUTCDate()
-      ));
+      const expectedDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, now.getUTCDate())
+      );
       expect(result).toBe(expectedDate.toISOString());
     });
 
@@ -97,9 +89,7 @@ describe('utils', () => {
     });
 
     it('should throw error for invalid date', () => {
-      expect(() => parseNaturalDate('invalid date')).toThrow(
-        /Unable to parse date/
-      );
+      expect(() => parseNaturalDate('invalid date')).toThrow(/Unable to parse date/);
     });
 
     it('should throw error with helpful message', () => {
@@ -115,16 +105,12 @@ describe('utils', () => {
 
       // Get current UTC date components
       const now = new Date();
-      const todayUTC = new Date(Date.UTC(
-        now.getUTCFullYear(),
-        now.getUTCMonth(),
-        now.getUTCDate()
-      ));
-      const yesterdayUTC = new Date(Date.UTC(
-        now.getUTCFullYear(),
-        now.getUTCMonth(),
-        now.getUTCDate() - 1
-      ));
+      const todayUTC = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+      );
+      const yesterdayUTC = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1)
+      );
 
       // Result should be exactly 24 hours before today at UTC midnight
       const daysDifference = (todayUTC.getTime() - parsed.getTime()) / (1000 * 60 * 60 * 24);
