@@ -1,4 +1,4 @@
-name: Security Audit
+name: Security
 
 on:
   push:
@@ -11,7 +11,7 @@ on:
 
 jobs:
   security-audit:
-    name: Dependency Security Audit
+    name: Audit
     runs-on: ubuntu-latest
 
     steps:
