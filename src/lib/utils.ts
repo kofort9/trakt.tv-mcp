@@ -14,7 +14,7 @@ export function parseNaturalDate(input: string): string {
   // Validate input is not empty
   if (!lowerInput || lowerInput === '') {
     throw new Error(
-      'Date parameter cannot be empty. Supported formats: "today", "yesterday", "last week", "last weekend", "last monday" (or any weekday), "last month", "January 2025", or ISO date (YYYY-MM-DD)'
+      'Date parameter cannot be empty. Supported formats: "today", "yesterday", "last night", "N days ago", "N weeks ago", "last week", "last weekend", "last monday" (or any weekday), "last month", "January 2025", or ISO date (YYYY-MM-DD)'
     );
   }
 
@@ -67,6 +67,37 @@ export function parseNaturalDate(input: string): string {
     // Subtract 1 day in UTC
     const yesterday = new Date(Date.UTC(currentYear, currentMonth, currentDate - 1));
     return yesterday.toISOString();
+  }
+
+  // Handle "last night" - synonym for yesterday
+  if (lowerInput === 'last night' || lowerInput === 'last nite') {
+    const yesterday = new Date(Date.UTC(currentYear, currentMonth, currentDate - 1));
+    return yesterday.toISOString();
+  }
+
+  // Handle "N days ago" patterns (e.g., "3 days ago", "5 days ago")
+  const daysAgoMatch = lowerInput.match(/^(\d+)\s+days?\s+ago$/);
+  if (daysAgoMatch) {
+    const daysAgo = parseInt(daysAgoMatch[1], 10);
+    const targetDate = new Date(Date.UTC(currentYear, currentMonth, currentDate - daysAgo));
+    return targetDate.toISOString();
+  }
+
+  // Handle "N weeks ago" patterns (e.g., "2 weeks ago", "three weeks ago")
+  // Support both numeric and text numbers: "2 weeks ago", "two weeks ago"
+  const weeksAgoMatch = lowerInput.match(/^(\d+|one|two|three|four)\s+weeks?\s+ago$/);
+  if (weeksAgoMatch) {
+    const numberMap: { [key: string]: number } = {
+      one: 1,
+      two: 2,
+      three: 3,
+      four: 4,
+    };
+    const weeksStr = weeksAgoMatch[1];
+    const weeks = isNaN(Number(weeksStr)) ? numberMap[weeksStr] : parseInt(weeksStr, 10);
+    const daysAgo = weeks * 7;
+    const targetDate = new Date(Date.UTC(currentYear, currentMonth, currentDate - daysAgo));
+    return targetDate.toISOString();
   }
 
   if (lowerInput === 'last week') {
@@ -145,7 +176,7 @@ export function parseNaturalDate(input: string): string {
   }
 
   throw new Error(
-    `Unable to parse date: "${input}". Use ISO format (YYYY-MM-DD) or natural language (today, yesterday, last week, last weekend, last monday, last month)`
+    `Unable to parse date: "${input}". Use ISO format (YYYY-MM-DD) or natural language (today, yesterday, last night, N days ago, N weeks ago, last week, last weekend, last monday, last month)`
   );
 }
 
@@ -285,13 +316,15 @@ export interface ToolError {
     code: string;
     message: string;
     details?: Record<string, unknown>;
+    suggestions?: string[];
   };
 }
 
 export function createToolError(
   code: string,
   message: string,
-  details?: Record<string, unknown>
+  details?: Record<string, unknown>,
+  suggestions?: string[]
 ): ToolError {
   return {
     success: false,
@@ -299,6 +332,7 @@ export function createToolError(
       code,
       message,
       details,
+      ...(suggestions && suggestions.length > 0 ? { suggestions } : {}),
     },
   };
 }
@@ -358,8 +392,9 @@ export function sanitizeError(error: unknown, context?: string): string {
       'Unauthorized': 'Authentication required. Please authenticate with Trakt.tv.',
 
       // Rate limiting
-      'Rate limit exceeded': 'Too many requests. Please wait a moment and try again.',
-      '429': 'Rate limit exceeded. Please wait a few minutes and try again.',
+      'Rate limit exceeded':
+        'Rate limit exceeded. Trakt.tv limits requests to 1000 per 5 minutes. Please wait a moment and try again.',
+      '429': 'Rate limit exceeded. Trakt.tv limits requests to 1000 per 5 minutes. Please wait a few minutes and try again.',
 
       // API errors
       '404': 'The requested content was not found on Trakt.tv.',

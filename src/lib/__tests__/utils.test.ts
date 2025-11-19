@@ -199,6 +199,117 @@ describe('utils', () => {
       expect(hoursDifference).toBe(24);
     });
 
+    // Test "last night" parsing
+    it('should parse "last night" as yesterday', () => {
+      const result = parseNaturalDate('last night');
+
+      // Verify it's yesterday
+      const now = new Date();
+      const expectedDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1)
+      );
+      expect(result).toBe(expectedDate.toISOString());
+
+      // Verify format
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/);
+    });
+
+    it('should parse "last nite" as yesterday', () => {
+      const result = parseNaturalDate('last nite');
+
+      // Verify it's yesterday
+      const now = new Date();
+      const expectedDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1)
+      );
+      expect(result).toBe(expectedDate.toISOString());
+    });
+
+    // Test "N days ago" parsing
+    it('should parse "3 days ago" correctly', () => {
+      const result = parseNaturalDate('3 days ago');
+
+      // Verify it's 3 days ago
+      const now = new Date();
+      const expectedDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 3)
+      );
+      expect(result).toBe(expectedDate.toISOString());
+
+      // Verify format
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/);
+    });
+
+    it('should parse "1 day ago" correctly (singular)', () => {
+      const result = parseNaturalDate('1 day ago');
+
+      // Verify it's 1 day ago (yesterday)
+      const now = new Date();
+      const expectedDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1)
+      );
+      expect(result).toBe(expectedDate.toISOString());
+    });
+
+    it('should parse "5 days ago" correctly', () => {
+      const result = parseNaturalDate('5 days ago');
+
+      // Verify it's 5 days ago
+      const now = new Date();
+      const expectedDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 5)
+      );
+      expect(result).toBe(expectedDate.toISOString());
+    });
+
+    // Test "N weeks ago" parsing
+    it('should parse "2 weeks ago" correctly', () => {
+      const result = parseNaturalDate('2 weeks ago');
+
+      // Verify it's 14 days ago
+      const now = new Date();
+      const expectedDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 14)
+      );
+      expect(result).toBe(expectedDate.toISOString());
+
+      // Verify format
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/);
+    });
+
+    it('should parse "1 week ago" correctly (singular)', () => {
+      const result = parseNaturalDate('1 week ago');
+
+      // Verify it's 7 days ago
+      const now = new Date();
+      const expectedDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 7)
+      );
+      expect(result).toBe(expectedDate.toISOString());
+    });
+
+    it('should parse "one week ago" correctly (text number)', () => {
+      const result = parseNaturalDate('one week ago');
+
+      // Verify it's 7 days ago
+      const now = new Date();
+      const expectedDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 7)
+      );
+      expect(result).toBe(expectedDate.toISOString());
+    });
+
+    it('should parse "three weeks ago" correctly (text number)', () => {
+      const result = parseNaturalDate('three weeks ago');
+
+      // Verify it's 21 days ago
+      const now = new Date();
+      const expectedDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 21)
+      );
+      expect(result).toBe(expectedDate.toISOString());
+    });
+
     // Test boundary: "last week" crossing month boundary
     it('should correctly handle "last week" crossing month boundaries', () => {
       const result = parseNaturalDate('last week');
