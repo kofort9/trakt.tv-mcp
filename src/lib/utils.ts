@@ -12,11 +12,39 @@ import {
 export function parseNaturalDate(input: string): string {
   const lowerInput = input.toLowerCase().trim();
 
+  // Validate input is not empty
+  if (!lowerInput || lowerInput === '') {
+    throw new Error(
+      'Date parameter cannot be empty. Supported formats: "today", "yesterday", "last week", "last month", "January 2025", or ISO date (YYYY-MM-DD)'
+    );
+  }
+
   // Get current date in UTC
   const now = new Date();
   const currentYear = now.getUTCFullYear();
   const currentMonth = now.getUTCMonth();
   const currentDate = now.getUTCDate();
+
+  // Handle month name patterns like "January 2025", "Jan. 2025", "Jan 2025"
+  const monthYearMatch = lowerInput.match(/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{4})$/);
+  if (monthYearMatch) {
+    const monthMap: { [key: string]: number } = {
+      jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+      jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+    };
+    const monthIndex = monthMap[monthYearMatch[1].substring(0, 3)];
+    const year = parseInt(monthYearMatch[2], 10);
+
+    // Return the first day of the month at UTC midnight
+    const firstDay = new Date(Date.UTC(year, monthIndex, 1));
+    return firstDay.toISOString();
+  }
+
+  // Handle "this month" - returns first day of current month
+  if (lowerInput === 'this month') {
+    const firstDay = new Date(Date.UTC(currentYear, currentMonth, 1));
+    return firstDay.toISOString();
+  }
 
   // Handle relative dates using UTC date operations
   if (lowerInput === 'today') {
@@ -81,6 +109,54 @@ export function parseDateRange(
   }
 
   return result;
+}
+
+/**
+ * Parse month range (e.g., "January 2025") into start and end dates
+ * Returns the first and last day of the specified month
+ */
+export function parseMonthRange(input: string): { startDate: string; endDate: string } {
+  const lowerInput = input.toLowerCase().trim();
+
+  // Parse "January 2025", "Jan. 2025", "Jan 2025"
+  const monthYearMatch = lowerInput.match(/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{4})$/);
+  if (monthYearMatch) {
+    const monthMap: { [key: string]: number } = {
+      jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+      jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+    };
+    const monthIndex = monthMap[monthYearMatch[1].substring(0, 3)];
+    const year = parseInt(monthYearMatch[2], 10);
+
+    // First day of month at UTC midnight
+    const startDate = new Date(Date.UTC(year, monthIndex, 1));
+    // Last day of month at 23:59:59.999 UTC
+    const endDate = new Date(Date.UTC(year, monthIndex + 1, 0, 23, 59, 59, 999));
+
+    return {
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString()
+    };
+  }
+
+  // Handle "this month"
+  if (lowerInput === 'this month') {
+    const now = new Date();
+    const year = now.getUTCFullYear();
+    const month = now.getUTCMonth();
+
+    const startDate = new Date(Date.UTC(year, month, 1));
+    const endDate = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999));
+
+    return {
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString()
+    };
+  }
+
+  throw new Error(
+    `Unable to parse month range: "${input}". Use formats like "January 2025", "Jan. 2025", or "this month"`
+  );
 }
 
 /**
