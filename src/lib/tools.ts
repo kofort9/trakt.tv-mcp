@@ -331,12 +331,12 @@ export async function getHistory(
       if (type) {
         parts.push(`for ${type}`);
       }
-      parts.push('. Try logging some content with log_watch or bulk_log first.');
+      const message = parts.join(' ') + '. Try logging some content with log_watch or bulk_log first.';
 
       return {
         success: true,
         data: results,
-        message: parts.join(' '),
+        message,
       } as ToolSuccess<TraktWatchedItem[]>;
     }
 
