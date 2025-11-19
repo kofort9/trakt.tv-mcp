@@ -151,7 +151,7 @@ async function main() {
       season: 1,
       episode: 1,
     });
-    const isExpectedError = !result.success && result.error && result.error.code === 'NOT_FOUND';
+    const isExpectedError = !result.success && 'error' in result && result.error.code === 'NOT_FOUND';
     recordTest(
       '1.4: Invalid Show Name',
       isExpectedError ? 'PASS' : 'FAIL',
@@ -204,7 +204,7 @@ async function main() {
       episode: 1,
     });
     const isExpectedError =
-      !result.success && result.error && result.error.code === 'VALIDATION_ERROR';
+      !result.success && 'error' in result && result.error.code === 'VALIDATION_ERROR';
     recordTest(
       '1.6: Negative Season',
       isExpectedError ? 'PASS' : 'FAIL',
@@ -337,7 +337,7 @@ async function main() {
       episodes: 'abc-xyz',
     });
     const isExpectedError =
-      !result.success && result.error && result.error.code === 'VALIDATION_ERROR';
+      !result.success && 'error' in result && result.error.code === 'VALIDATION_ERROR';
     recordTest(
       '2.5: Invalid Range Format',
       isExpectedError ? 'PASS' : 'FAIL',
@@ -364,7 +364,7 @@ async function main() {
       episodes: undefined as never,
     });
     const isExpectedError =
-      !result.success && result.error && result.error.code === 'VALIDATION_ERROR';
+      !result.success && 'error' in result && result.error.code === 'VALIDATION_ERROR';
     recordTest(
       '2.6: Missing Required Fields',
       isExpectedError ? 'PASS' : 'FAIL',
@@ -544,7 +544,7 @@ async function main() {
   try {
     const result = await tools.getUpcoming(client, { days: 0 });
     const isExpectedError =
-      !result.success && result.error && result.error.code === 'VALIDATION_ERROR';
+      !result.success && 'error' in result && result.error.code === 'VALIDATION_ERROR';
     recordTest(
       '4.4: Invalid Days (0)',
       isExpectedError ? 'PASS' : 'FAIL',
@@ -559,7 +559,7 @@ async function main() {
   try {
     const result = await tools.getUpcoming(client, { days: 31 });
     const isExpectedError =
-      !result.success && result.error && result.error.code === 'VALIDATION_ERROR';
+      !result.success && 'error' in result && result.error.code === 'VALIDATION_ERROR';
     recordTest(
       '4.5: Invalid Days (31)',
       isExpectedError ? 'PASS' : 'FAIL',
@@ -669,7 +669,7 @@ async function main() {
     const result = await tools.followShow(client, {
       showName: 'ThisShowDoesNotExist12345',
     });
-    const isExpectedError = !result.success && result.error && result.error.code === 'NOT_FOUND';
+    const isExpectedError = !result.success && 'error' in result && result.error.code === 'NOT_FOUND';
     recordTest(
       '5.5: Follow Non-Existent Show',
       isExpectedError ? 'PASS' : 'FAIL',

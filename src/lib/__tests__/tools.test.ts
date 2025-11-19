@@ -71,7 +71,7 @@ describe('tools', () => {
       });
 
       expect(result.success).toBe(false);
-      if (!result.success) {
+      if (!result.success && 'error' in result) {
         expect(result.error.code).toBe('NOT_FOUND');
       }
     });
@@ -161,7 +161,7 @@ describe('tools', () => {
       });
 
       expect(result.success).toBe(false);
-      if (!result.success) {
+      if (!result.success && 'error' in result) {
         expect(result.error.code).toBe('VALIDATION_ERROR');
       }
     });
@@ -173,7 +173,7 @@ describe('tools', () => {
       });
 
       expect(result.success).toBe(false);
-      if (!result.success) {
+      if (!result.success && 'error' in result) {
         expect(result.error.code).toBe('VALIDATION_ERROR');
       }
     });
@@ -370,7 +370,7 @@ describe('tools', () => {
       const result = await tools.getUpcoming(mockClient, { days: 31 });
 
       expect(result.success).toBe(false);
-      if (!result.success) {
+      if (!result.success && 'error' in result) {
         expect(result.error.code).toBe('VALIDATION_ERROR');
       }
     });
@@ -408,7 +408,7 @@ describe('tools', () => {
       });
 
       expect(result.success).toBe(false);
-      if (!result.success) {
+      if (!result.success && 'error' in result) {
         expect(result.error.code).toBe('NOT_FOUND');
       }
     });
@@ -446,7 +446,7 @@ describe('tools', () => {
       });
 
       expect(result.success).toBe(false);
-      if (!result.success) {
+      if (!result.success && 'error' in result) {
         expect(result.error.code).toBe('NOT_FOUND');
       }
     });

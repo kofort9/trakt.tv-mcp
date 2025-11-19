@@ -81,6 +81,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: 'number',
               description: 'Episode number within the season',
             },
+            year: {
+              type: 'number',
+              description: 'Optional: Release year to disambiguate shows with the same name',
+            },
+            traktId: {
+              type: 'number',
+              description: 'Optional: Trakt ID for exact show identification (obtained from search_show)',
+            },
           },
           required: ['showName', 'season', 'episode'],
         },
@@ -117,6 +125,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: 'string',
               description:
                 'When it was watched. Supports: "today", "yesterday", "last week", or ISO date (YYYY-MM-DD)',
+            },
+            year: {
+              type: 'number',
+              description: 'Optional: Release year to disambiguate shows/movies with the same name',
+            },
+            traktId: {
+              type: 'number',
+              description: 'Optional: Trakt ID for exact identification (obtained from search_show)',
             },
           },
           required: ['type'],
@@ -155,6 +171,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             watchedAt: {
               type: 'string',
               description: 'When watched (applies to all items). Supports natural language.',
+            },
+            year: {
+              type: 'number',
+              description: 'Optional: Release year to disambiguate shows/movies with the same name',
+            },
+            traktId: {
+              type: 'number',
+              description: 'Optional: Trakt ID for exact identification (obtained from search_show)',
             },
           },
           required: ['type'],
@@ -230,6 +254,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: 'string',
               description: 'Name of the show to follow',
             },
+            year: {
+              type: 'number',
+              description: 'Optional: Release year to disambiguate shows with the same name',
+            },
+            traktId: {
+              type: 'number',
+              description: 'Optional: Trakt ID for exact identification (obtained from search_show)',
+            },
           },
           required: ['showName'],
         },
@@ -244,6 +276,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             showName: {
               type: 'string',
               description: 'Name of the show to unfollow',
+            },
+            year: {
+              type: 'number',
+              description: 'Optional: Release year to disambiguate shows with the same name',
+            },
+            traktId: {
+              type: 'number',
+              description: 'Optional: Trakt ID for exact identification (obtained from search_show)',
             },
           },
           required: ['showName'],
@@ -330,6 +370,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         showName: args?.showName as string,
         season: args?.season as number,
         episode: args?.episode as number,
+        year: args?.year as number | undefined,
+        traktId: args?.traktId as number | undefined,
       });
 
       return {
@@ -351,6 +393,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         season: args?.season as number | undefined,
         episode: args?.episode as number | undefined,
         watchedAt: args?.watchedAt as string | undefined,
+        year: args?.year as number | undefined,
+        traktId: args?.traktId as number | undefined,
       });
 
       return {
@@ -372,6 +416,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         season: args?.season as number | undefined,
         episodes: args?.episodes as string | undefined,
         watchedAt: args?.watchedAt as string | undefined,
+        year: args?.year as number | undefined,
+        traktId: args?.traktId as number | undefined,
       });
 
       return {
@@ -440,6 +486,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (name === 'follow_show') {
       const result = await tools.followShow(traktClient, {
         showName: args?.showName as string,
+        year: args?.year as number | undefined,
+        traktId: args?.traktId as number | undefined,
       });
 
       return {
@@ -456,6 +504,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (name === 'unfollow_show') {
       const result = await tools.unfollowShow(traktClient, {
         showName: args?.showName as string,
+        year: args?.year as number | undefined,
+        traktId: args?.traktId as number | undefined,
       });
 
       return {

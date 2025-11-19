@@ -106,6 +106,21 @@ export interface TraktHistorySummary {
 export type ContentType = 'show' | 'movie';
 export type Privacy = 'public' | 'private';
 
+// Disambiguation types for human approval flow
+export interface DisambiguationOption {
+  title: string;
+  year?: number;
+  traktId: number;
+  type: 'show' | 'movie';
+}
+
+export interface DisambiguationResponse {
+  success: false;
+  needs_disambiguation: true;
+  options: DisambiguationOption[];
+  message: string;
+}
+
 // OAuth types
 export interface DeviceCodeResponse {
   device_code: string;

@@ -1,4 +1,5 @@
 import { parseISO } from 'date-fns';
+import type { TraktSearchResult, DisambiguationResponse, DisambiguationOption } from '../types/trakt.js';
 
 /**
  * Parse natural language date strings into ISO format
@@ -269,4 +270,110 @@ export function createToolSuccess<T>(data: T, message?: string): ToolSuccess<T> 
     result.message = message;
   }
   return result;
+}
+
+/**
+ * Validate that a string parameter is not empty or whitespace
+ */
+export function validateNonEmptyString(value: string | undefined, paramName: string): void {
+  const trimmed = value?.trim();
+  if (!trimmed || trimmed === '') {
+    throw new Error(`${paramName} parameter cannot be empty or whitespace`);
+  }
+}
+
+/**
+ * Result of search disambiguation - either a selected item or a disambiguation response
+ */
+export type SearchDisambiguationResult =
+  | { needsDisambiguation: true; response: DisambiguationResponse }
+  | { needsDisambiguation: false; selected: TraktSearchResult };
+
+/**
+ * Handle search results and determine if disambiguation is needed
+ * Returns either the selected item (if unique or exact match) or a disambiguation response
+ */
+export function handleSearchDisambiguation(
+  searchResults: TraktSearchResult[],
+  searchTerm: string,
+  contentType: 'show' | 'movie',
+  providedYear?: number,
+  providedTraktId?: number
+): SearchDisambiguationResult {
+  if (searchResults.length === 0) {
+    throw new Error(`No ${contentType} found matching "${searchTerm}"`);
+  }
+
+  // If traktId provided, find exact match
+  if (providedTraktId !== undefined) {
+    const exactMatch = searchResults.find((result) => {
+      const item = contentType === 'show' ? result.show : result.movie;
+      return item?.ids.trakt === providedTraktId;
+    });
+
+    if (exactMatch) {
+      return { needsDisambiguation: false, selected: exactMatch };
+    }
+    throw new Error(`No ${contentType} found with Trakt ID ${providedTraktId}`);
+  }
+
+  // If year provided, filter by year
+  if (providedYear !== undefined) {
+    const yearMatches = searchResults.filter((result) => {
+      const item = contentType === 'show' ? result.show : result.movie;
+      return item?.year === providedYear;
+    });
+
+    if (yearMatches.length === 0) {
+      throw new Error(`No ${contentType} found matching "${searchTerm}" from year ${providedYear}`);
+    }
+
+    if (yearMatches.length === 1) {
+      return { needsDisambiguation: false, selected: yearMatches[0] };
+    }
+
+    // Multiple matches even with year - still need disambiguation
+    searchResults = yearMatches;
+  }
+
+  // If exactly one result, auto-select it
+  if (searchResults.length === 1) {
+    return { needsDisambiguation: false, selected: searchResults[0] };
+  }
+
+  // Check for exact title match (case-insensitive)
+  const normalizedSearchTerm = searchTerm.toLowerCase().trim();
+  const exactTitleMatches = searchResults.filter((result) => {
+    const item = contentType === 'show' ? result.show : result.movie;
+    return item?.title.toLowerCase().trim() === normalizedSearchTerm;
+  });
+
+  // If exactly one exact title match, auto-select it
+  if (exactTitleMatches.length === 1) {
+    return { needsDisambiguation: false, selected: exactTitleMatches[0] };
+  }
+
+  // Multiple results - need disambiguation
+  const options: DisambiguationOption[] = searchResults.slice(0, 10).map((result) => {
+    const item = contentType === 'show' ? result.show : result.movie;
+    if (!item) {
+      throw new Error('Search result missing item data');
+    }
+    return {
+      title: item.title,
+      year: item.year,
+      traktId: item.ids.trakt,
+      type: contentType,
+    };
+  });
+
+  return {
+    needsDisambiguation: true,
+    response: {
+      success: false,
+      needs_disambiguation: true,
+      options,
+      message: `Multiple matches found for "${searchTerm}". Please retry with the year parameter (e.g., year: ${options[0]?.year}) or traktId parameter (e.g., traktId: ${options[0]?.traktId}).`,
+    },
+  };
 }

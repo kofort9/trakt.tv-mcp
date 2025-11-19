@@ -7,6 +7,8 @@ import {
   validateSeasonNumber,
   createToolError,
   createToolSuccess,
+  validateNonEmptyString,
+  handleSearchDisambiguation,
   ToolError,
   ToolSuccess,
 } from './utils.js';
@@ -17,6 +19,7 @@ import {
   TraktHistoryAddResponse,
   TraktCalendarItem,
   TraktHistorySummary,
+  DisambiguationResponse,
 } from '../types/trakt.js';
 
 /**
@@ -28,12 +31,15 @@ export async function searchEpisode(
     showName: string;
     season: number;
     episode: number;
+    year?: number;
+    traktId?: number;
   }
-): Promise<ToolSuccess<TraktEpisode> | ToolError> {
+): Promise<ToolSuccess<TraktEpisode> | ToolError | DisambiguationResponse> {
   try {
-    const { showName, season, episode } = args;
+    const { showName, season, episode, year, traktId } = args;
 
     // Validate inputs
+    validateNonEmptyString(showName, 'showName');
     validateSeasonNumber(season);
     validateEpisodeNumber(episode);
 
@@ -47,8 +53,20 @@ export async function searchEpisode(
       );
     }
 
-    // Use the first result (highest score)
-    const show = searchResults[0].show;
+    // Handle disambiguation
+    const disambiguationResult = handleSearchDisambiguation(
+      searchResults,
+      showName,
+      'show',
+      year,
+      traktId
+    );
+
+    if (disambiguationResult.needsDisambiguation) {
+      return disambiguationResult.response;
+    }
+
+    const show = disambiguationResult.selected.show;
     if (!show) {
       return createToolError('NOT_FOUND', `Show data not found in search results`);
     }
@@ -75,10 +93,12 @@ export async function logWatch(
     season?: number;
     episode?: number;
     watchedAt?: string;
+    year?: number;
+    traktId?: number;
   }
-): Promise<ToolSuccess<TraktHistoryAddResponse> | ToolError> {
+): Promise<ToolSuccess<TraktHistoryAddResponse> | ToolError | DisambiguationResponse> {
   try {
-    const { type, showName, movieName, season, episode, watchedAt } = args;
+    const { type, showName, movieName, season, episode, watchedAt, year, traktId } = args;
 
     // Parse watched date if provided
     const watched_at = watchedAt ? parseNaturalDate(watchedAt) : new Date().toISOString();
@@ -91,6 +111,7 @@ export async function logWatch(
         );
       }
 
+      validateNonEmptyString(showName, 'showName');
       validateSeasonNumber(season);
       validateEpisodeNumber(episode);
 
@@ -103,7 +124,20 @@ export async function logWatch(
         );
       }
 
-      const show = searchResults[0].show;
+      // Handle disambiguation
+      const disambiguationResult = handleSearchDisambiguation(
+        searchResults,
+        showName,
+        'show',
+        year,
+        traktId
+      );
+
+      if (disambiguationResult.needsDisambiguation) {
+        return disambiguationResult.response;
+      }
+
+      const show = disambiguationResult.selected.show;
       if (!show) {
         return createToolError('NOT_FOUND', `Show data not found in search results`);
       }
@@ -142,6 +176,8 @@ export async function logWatch(
         return createToolError('VALIDATION_ERROR', 'For movies, movieName is required');
       }
 
+      validateNonEmptyString(movieName, 'movieName');
+
       // Search for the movie
       const searchResults = await client.search(movieName, 'movie');
       if (!Array.isArray(searchResults) || searchResults.length === 0) {
@@ -151,7 +187,20 @@ export async function logWatch(
         );
       }
 
-      const movie = searchResults[0].movie;
+      // Handle disambiguation
+      const disambiguationResult = handleSearchDisambiguation(
+        searchResults,
+        movieName,
+        'movie',
+        year,
+        traktId
+      );
+
+      if (disambiguationResult.needsDisambiguation) {
+        return disambiguationResult.response;
+      }
+
+      const movie = disambiguationResult.selected.movie;
       if (!movie) {
         return createToolError('NOT_FOUND', `Movie data not found in search results`);
       }
@@ -188,10 +237,12 @@ export async function bulkLog(
     season?: number;
     episodes?: string; // Can be "1-5" or "1,3,5" or "1-3,5,7-9"
     watchedAt?: string;
+    year?: number;
+    traktId?: number;
   }
-): Promise<ToolSuccess<TraktHistoryAddResponse> | ToolError> {
+): Promise<ToolSuccess<TraktHistoryAddResponse> | ToolError | DisambiguationResponse> {
   try {
-    const { type, showName, movieNames, season, episodes, watchedAt } = args;
+    const { type, showName, movieNames, season, episodes, watchedAt, year, traktId } = args;
 
     const watched_at = watchedAt ? parseNaturalDate(watchedAt) : new Date().toISOString();
 
@@ -203,6 +254,7 @@ export async function bulkLog(
         );
       }
 
+      validateNonEmptyString(showName, 'showName');
       validateSeasonNumber(season);
 
       // Parse episode range
@@ -223,7 +275,20 @@ export async function bulkLog(
         );
       }
 
-      const show = searchResults[0].show;
+      // Handle disambiguation
+      const disambiguationResult = handleSearchDisambiguation(
+        searchResults,
+        showName,
+        'show',
+        year,
+        traktId
+      );
+
+      if (disambiguationResult.needsDisambiguation) {
+        return disambiguationResult.response;
+      }
+
+      const show = disambiguationResult.selected.show;
       if (!show) {
         return createToolError('NOT_FOUND', `Show data not found in search results`);
       }
@@ -256,12 +321,32 @@ export async function bulkLog(
 
       // Search for each movie
       for (const movieName of movieNames) {
+        validateNonEmptyString(movieName, 'movieName');
+
         const searchResults = await client.search(movieName, 'movie');
         if (!Array.isArray(searchResults) || searchResults.length === 0) {
           return createToolError('NOT_FOUND', `No movie found matching "${movieName}"`);
         }
 
-        const movie = searchResults[0].movie;
+        // Handle disambiguation - for bulk operations, we auto-select first result
+        // to avoid complex multi-movie disambiguation flows
+        const disambiguationResult = handleSearchDisambiguation(
+          searchResults,
+          movieName,
+          'movie',
+          year,
+          traktId
+        );
+
+        if (disambiguationResult.needsDisambiguation) {
+          // For bulk operations, return disambiguation for the problematic movie
+          return {
+            ...disambiguationResult.response,
+            message: `${disambiguationResult.response.message} (This occurred while processing "${movieName}" in the bulk operation. Please use log_watch for individual movies if you need to disambiguate multiple titles.)`,
+          };
+        }
+
+        const movie = disambiguationResult.selected.movie;
         if (!movie) {
           return createToolError('NOT_FOUND', `Movie data not found for "${movieName}"`);
         }
@@ -469,10 +554,14 @@ export async function followShow(
   client: TraktClient,
   args: {
     showName: string;
+    year?: number;
+    traktId?: number;
   }
-): Promise<ToolSuccess<{ show: TraktShow; added: boolean }> | ToolError> {
+): Promise<ToolSuccess<{ show: TraktShow; added: boolean }> | ToolError | DisambiguationResponse> {
   try {
-    const { showName } = args;
+    const { showName, year, traktId } = args;
+
+    validateNonEmptyString(showName, 'showName');
 
     // Search for the show
     const searchResults = await client.search(showName, 'show');
@@ -483,7 +572,20 @@ export async function followShow(
       );
     }
 
-    const show = searchResults[0].show;
+    // Handle disambiguation
+    const disambiguationResult = handleSearchDisambiguation(
+      searchResults,
+      showName,
+      'show',
+      year,
+      traktId
+    );
+
+    if (disambiguationResult.needsDisambiguation) {
+      return disambiguationResult.response;
+    }
+
+    const show = disambiguationResult.selected.show;
     if (!show) {
       return createToolError('NOT_FOUND', `Show data not found in search results`);
     }
@@ -512,10 +614,14 @@ export async function unfollowShow(
   client: TraktClient,
   args: {
     showName: string;
+    year?: number;
+    traktId?: number;
   }
-): Promise<ToolSuccess<{ show: TraktShow; removed: boolean }> | ToolError> {
+): Promise<ToolSuccess<{ show: TraktShow; removed: boolean }> | ToolError | DisambiguationResponse> {
   try {
-    const { showName } = args;
+    const { showName, year, traktId } = args;
+
+    validateNonEmptyString(showName, 'showName');
 
     // Search for the show
     const searchResults = await client.search(showName, 'show');
@@ -526,7 +632,20 @@ export async function unfollowShow(
       );
     }
 
-    const show = searchResults[0].show;
+    // Handle disambiguation
+    const disambiguationResult = handleSearchDisambiguation(
+      searchResults,
+      showName,
+      'show',
+      year,
+      traktId
+    );
+
+    if (disambiguationResult.needsDisambiguation) {
+      return disambiguationResult.response;
+    }
+
+    const show = disambiguationResult.selected.show;
     if (!show) {
       return createToolError('NOT_FOUND', `Show data not found in search results`);
     }
