@@ -14,7 +14,7 @@ export function parseNaturalDate(input: string): string {
   // Validate input is not empty
   if (!lowerInput || lowerInput === '') {
     throw new Error(
-      'Date parameter cannot be empty. Supported formats: "today", "yesterday", "last week", "last month", "January 2025", or ISO date (YYYY-MM-DD)'
+      'Date parameter cannot be empty. Supported formats: "today", "yesterday", "last week", "last weekend", "last monday" (or any weekday), "last month", "January 2025", or ISO date (YYYY-MM-DD)'
     );
   }
 
@@ -75,6 +75,57 @@ export function parseNaturalDate(input: string): string {
     return lastWeek.toISOString();
   }
 
+  // Handle "last weekend" - returns last Saturday
+  if (lowerInput === 'last weekend') {
+    const dayOfWeek = now.getUTCDay(); // 0=Sun, 6=Sat
+    let daysToLastSaturday: number;
+
+    if (dayOfWeek === 0) {
+      // If today is Sunday, last Saturday is 1 day ago
+      daysToLastSaturday = 1;
+    } else {
+      // Otherwise, calculate days back to last Saturday
+      daysToLastSaturday = dayOfWeek + 1;
+    }
+
+    const lastSaturday = new Date(Date.UTC(currentYear, currentMonth, currentDate - daysToLastSaturday));
+    return lastSaturday.toISOString();
+  }
+
+  // Handle "last [weekday]" patterns - e.g., "last monday", "last tuesday"
+  const weekdayMatch = lowerInput.match(/^last\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/);
+  if (weekdayMatch) {
+    const targetWeekday = weekdayMatch[1];
+    const weekdayMap: { [key: string]: number } = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+    };
+
+    const targetDay = weekdayMap[targetWeekday];
+    const currentDay = now.getUTCDay();
+
+    // Calculate days to go back
+    let daysBack: number;
+    if (currentDay === targetDay) {
+      // If today is the target day, go back a full week
+      daysBack = 7;
+    } else if (currentDay > targetDay) {
+      // Target day is earlier in the current week
+      daysBack = currentDay - targetDay;
+    } else {
+      // Target day is in the previous week
+      daysBack = 7 - (targetDay - currentDay);
+    }
+
+    const targetDate = new Date(Date.UTC(currentYear, currentMonth, currentDate - daysBack));
+    return targetDate.toISOString();
+  }
+
   if (lowerInput === 'last month') {
     // Subtract 1 month in UTC
     const lastMonth = new Date(Date.UTC(currentYear, currentMonth - 1, currentDate));
@@ -94,7 +145,7 @@ export function parseNaturalDate(input: string): string {
   }
 
   throw new Error(
-    `Unable to parse date: "${input}". Use ISO format (YYYY-MM-DD) or natural language (today, yesterday, last week, last month)`
+    `Unable to parse date: "${input}". Use ISO format (YYYY-MM-DD) or natural language (today, yesterday, last week, last weekend, last monday, last month)`
   );
 }
 

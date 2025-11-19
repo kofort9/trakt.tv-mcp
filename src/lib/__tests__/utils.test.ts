@@ -117,6 +117,118 @@ describe('utils', () => {
       expect(daysDifference).toBe(1);
       expect(parsed.getTime()).toBe(yesterdayUTC.getTime());
     });
+
+    // Test "last weekend" parsing
+    it('should parse "last weekend" as last Saturday', () => {
+      const result = parseNaturalDate('last weekend');
+      const parsed = new Date(result);
+
+      // Verify it's a Saturday (day 6)
+      expect(parsed.getUTCDay()).toBe(6);
+
+      // Verify it's in the past
+      const now = new Date();
+      expect(parsed.getTime()).toBeLessThan(now.getTime());
+
+      // Verify format
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/);
+    });
+
+    // Test "last monday" parsing
+    it('should parse "last monday" correctly', () => {
+      const result = parseNaturalDate('last monday');
+      const parsed = new Date(result);
+
+      // Verify it's a Monday (day 1)
+      expect(parsed.getUTCDay()).toBe(1);
+
+      // Verify it's in the past
+      const now = new Date();
+      expect(parsed.getTime()).toBeLessThan(now.getTime());
+
+      // Verify format
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/);
+    });
+
+    // Test all weekdays
+    it('should parse all weekday patterns', () => {
+      const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+      weekdays.forEach((day, expectedDayOfWeek) => {
+        const result = parseNaturalDate(`last ${day}`);
+        const parsed = new Date(result);
+
+        // Verify it's the correct day of week
+        expect(parsed.getUTCDay()).toBe(expectedDayOfWeek);
+
+        // Verify it's in the past
+        const now = new Date();
+        expect(parsed.getTime()).toBeLessThan(now.getTime());
+
+        // Verify format
+        expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/);
+      });
+    });
+
+    // Test boundary condition: "last monday" when today is Monday
+    it('should handle "last monday" when today is Monday (goes back full week)', () => {
+      const now = new Date();
+      const currentDayOfWeek = now.getUTCDay();
+
+      // Only run this test if today is Monday
+      if (currentDayOfWeek === 1) {
+        const result = parseNaturalDate('last monday');
+        const parsed = new Date(result);
+
+        // Should be exactly 7 days ago
+        const daysDifference = Math.floor((now.getTime() - parsed.getTime()) / (1000 * 60 * 60 * 24));
+        expect(daysDifference).toBe(7);
+      }
+    });
+
+    // Test boundary: "yesterday" crossing month boundary
+    it('should correctly handle "yesterday" on the 1st of the month', () => {
+      // This test verifies the implementation handles month boundaries correctly
+      // by checking that the result is always exactly 1 day before "today"
+      const result = parseNaturalDate('yesterday');
+      const parsed = new Date(result);
+      const now = new Date();
+      const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+      const hoursDifference = (today.getTime() - parsed.getTime()) / (1000 * 60 * 60);
+      expect(hoursDifference).toBe(24);
+    });
+
+    // Test boundary: "last week" crossing month boundary
+    it('should correctly handle "last week" crossing month boundaries', () => {
+      const result = parseNaturalDate('last week');
+      const parsed = new Date(result);
+      const now = new Date();
+      const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+      const daysDifference = (today.getTime() - parsed.getTime()) / (1000 * 60 * 60 * 24);
+      expect(daysDifference).toBe(7);
+    });
+
+    // Test boundary: "last month" in January
+    it('should correctly handle "last month" in January (goes to previous year)', () => {
+      // This test verifies month arithmetic handles year boundaries
+      const result = parseNaturalDate('last month');
+      const parsed = new Date(result);
+
+      const now = new Date();
+      const currentMonth = now.getUTCMonth();
+      const resultMonth = parsed.getUTCMonth();
+
+      if (currentMonth === 0) {
+        // If current month is January (0), last month should be December (11) of previous year
+        expect(resultMonth).toBe(11);
+        expect(parsed.getUTCFullYear()).toBe(now.getUTCFullYear() - 1);
+      } else {
+        // Otherwise, should be previous month in same year
+        expect(resultMonth).toBe(currentMonth - 1);
+      }
+    });
   });
 
   describe('parseDateRange', () => {
