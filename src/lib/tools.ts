@@ -9,6 +9,7 @@ import {
   createToolSuccess,
   validateNonEmptyString,
   handleSearchDisambiguation,
+  sanitizeError,
   ToolError,
   ToolSuccess,
 } from './utils.js';
@@ -76,8 +77,8 @@ export async function searchEpisode(
 
     return createToolSuccess<TraktEpisode>(episodeData as TraktEpisode);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return createToolError('TRAKT_API_ERROR', `Failed to search episode: ${message}`);
+    const message = sanitizeError(error, 'searchEpisode');
+    return createToolError('TRAKT_API_ERROR', message);
   }
 }
 
@@ -219,8 +220,8 @@ export async function logWatch(
       return createToolSuccess<TraktHistoryAddResponse>(response as TraktHistoryAddResponse);
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return createToolError('TRAKT_API_ERROR', `Failed to log watch: ${message}`);
+    const message = sanitizeError(error, 'logWatch');
+    return createToolError('TRAKT_API_ERROR', message);
   }
 }
 
@@ -362,8 +363,8 @@ export async function bulkLog(
       return createToolSuccess<TraktHistoryAddResponse>(response as TraktHistoryAddResponse);
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return createToolError('TRAKT_API_ERROR', `Failed to bulk log: ${message}`);
+    const message = sanitizeError(error, 'bulkLog');
+    return createToolError('TRAKT_API_ERROR', message);
   }
 }
 
@@ -415,8 +416,8 @@ export async function getHistory(
 
     return createToolSuccess(results);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return createToolError('TRAKT_API_ERROR', `Failed to get history: ${message}`);
+    const message = sanitizeError(error, 'getHistory');
+    return createToolError('TRAKT_API_ERROR', message);
   }
 }
 
@@ -505,8 +506,8 @@ export async function summarizeHistory(
 
     return createToolSuccess(summary);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return createToolError('TRAKT_API_ERROR', `Failed to summarize history: ${message}`);
+    const message = sanitizeError(error, 'summarizeHistory');
+    return createToolError('TRAKT_API_ERROR', message);
   }
 }
 
@@ -542,8 +543,8 @@ export async function getUpcoming(
 
     return createToolSuccess(results);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return createToolError('TRAKT_API_ERROR', `Failed to get upcoming: ${message}`);
+    const message = sanitizeError(error, 'getUpcoming');
+    return createToolError('TRAKT_API_ERROR', message);
   }
 }
 
@@ -602,8 +603,8 @@ export async function followShow(
       added: true,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return createToolError('TRAKT_API_ERROR', `Failed to follow show: ${message}`);
+    const message = sanitizeError(error, 'followShow');
+    return createToolError('TRAKT_API_ERROR', message);
   }
 }
 
@@ -662,7 +663,7 @@ export async function unfollowShow(
       removed: true,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return createToolError('TRAKT_API_ERROR', `Failed to unfollow show: ${message}`);
+    const message = sanitizeError(error, 'unfollowShow');
+    return createToolError('TRAKT_API_ERROR', message);
   }
 }

@@ -334,6 +334,71 @@ export function validateNonEmptyString(value: string | undefined, paramName: str
 }
 
 /**
+ * Sanitize error messages for user consumption
+ * Maps common API errors to user-friendly messages while logging full errors server-side
+ */
+export function sanitizeError(error: unknown, context?: string): string {
+  // Log the full error server-side for debugging
+  console.error('[Error]', context || 'Unknown context', error);
+
+  if (error instanceof Error) {
+    const message = error.message;
+
+    // Map common error patterns to user-friendly messages
+    const errorMappings: Record<string, string> = {
+      // Network errors
+      'Network Error': 'Unable to connect to Trakt.tv. Please check your internet connection.',
+      'ECONNREFUSED': 'Unable to connect to Trakt.tv. The service may be temporarily unavailable.',
+      'ETIMEDOUT': 'Request timed out. Please try again.',
+      'ENOTFOUND': 'Unable to reach Trakt.tv. Please check your internet connection.',
+
+      // Authentication errors
+      'Authentication failed': 'Authentication failed. Please re-authenticate with Trakt.tv.',
+      'Invalid token': 'Your session has expired. Please re-authenticate.',
+      'Unauthorized': 'Authentication required. Please authenticate with Trakt.tv.',
+
+      // Rate limiting
+      'Rate limit exceeded': 'Too many requests. Please wait a moment and try again.',
+      '429': 'Rate limit exceeded. Please wait a few minutes and try again.',
+
+      // API errors
+      '404': 'The requested content was not found on Trakt.tv.',
+      '500': 'Trakt.tv is experiencing issues. Please try again later.',
+      '502': 'Trakt.tv is temporarily unavailable. Please try again in a few minutes.',
+      '503': 'Trakt.tv is under maintenance. Please try again later.',
+    };
+
+    // Check for exact matches first
+    for (const [pattern, userMessage] of Object.entries(errorMappings)) {
+      if (message.includes(pattern)) {
+        return userMessage;
+      }
+    }
+
+    // If it's already a user-friendly message (doesn't contain technical details), return as-is
+    const technicalPatterns = [
+      /stack trace/i,
+      /at\s+[\w.]+\s+\(/i, // Stack trace lines
+      /Error:\s+Error:/i, // Nested error wrapping
+      /\n\s+at\s+/i, // Multi-line stack traces
+      /code:\s*['"]?\w+['"]?/i, // Error codes
+    ];
+
+    const hasTechnicalDetails = technicalPatterns.some((pattern) => pattern.test(message));
+    if (!hasTechnicalDetails && message.length < 200) {
+      // Likely already user-friendly
+      return message;
+    }
+
+    // Generic fallback for unknown errors
+    return 'An unexpected error occurred. Please try again or contact support if the problem persists.';
+  }
+
+  // Non-Error objects
+  return 'An unexpected error occurred. Please try again.';
+}
+
+/**
  * Result of search disambiguation - either a selected item or a disambiguation response
  */
 export type SearchDisambiguationResult =
