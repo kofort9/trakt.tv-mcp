@@ -1,42 +1,58 @@
 import {
   parseISO,
-  subDays,
-  subWeeks,
-  subMonths,
-  startOfDay,
-  format,
 } from 'date-fns';
 
 /**
  * Parse natural language date strings into ISO format
  * Supports: "yesterday", "last week", "last month", ISO strings, etc.
+ *
+ * CRITICAL: Uses UTC dates to avoid timezone-related off-by-one errors.
+ * All dates are returned at midnight UTC (00:00:00.000Z).
  */
 export function parseNaturalDate(input: string): string {
-  const now = new Date();
   const lowerInput = input.toLowerCase().trim();
 
-  // Handle relative dates
+  // Get current date in UTC
+  const now = new Date();
+  const currentYear = now.getUTCFullYear();
+  const currentMonth = now.getUTCMonth();
+  const currentDate = now.getUTCDate();
+
+  // Handle relative dates using UTC date operations
   if (lowerInput === 'today') {
-    return format(startOfDay(now), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    const today = new Date(Date.UTC(currentYear, currentMonth, currentDate));
+    return today.toISOString();
   }
 
   if (lowerInput === 'yesterday') {
-    return format(startOfDay(subDays(now, 1)), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    // Subtract 1 day in UTC
+    const yesterday = new Date(Date.UTC(currentYear, currentMonth, currentDate - 1));
+    return yesterday.toISOString();
   }
 
   if (lowerInput === 'last week') {
-    return format(startOfDay(subWeeks(now, 1)), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    // Subtract 7 days in UTC
+    const lastWeek = new Date(Date.UTC(currentYear, currentMonth, currentDate - 7));
+    return lastWeek.toISOString();
   }
 
   if (lowerInput === 'last month') {
-    return format(startOfDay(subMonths(now, 1)), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    // Subtract 1 month in UTC
+    const lastMonth = new Date(Date.UTC(currentYear, currentMonth - 1, currentDate));
+    return lastMonth.toISOString();
   }
 
   // Try parsing as ISO date
   try {
     const parsed = parseISO(input);
     if (!isNaN(parsed.getTime())) {
-      return format(parsed, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+      // Convert to UTC midnight
+      const utcDate = new Date(Date.UTC(
+        parsed.getFullYear(),
+        parsed.getMonth(),
+        parsed.getDate()
+      ));
+      return utcDate.toISOString();
     }
   } catch {
     // Fall through to error

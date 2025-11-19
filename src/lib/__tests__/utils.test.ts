@@ -11,33 +11,125 @@ import {
 
 describe('utils', () => {
   describe('parseNaturalDate', () => {
-    it('should parse "today"', () => {
+    it('should parse "today" as UTC midnight', () => {
       const result = parseNaturalDate('today');
-      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+
+      // Verify format
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/);
+
+      // Verify it's actually today in UTC
+      const now = new Date();
+      const expectedDate = new Date(Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate()
+      ));
+      expect(result).toBe(expectedDate.toISOString());
     });
 
-    it('should parse "yesterday"', () => {
+    it('should parse "yesterday" as UTC midnight one day ago', () => {
       const result = parseNaturalDate('yesterday');
-      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+
+      // Verify format
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/);
+
+      // Verify it's actually yesterday in UTC
+      const now = new Date();
+      const expectedDate = new Date(Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() - 1
+      ));
+      expect(result).toBe(expectedDate.toISOString());
     });
 
-    it('should parse "last week"', () => {
+    it('should parse "last week" as UTC midnight 7 days ago', () => {
       const result = parseNaturalDate('last week');
-      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+
+      // Verify format
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/);
+
+      // Verify it's actually 7 days ago in UTC
+      const now = new Date();
+      const expectedDate = new Date(Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() - 7
+      ));
+      expect(result).toBe(expectedDate.toISOString());
     });
 
-    it('should parse "last month"', () => {
+    it('should parse "last month" as UTC midnight 1 month ago', () => {
       const result = parseNaturalDate('last month');
-      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+
+      // Verify format
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/);
+
+      // Verify it's actually 1 month ago in UTC
+      const now = new Date();
+      const expectedDate = new Date(Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth() - 1,
+        now.getUTCDate()
+      ));
+      expect(result).toBe(expectedDate.toISOString());
     });
 
-    it('should parse ISO date', () => {
+    it('should parse ISO date to UTC midnight', () => {
       const result = parseNaturalDate('2024-01-15');
       expect(result).toBe('2024-01-15T00:00:00.000Z');
     });
 
+    it('should parse ISO date with time to UTC midnight', () => {
+      const result = parseNaturalDate('2024-01-15T14:30:00');
+      expect(result).toBe('2024-01-15T00:00:00.000Z');
+    });
+
+    it('should handle case-insensitive input', () => {
+      expect(parseNaturalDate('TODAY')).toMatch(/T00:00:00\.000Z$/);
+      expect(parseNaturalDate('Yesterday')).toMatch(/T00:00:00\.000Z$/);
+      expect(parseNaturalDate('LAST WEEK')).toMatch(/T00:00:00\.000Z$/);
+    });
+
+    it('should handle whitespace in input', () => {
+      expect(parseNaturalDate('  today  ')).toMatch(/T00:00:00\.000Z$/);
+      expect(parseNaturalDate('  yesterday  ')).toMatch(/T00:00:00\.000Z$/);
+    });
+
     it('should throw error for invalid date', () => {
-      expect(() => parseNaturalDate('invalid date')).toThrow();
+      expect(() => parseNaturalDate('invalid date')).toThrow(
+        /Unable to parse date/
+      );
+    });
+
+    it('should throw error with helpful message', () => {
+      expect(() => parseNaturalDate('next week')).toThrow(
+        /Use ISO format \(YYYY-MM-DD\) or natural language/
+      );
+    });
+
+    // Critical test: Verify no off-by-one errors
+    it('should correctly calculate yesterday regardless of local timezone', () => {
+      const result = parseNaturalDate('yesterday');
+      const parsed = new Date(result);
+
+      // Get current UTC date components
+      const now = new Date();
+      const todayUTC = new Date(Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate()
+      ));
+      const yesterdayUTC = new Date(Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() - 1
+      ));
+
+      // Result should be exactly 24 hours before today at UTC midnight
+      const daysDifference = (todayUTC.getTime() - parsed.getTime()) / (1000 * 60 * 60 * 24);
+      expect(daysDifference).toBe(1);
+      expect(parsed.getTime()).toBe(yesterdayUTC.getTime());
     });
   });
 
