@@ -242,11 +242,16 @@ export function createToolError(
 export interface ToolSuccess<T = unknown> {
   success: true;
   data: T;
+  message?: string;
 }
 
-export function createToolSuccess<T>(data: T): ToolSuccess<T> {
-  return {
+export function createToolSuccess<T>(data: T, message?: string): ToolSuccess<T> {
+  const result: ToolSuccess<T> = {
     success: true,
     data,
   };
+  if (message) {
+    result.message = message;
+  }
+  return result;
 }

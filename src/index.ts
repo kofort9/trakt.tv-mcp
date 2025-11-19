@@ -302,6 +302,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       const results = await traktClient.search(query, type);
 
+      // Add helpful message for empty search results
+      if (Array.isArray(results) && results.length === 0) {
+        const response = {
+          results: [],
+          message: `No results found for "${query}". Try different search terms or check spelling.`,
+        };
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(response, null, 2),
+            },
+          ],
+        };
+      }
+
       return {
         content: [
           {

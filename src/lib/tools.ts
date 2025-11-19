@@ -322,6 +322,24 @@ export async function getHistory(
       results = results.slice(0, limit);
     }
 
+    // Add helpful message for empty results
+    if (results.length === 0) {
+      const parts: string[] = ['No watch history found'];
+      if (startDate || endDate) {
+        parts.push('in the specified date range');
+      }
+      if (type) {
+        parts.push(`for ${type}`);
+      }
+      parts.push('. Try logging some content with log_watch or bulk_log first.');
+
+      return {
+        success: true,
+        data: results,
+        message: parts.join(' '),
+      } as ToolSuccess<TraktWatchedItem[]>;
+    }
+
     return createToolSuccess(results);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -450,7 +468,17 @@ export async function getUpcoming(
     const today = new Date().toISOString().split('T')[0];
     const calendar = await client.getCalendar(today, days);
 
-    return createToolSuccess(Array.isArray(calendar) ? calendar : []);
+    const results = Array.isArray(calendar) ? calendar : [];
+
+    // Add helpful message for empty results
+    if (results.length === 0) {
+      return createToolSuccess(
+        results,
+        'No upcoming episodes found. Try following some shows first using follow_show.'
+      );
+    }
+
+    return createToolSuccess(results);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return createToolError('TRAKT_API_ERROR', `Failed to get upcoming: ${message}`);

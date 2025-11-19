@@ -1,0 +1,279 @@
+[
+  {
+    "name": "1.1: Breaking Bad S1E1 (Happy Path)",
+    "status": "PASS",
+    "input": {
+      "showName": "Breaking Bad",
+      "season": 1,
+      "episode": 1
+    },
+    "expected": "Episode with title \"Pilot\"",
+    "actual": "{\n  \"season\": 1,\n  \"number\": 1,\n  \"title\": \"Pilot\",\n  \"ids\": {\n    \"trakt\": 73482,\n    \"tvdb\": 349232,\n    \"imdb\": \"tt0959621\",\n    \"tmdb\": 62085,\n    \"tvrage\": null\n  }\n}"
+  },
+  {
+    "name": "1.2: The Office S2E5",
+    "status": "PASS",
+    "input": {
+      "showName": "The Office",
+      "season": 2,
+      "episode": 5
+    },
+    "expected": "Episode metadata",
+    "actual": "{\n  \"success\": true,\n  \"data\": {\n    \"season\": 2,\n    \"number\": 5,\n    \"title\": \"Halloween\",\n    \"ids\": {\n      \"trakt\": 12194724,\n      \"tvdb\": null,\n      \"imdb\": \"tt28347946\",\n      \"tmdb\": 5551472,\n      \"tvrage\": null\n    }\n  }\n}"
+  },
+  {
+    "name": "1.3: Season 0 (Specials)",
+    "status": "PASS",
+    "input": {
+      "showName": "Breaking Bad",
+      "season": 0,
+      "episode": 1
+    },
+    "expected": "Special episode or appropriate error",
+    "actual": "{\n  \"success\": true,\n  \"data\": {\n    \"season\": 0,\n    \"number\": 1,\n    \"title\": \"Good Cop / Bad Cop\",\n    \"ids\": {\n      \"trakt\": 73476,\n      \"tvdb\": 3859781,\n      \"imdb\": \"tt2392713\",\n      \"tmdb\": 62131,\n      \"tvrage\": null\n    }\n  }\n}"
+  },
+  {
+    "name": "1.4: Invalid Show Name",
+    "status": "PASS",
+    "input": {
+      "showName": "ThisShowDoesNotExist12345",
+      "season": 1,
+      "episode": 1
+    },
+    "expected": "NOT_FOUND error",
+    "actual": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"No show found matching \\\"ThisShowDoesNotExist12345\\\". Try using search_show to find the correct show name.\"\n  }\n}",
+    "notes": "Correctly returned NOT_FOUND"
+  },
+  {
+    "name": "1.5: Invalid Episode Number",
+    "status": "PASS",
+    "input": {
+      "showName": "Breaking Bad",
+      "season": 1,
+      "episode": 999
+    },
+    "expected": "NOT_FOUND error",
+    "actual": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"TRAKT_API_ERROR\",\n    \"message\": \"Failed to search episode: Request failed with status code 404\"\n  }\n}"
+  },
+  {
+    "name": "1.6: Negative Season",
+    "status": "FAIL",
+    "input": {
+      "showName": "Breaking Bad",
+      "season": -1,
+      "episode": 1
+    },
+    "expected": "VALIDATION_ERROR",
+    "actual": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"TRAKT_API_ERROR\",\n    \"message\": \"Failed to search episode: Season number must be a non-negative integer, got: -1\"\n  }\n}"
+  },
+  {
+    "name": "2.1: Episode Range \"1-5\"",
+    "status": "PASS",
+    "input": {
+      "type": "episodes",
+      "showName": "Breaking Bad",
+      "season": 1,
+      "episodes": "1-5"
+    },
+    "expected": "5 episodes added",
+    "actual": "{\n  \"success\": true,\n  \"data\": {\n    \"added\": {\n      \"movies\": 0,\n      \"episodes\": 1\n    },\n    \"updated\": {\n      \"movies\": 0,\n      \"episodes\": 0\n    },\n    \"not_found\": {\n      \"movies\": [],\n      \"shows\": [],\n      \"seasons\": [],\n      \"episodes\": [],\n      \"people\": [],\n      \"users\": []\n    }\n  }\n}"
+  },
+  {
+    "name": "2.2: Complex Range \"1-3,5,7-9\"",
+    "status": "PASS",
+    "input": {
+      "type": "episodes",
+      "showName": "The Office",
+      "season": 2,
+      "episodes": "1-3,5,7-9"
+    },
+    "expected": "7 episodes added",
+    "actual": "{\n  \"success\": true,\n  \"data\": {\n    \"added\": {\n      \"movies\": 0,\n      \"episodes\": 0\n    },\n    \"updated\": {\n      \"movies\": 0,\n      \"episodes\": 0\n    },\n    \"not_found\": {\n      \"movies\": [],\n      \"shows\": [],\n      \"seasons\": [],\n      \"episodes\": [\n        {\n          \"watched_at\": \"2025-11-12T00:00:00.000Z\",\n          \"ids\": {\n            \"trakt\": 250849\n          },\n          \"seasons\": [\n            {\n              \"number\": 2,\n              \"episodes\": [\n                {\n                  \"number\": 1\n                },\n                {\n                  \"number\": 2\n                },\n                {\n                  \"number\": 3\n                },\n                {\n                  \"number\": 5\n                },\n                {\n                  \"number\": 7\n                },\n                {\n                  \"number\": 8\n                },\n                {\n                  \"number\": 9\n                }\n              ]\n            }\n          ]\n        }\n      ],\n      \"people\": [],\n      \"users\": []\n    }\n  }\n}"
+  },
+  {
+    "name": "2.3: Single Episode",
+    "status": "PASS",
+    "input": {
+      "type": "episodes",
+      "showName": "Breaking Bad",
+      "season": 1,
+      "episodes": "7"
+    },
+    "expected": "1 episode added",
+    "actual": "{\n  \"success\": true,\n  \"data\": {\n    \"added\": {\n      \"movies\": 0,\n      \"episodes\": 1\n    },\n    \"updated\": {\n      \"movies\": 0,\n      \"episodes\": 0\n    },\n    \"not_found\": {\n      \"movies\": [],\n      \"shows\": [],\n      \"seasons\": [],\n      \"episodes\": [],\n      \"people\": [],\n      \"users\": []\n    }\n  }\n}"
+  },
+  {
+    "name": "2.4: Multiple Movies",
+    "status": "PASS",
+    "input": {
+      "type": "movies",
+      "movieNames": [
+        "Inception",
+        "Interstellar"
+      ]
+    },
+    "expected": "2 movies added",
+    "actual": "{\n  \"success\": true,\n  \"data\": {\n    \"added\": {\n      \"movies\": 2,\n      \"episodes\": 0\n    },\n    \"updated\": {\n      \"movies\": 0,\n      \"episodes\": 0\n    },\n    \"not_found\": {\n      \"movies\": [],\n      \"shows\": [],\n      \"seasons\": [],\n      \"episodes\": [],\n      \"people\": [],\n      \"users\": []\n    }\n  }\n}"
+  },
+  {
+    "name": "2.5: Invalid Range Format",
+    "status": "PASS",
+    "input": {
+      "type": "episodes",
+      "showName": "Breaking Bad",
+      "season": 1,
+      "episodes": "abc-xyz"
+    },
+    "expected": "VALIDATION_ERROR",
+    "actual": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Invalid episode range: \\\"abc-xyz\\\"\"\n  }\n}"
+  },
+  {
+    "name": "2.6: Missing Required Fields",
+    "status": "PASS",
+    "input": {
+      "type": "episodes",
+      "showName": "Breaking Bad"
+    },
+    "expected": "VALIDATION_ERROR",
+    "actual": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"For episodes, showName, season, and episodes are required\"\n  }\n}"
+  },
+  {
+    "name": "3.1: Last 10 Items",
+    "status": "PASS",
+    "input": {
+      "limit": 10
+    },
+    "expected": "Up to 10 recent items",
+    "actual": "Returned 10 items"
+  },
+  {
+    "name": "3.2: Shows Only",
+    "status": "PASS",
+    "input": {
+      "type": "shows",
+      "limit": 10
+    },
+    "expected": "Only TV episodes",
+    "actual": "Returned 3 items"
+  },
+  {
+    "name": "3.3: Movies Only",
+    "status": "PASS",
+    "input": {
+      "type": "movies",
+      "limit": 10
+    },
+    "expected": "Only movies",
+    "actual": "Returned 10 items"
+  },
+  {
+    "name": "3.4: Date Range - Last Week",
+    "status": "PASS",
+    "input": {
+      "startDate": "last week",
+      "endDate": "today"
+    },
+    "expected": "Items from last week",
+    "actual": "Returned 5 items"
+  },
+  {
+    "name": "3.5: Empty Date Range",
+    "status": "PASS",
+    "input": {
+      "startDate": "2020-01-01",
+      "endDate": "2020-01-02"
+    },
+    "expected": "Empty array",
+    "actual": "Returned 0 items"
+  },
+  {
+    "name": "4.1: Default (7 days)",
+    "status": "PASS",
+    "input": {},
+    "expected": "Upcoming episodes for next 7 days",
+    "actual": "Returned 0 items"
+  },
+  {
+    "name": "4.2: 30 Days",
+    "status": "PASS",
+    "input": {
+      "days": 30
+    },
+    "expected": "Next 30 days of episodes",
+    "actual": "Returned 0 items"
+  },
+  {
+    "name": "4.3: 1 Day",
+    "status": "PASS",
+    "input": {
+      "days": 1
+    },
+    "expected": "Today's episodes",
+    "actual": "Returned 0 items"
+  },
+  {
+    "name": "4.4: Invalid Days (0)",
+    "status": "FAIL",
+    "input": {
+      "days": 0
+    },
+    "expected": "VALIDATION_ERROR",
+    "actual": "{\n  \"success\": true,\n  \"data\": []\n}"
+  },
+  {
+    "name": "4.5: Invalid Days (31)",
+    "status": "PASS",
+    "input": {
+      "days": 31
+    },
+    "expected": "VALIDATION_ERROR",
+    "actual": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Days must be between 1 and 30\"\n  }\n}"
+  },
+  {
+    "name": "5.1: Follow Show",
+    "status": "PASS",
+    "input": {
+      "showName": "Stranger Things"
+    },
+    "expected": "Show added to watchlist",
+    "actual": "{\n  \"success\": true,\n  \"data\": {\n    \"show\": {\n      \"title\": \"Stranger Things\",\n      \"year\": 2016,\n      \"ids\": {\n        \"trakt\": 104439,\n        \"slug\": \"stranger-things\",\n        \"imdb\": \"tt4574334\",\n        \"tmdb\": 66732,\n        \"plex\": {\n          \"guid\": \"5d9c07efe9d5a1001f4d5ec1\",\n          \"slug\": \"stranger-things\"\n        }\n      },\n      \"tagline\": \"One last adventure.\",\n      \"overview\": \"When a young boy vanishes, a small town uncovers a mystery involving secret experiments, terrifying supernatural forces, and one strange little girl.\",\n      \"runtime\": 60,\n      \"country\": \"us\",\n      \"trailer\": \"https://youtube.com/watch?v=PssKpzB0Ah0\",\n      \"homepage\": \"https://www.netflix.com/title/80057281\",\n      \"status\": \"returning series\",\n      \"rating\": 8.45634,\n      \"votes\": 64505,\n      \"comment_count\": 196,\n      \"updated_at\": \"2025-11-18T16:56:49.000Z\",\n      \"language\": \"en\",\n      \"languages\": [\n        \"en\"\n      ],\n      \"available_translations\": [\n        \"ar\",\n        \"bg\",\n        \"bs\",\n        \"cs\",\n        \"da\",\n        \"de\",\n        \"el\",\n        \"en\",\n        \"es\",\n        \"eu\",\n        \"fa\",\n        \"fi\",\n        \"fr\",\n        \"he\",\n        \"hi\",\n        \"hr\",\n        \"hu\",\n        \"id\",\n        \"it\",\n        \"ja\",\n        \"ka\",\n        \"ko\",\n        \"lt\",\n        \"lv\",\n        \"ms\",\n        \"nl\",\n        \"no\",\n        \"pl\",\n        \"pt\",\n        \"ro\",\n        \"ru\",\n        \"sk\",\n        \"sl\",\n        \"so\",\n        \"sr\",\n        \"sv\",\n        \"th\",\n        \"tl\",\n        \"tr\",\n        \"uk\",\n        \"uz\",\n        \"vi\",\n        \"zh\"\n      ],\n      \"genres\": [\n        \"fantasy\",\n        \"science-fiction\",\n        \"mystery\",\n        \"horror\",\n        \"action\",\n        \"adventure\"\n      ],\n      \"subgenres\": [\n        \"friendship\",\n        \"love-triangle\",\n        \"monster\",\n        \"supernatural\",\n        \"coming-of-age\",\n        \"halloween\",\n        \"single-mother\",\n        \"small-town\",\n        \"1980s\",\n        \"missing-person\",\n        \"psychological-thriller\",\n        \"teen-drama\",\n        \"super-power\",\n        \"female-protagonist\",\n        \"experiment\",\n        \"sheriff\",\n        \"supernatural-horror\"\n      ],\n      \"original_title\": \"Stranger Things\",\n      \"images\": {\n        \"fanart\": [\n          \"media.trakt.tv/images/shows/000/104/439/fanarts/medium/08ffc0eae9.jpg.webp\"\n        ],\n        \"poster\": [\n          \"media.trakt.tv/images/shows/000/104/439/posters/medium/84177ad9b8.jpg.webp\"\n        ],\n        \"logo\": [\n          \"media.trakt.tv/images/shows/000/104/439/logos/medium/ab6c97ae8e.png.webp\"\n        ],\n        \"banner\": [\n          \"media.trakt.tv/images/shows/000/104/439/banners/medium/b7f2406aed.jpg.webp\"\n        ],\n        \"thumb\": [\n          \"media.trakt.tv/images/shows/000/104/439/thumbs/medium/064a38f738.jpg.webp\"\n        ],\n        \"clearart\": [\n          \"media.trakt.tv/images/shows/000/104/439/cleararts/medium/42ae109f8d.png.webp\"\n        ]\n      },\n      \"colors\": {\n        \"poster\": [\n          \"#BCA38C\",\n          \"#2D2F2C\"\n        ]\n      },\n      \"first_aired\": \"2016-07-16T00:00:00.000Z\",\n      \"aired_episodes\": 34,\n      \"certification\": \"TV-14\",\n      \"airs\": {\n        \"day\": \"Wednesday\",\n        \"time\": \"20:00\",\n        \"timezone\": \"America/New_York\"\n      },\n      \"network\": \"Netflix\"\n    },\n    \"added\": true\n  }\n}"
+  },
+  {
+    "name": "5.2: Follow Same Show Again",
+    "status": "PASS",
+    "input": {
+      "showName": "Stranger Things"
+    },
+    "expected": "Handled gracefully",
+    "actual": "{\n  \"success\": true,\n  \"data\": {\n    \"show\": {\n      \"title\": \"Stranger Things\",\n      \"year\": 2016,\n      \"ids\": {\n        \"trakt\": 104439,\n        \"slug\": \"stranger-things\",\n        \"imdb\": \"tt4574334\",\n        \"tmdb\": 66732,\n        \"plex\": {\n          \"guid\": \"5d9c07efe9d5a1001f4d5ec1\",\n          \"slug\": \"stranger-things\"\n        }\n      },\n      \"tagline\": \"One last adventure.\",\n      \"overview\": \"When a young boy vanishes, a small town uncovers a mystery involving secret experiments, terrifying supernatural forces, and one strange little girl.\",\n      \"runtime\": 60,\n      \"country\": \"us\",\n      \"trailer\": \"https://youtube.com/watch?v=PssKpzB0Ah0\",\n      \"homepage\": \"https://www.netflix.com/title/80057281\",\n      \"status\": \"returning series\",\n      \"rating\": 8.45634,\n      \"votes\": 64505,\n      \"comment_count\": 196,\n      \"updated_at\": \"2025-11-18T16:56:49.000Z\",\n      \"language\": \"en\",\n      \"languages\": [\n        \"en\"\n      ],\n      \"available_translations\": [\n        \"ar\",\n        \"bg\",\n        \"bs\",\n        \"cs\",\n        \"da\",\n        \"de\",\n        \"el\",\n        \"en\",\n        \"es\",\n        \"eu\",\n        \"fa\",\n        \"fi\",\n        \"fr\",\n        \"he\",\n        \"hi\",\n        \"hr\",\n        \"hu\",\n        \"id\",\n        \"it\",\n        \"ja\",\n        \"ka\",\n        \"ko\",\n        \"lt\",\n        \"lv\",\n        \"ms\",\n        \"nl\",\n        \"no\",\n        \"pl\",\n        \"pt\",\n        \"ro\",\n        \"ru\",\n        \"sk\",\n        \"sl\",\n        \"so\",\n        \"sr\",\n        \"sv\",\n        \"th\",\n        \"tl\",\n        \"tr\",\n        \"uk\",\n        \"uz\",\n        \"vi\",\n        \"zh\"\n      ],\n      \"genres\": [\n        \"fantasy\",\n        \"science-fiction\",\n        \"mystery\",\n        \"horror\",\n        \"action\",\n        \"adventure\"\n      ],\n      \"subgenres\": [\n        \"friendship\",\n        \"love-triangle\",\n        \"monster\",\n        \"supernatural\",\n        \"coming-of-age\",\n        \"halloween\",\n        \"single-mother\",\n        \"small-town\",\n        \"1980s\",\n        \"missing-person\",\n        \"psychological-thriller\",\n        \"teen-drama\",\n        \"super-power\",\n        \"female-protagonist\",\n        \"experiment\",\n        \"sheriff\",\n        \"supernatural-horror\"\n      ],\n      \"original_title\": \"Stranger Things\",\n      \"images\": {\n        \"fanart\": [\n          \"media.trakt.tv/images/shows/000/104/439/fanarts/medium/08ffc0eae9.jpg.webp\"\n        ],\n        \"poster\": [\n          \"media.trakt.tv/images/shows/000/104/439/posters/medium/84177ad9b8.jpg.webp\"\n        ],\n        \"logo\": [\n          \"media.trakt.tv/images/shows/000/104/439/logos/medium/ab6c97ae8e.png.webp\"\n        ],\n        \"banner\": [\n          \"media.trakt.tv/images/shows/000/104/439/banners/medium/b7f2406aed.jpg.webp\"\n        ],\n        \"thumb\": [\n          \"media.trakt.tv/images/shows/000/104/439/thumbs/medium/064a38f738.jpg.webp\"\n        ],\n        \"clearart\": [\n          \"media.trakt.tv/images/shows/000/104/439/cleararts/medium/42ae109f8d.png.webp\"\n        ]\n      },\n      \"colors\": {\n        \"poster\": [\n          \"#BCA38C\",\n          \"#2D2F2C\"\n        ]\n      },\n      \"first_aired\": \"2016-07-16T00:00:00.000Z\",\n      \"aired_episodes\": 34,\n      \"certification\": \"TV-14\",\n      \"airs\": {\n        \"day\": \"Wednesday\",\n        \"time\": \"20:00\",\n        \"timezone\": \"America/New_York\"\n      },\n      \"network\": \"Netflix\"\n    },\n    \"added\": true\n  }\n}",
+    "notes": "Should not error on duplicate follow"
+  },
+  {
+    "name": "5.3: Unfollow Show",
+    "status": "PASS",
+    "input": {
+      "showName": "Stranger Things"
+    },
+    "expected": "Show removed from watchlist",
+    "actual": "{\n  \"success\": true,\n  \"data\": {\n    \"show\": {\n      \"title\": \"Stranger Things\",\n      \"year\": 2016,\n      \"ids\": {\n        \"trakt\": 104439,\n        \"slug\": \"stranger-things\",\n        \"imdb\": \"tt4574334\",\n        \"tmdb\": 66732,\n        \"plex\": {\n          \"guid\": \"5d9c07efe9d5a1001f4d5ec1\",\n          \"slug\": \"stranger-things\"\n        }\n      },\n      \"tagline\": \"One last adventure.\",\n      \"overview\": \"When a young boy vanishes, a small town uncovers a mystery involving secret experiments, terrifying supernatural forces, and one strange little girl.\",\n      \"runtime\": 60,\n      \"country\": \"us\",\n      \"trailer\": \"https://youtube.com/watch?v=PssKpzB0Ah0\",\n      \"homepage\": \"https://www.netflix.com/title/80057281\",\n      \"status\": \"returning series\",\n      \"rating\": 8.45634,\n      \"votes\": 64505,\n      \"comment_count\": 196,\n      \"updated_at\": \"2025-11-18T16:56:49.000Z\",\n      \"language\": \"en\",\n      \"languages\": [\n        \"en\"\n      ],\n      \"available_translations\": [\n        \"ar\",\n        \"bg\",\n        \"bs\",\n        \"cs\",\n        \"da\",\n        \"de\",\n        \"el\",\n        \"en\",\n        \"es\",\n        \"eu\",\n        \"fa\",\n        \"fi\",\n        \"fr\",\n        \"he\",\n        \"hi\",\n        \"hr\",\n        \"hu\",\n        \"id\",\n        \"it\",\n        \"ja\",\n        \"ka\",\n        \"ko\",\n        \"lt\",\n        \"lv\",\n        \"ms\",\n        \"nl\",\n        \"no\",\n        \"pl\",\n        \"pt\",\n        \"ro\",\n        \"ru\",\n        \"sk\",\n        \"sl\",\n        \"so\",\n        \"sr\",\n        \"sv\",\n        \"th\",\n        \"tl\",\n        \"tr\",\n        \"uk\",\n        \"uz\",\n        \"vi\",\n        \"zh\"\n      ],\n      \"genres\": [\n        \"fantasy\",\n        \"science-fiction\",\n        \"mystery\",\n        \"horror\",\n        \"action\",\n        \"adventure\"\n      ],\n      \"subgenres\": [\n        \"friendship\",\n        \"love-triangle\",\n        \"monster\",\n        \"supernatural\",\n        \"coming-of-age\",\n        \"halloween\",\n        \"single-mother\",\n        \"small-town\",\n        \"1980s\",\n        \"missing-person\",\n        \"psychological-thriller\",\n        \"teen-drama\",\n        \"super-power\",\n        \"female-protagonist\",\n        \"experiment\",\n        \"sheriff\",\n        \"supernatural-horror\"\n      ],\n      \"original_title\": \"Stranger Things\",\n      \"images\": {\n        \"fanart\": [\n          \"media.trakt.tv/images/shows/000/104/439/fanarts/medium/08ffc0eae9.jpg.webp\"\n        ],\n        \"poster\": [\n          \"media.trakt.tv/images/shows/000/104/439/posters/medium/84177ad9b8.jpg.webp\"\n        ],\n        \"logo\": [\n          \"media.trakt.tv/images/shows/000/104/439/logos/medium/ab6c97ae8e.png.webp\"\n        ],\n        \"banner\": [\n          \"media.trakt.tv/images/shows/000/104/439/banners/medium/b7f2406aed.jpg.webp\"\n        ],\n        \"thumb\": [\n          \"media.trakt.tv/images/shows/000/104/439/thumbs/medium/064a38f738.jpg.webp\"\n        ],\n        \"clearart\": [\n          \"media.trakt.tv/images/shows/000/104/439/cleararts/medium/42ae109f8d.png.webp\"\n        ]\n      },\n      \"colors\": {\n        \"poster\": [\n          \"#BCA38C\",\n          \"#2D2F2C\"\n        ]\n      },\n      \"first_aired\": \"2016-07-16T00:00:00.000Z\",\n      \"aired_episodes\": 34,\n      \"certification\": \"TV-14\",\n      \"airs\": {\n        \"day\": \"Wednesday\",\n        \"time\": \"20:00\",\n        \"timezone\": \"America/New_York\"\n      },\n      \"network\": \"Netflix\"\n    },\n    \"removed\": true\n  }\n}"
+  },
+  {
+    "name": "5.4: Unfollow Again",
+    "status": "PASS",
+    "input": {
+      "showName": "Stranger Things"
+    },
+    "expected": "Handled gracefully",
+    "actual": "{\n  \"success\": true,\n  \"data\": {\n    \"show\": {\n      \"title\": \"Stranger Things\",\n      \"year\": 2016,\n      \"ids\": {\n        \"trakt\": 104439,\n        \"slug\": \"stranger-things\",\n        \"imdb\": \"tt4574334\",\n        \"tmdb\": 66732,\n        \"plex\": {\n          \"guid\": \"5d9c07efe9d5a1001f4d5ec1\",\n          \"slug\": \"stranger-things\"\n        }\n      },\n      \"tagline\": \"One last adventure.\",\n      \"overview\": \"When a young boy vanishes, a small town uncovers a mystery involving secret experiments, terrifying supernatural forces, and one strange little girl.\",\n      \"runtime\": 60,\n      \"country\": \"us\",\n      \"trailer\": \"https://youtube.com/watch?v=PssKpzB0Ah0\",\n      \"homepage\": \"https://www.netflix.com/title/80057281\",\n      \"status\": \"returning series\",\n      \"rating\": 8.45634,\n      \"votes\": 64505,\n      \"comment_count\": 196,\n      \"updated_at\": \"2025-11-18T16:56:49.000Z\",\n      \"language\": \"en\",\n      \"languages\": [\n        \"en\"\n      ],\n      \"available_translations\": [\n        \"ar\",\n        \"bg\",\n        \"bs\",\n        \"cs\",\n        \"da\",\n        \"de\",\n        \"el\",\n        \"en\",\n        \"es\",\n        \"eu\",\n        \"fa\",\n        \"fi\",\n        \"fr\",\n        \"he\",\n        \"hi\",\n        \"hr\",\n        \"hu\",\n        \"id\",\n        \"it\",\n        \"ja\",\n        \"ka\",\n        \"ko\",\n        \"lt\",\n        \"lv\",\n        \"ms\",\n        \"nl\",\n        \"no\",\n        \"pl\",\n        \"pt\",\n        \"ro\",\n        \"ru\",\n        \"sk\",\n        \"sl\",\n        \"so\",\n        \"sr\",\n        \"sv\",\n        \"th\",\n        \"tl\",\n        \"tr\",\n        \"uk\",\n        \"uz\",\n        \"vi\",\n        \"zh\"\n      ],\n      \"genres\": [\n        \"fantasy\",\n        \"science-fiction\",\n        \"mystery\",\n        \"horror\",\n        \"action\",\n        \"adventure\"\n      ],\n      \"subgenres\": [\n        \"friendship\",\n        \"love-triangle\",\n        \"monster\",\n        \"supernatural\",\n        \"coming-of-age\",\n        \"halloween\",\n        \"single-mother\",\n        \"small-town\",\n        \"1980s\",\n        \"missing-person\",\n        \"psychological-thriller\",\n        \"teen-drama\",\n        \"super-power\",\n        \"female-protagonist\",\n        \"experiment\",\n        \"sheriff\",\n        \"supernatural-horror\"\n      ],\n      \"original_title\": \"Stranger Things\",\n      \"images\": {\n        \"fanart\": [\n          \"media.trakt.tv/images/shows/000/104/439/fanarts/medium/08ffc0eae9.jpg.webp\"\n        ],\n        \"poster\": [\n          \"media.trakt.tv/images/shows/000/104/439/posters/medium/84177ad9b8.jpg.webp\"\n        ],\n        \"logo\": [\n          \"media.trakt.tv/images/shows/000/104/439/logos/medium/ab6c97ae8e.png.webp\"\n        ],\n        \"banner\": [\n          \"media.trakt.tv/images/shows/000/104/439/banners/medium/b7f2406aed.jpg.webp\"\n        ],\n        \"thumb\": [\n          \"media.trakt.tv/images/shows/000/104/439/thumbs/medium/064a38f738.jpg.webp\"\n        ],\n        \"clearart\": [\n          \"media.trakt.tv/images/shows/000/104/439/cleararts/medium/42ae109f8d.png.webp\"\n        ]\n      },\n      \"colors\": {\n        \"poster\": [\n          \"#BCA38C\",\n          \"#2D2F2C\"\n        ]\n      },\n      \"first_aired\": \"2016-07-16T00:00:00.000Z\",\n      \"aired_episodes\": 34,\n      \"certification\": \"TV-14\",\n      \"airs\": {\n        \"day\": \"Wednesday\",\n        \"time\": \"20:00\",\n        \"timezone\": \"America/New_York\"\n      },\n      \"network\": \"Netflix\"\n    },\n    \"removed\": true\n  }\n}",
+    "notes": "Should not error when unfollowing already-unfollowed show"
+  },
+  {
+    "name": "5.5: Follow Non-Existent Show",
+    "status": "PASS",
+    "input": {
+      "showName": "ThisShowDoesNotExist12345"
+    },
+    "expected": "NOT_FOUND error",
+    "actual": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"No show found matching \\\"ThisShowDoesNotExist12345\\\". Try using search_show first.\"\n  }\n}"
+  }
+]
