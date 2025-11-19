@@ -50,7 +50,14 @@ export async function searchEpisode(
     if (!Array.isArray(searchResults) || searchResults.length === 0) {
       return createToolError(
         'NOT_FOUND',
-        `No show found matching "${showName}". Try using search_show to find the correct show name.`
+        `No show found matching "${showName}"`,
+        undefined,
+        [
+          'Check the spelling of the show name',
+          'Try using search_show to browse available titles',
+          'Use the exact title as it appears on Trakt.tv',
+          'Try including the year if there are multiple versions',
+        ]
       );
     }
 
@@ -89,6 +96,7 @@ export async function logWatch(
   client: TraktClient,
   args: {
     type: 'episode' | 'movie';
+    title?: string; // Alias for movieName/showName
     showName?: string;
     movieName?: string;
     season?: number;
@@ -99,36 +107,54 @@ export async function logWatch(
   }
 ): Promise<ToolSuccess<TraktHistoryAddResponse> | ToolError | DisambiguationResponse> {
   try {
-    const { type, showName, movieName, season, episode, watchedAt, year, traktId } = args;
+    const { type, title, showName, movieName, season, episode, watchedAt, year, traktId } = args;
+
+    // Parameter normalization: support 'title' as alias for movieName/showName
+    let effectiveMovieName = movieName;
+    let effectiveShowName = showName;
+
+    if (title && !movieName && type === 'movie') {
+      effectiveMovieName = title;
+    }
+    if (title && !showName && type === 'episode') {
+      effectiveShowName = title;
+    }
 
     // Parse watched date if provided
     const watched_at = watchedAt ? parseNaturalDate(watchedAt) : new Date().toISOString();
 
     if (type === 'episode') {
-      if (!showName || season === undefined || episode === undefined) {
+      if (!effectiveShowName || season === undefined || episode === undefined) {
         return createToolError(
           'VALIDATION_ERROR',
-          'For episodes, showName, season, and episode are required'
+          'For episodes, showName (or title), season, and episode are required'
         );
       }
 
-      validateNonEmptyString(showName, 'showName');
+      validateNonEmptyString(effectiveShowName, 'showName');
       validateSeasonNumber(season);
       validateEpisodeNumber(episode);
 
       // Search for the show
-      const searchResults = await client.search(showName, 'show');
+      const searchResults = await client.search(effectiveShowName, 'show');
       if (!Array.isArray(searchResults) || searchResults.length === 0) {
         return createToolError(
           'NOT_FOUND',
-          `No show found matching "${showName}". Try using search_show first.`
+          `No show found matching "${effectiveShowName}"`,
+          undefined,
+          [
+            'Check the spelling of the show name',
+            'Try using search_show to browse available titles',
+            'Use the exact title as it appears on Trakt.tv',
+            'Try including the year if there are multiple versions',
+          ]
         );
       }
 
       // Handle disambiguation
       const disambiguationResult = handleSearchDisambiguation(
         searchResults,
-        showName,
+        effectiveShowName,
         'show',
         year,
         traktId
@@ -149,7 +175,7 @@ export async function logWatch(
       } catch {
         return createToolError(
           'NOT_FOUND',
-          `Episode S${season}E${episode} not found for "${showName}"`
+          `Episode S${season}E${episode} not found for "${effectiveShowName}"`
         );
       }
 
@@ -173,25 +199,31 @@ export async function logWatch(
       return createToolSuccess<TraktHistoryAddResponse>(response as TraktHistoryAddResponse);
     } else {
       // Movie
-      if (!movieName) {
-        return createToolError('VALIDATION_ERROR', 'For movies, movieName is required');
+      if (!effectiveMovieName) {
+        return createToolError('VALIDATION_ERROR', 'For movies, movieName (or title) is required');
       }
 
-      validateNonEmptyString(movieName, 'movieName');
+      validateNonEmptyString(effectiveMovieName, 'movieName');
 
       // Search for the movie
-      const searchResults = await client.search(movieName, 'movie');
+      const searchResults = await client.search(effectiveMovieName, 'movie');
       if (!Array.isArray(searchResults) || searchResults.length === 0) {
         return createToolError(
           'NOT_FOUND',
-          `No movie found matching "${movieName}". Try using search_show first.`
+          `No movie found matching "${effectiveMovieName}"`,
+          undefined,
+          [
+            'Check the spelling of the movie name',
+            'Try using search_show with type filter to browse available movies',
+            'Include the release year if known',
+          ]
         );
       }
 
       // Handle disambiguation
       const disambiguationResult = handleSearchDisambiguation(
         searchResults,
-        movieName,
+        effectiveMovieName,
         'movie',
         year,
         traktId
@@ -272,7 +304,14 @@ export async function bulkLog(
       if (!Array.isArray(searchResults) || searchResults.length === 0) {
         return createToolError(
           'NOT_FOUND',
-          `No show found matching "${showName}". Try using search_show first.`
+          `No show found matching "${showName}"`,
+          undefined,
+          [
+            'Check the spelling of the show name',
+            'Try using search_show to browse available titles',
+            'Use the exact title as it appears on Trakt.tv',
+            'Try including the year if there are multiple versions',
+          ]
         );
       }
 
@@ -326,7 +365,16 @@ export async function bulkLog(
 
         const searchResults = await client.search(movieName, 'movie');
         if (!Array.isArray(searchResults) || searchResults.length === 0) {
-          return createToolError('NOT_FOUND', `No movie found matching "${movieName}"`);
+          return createToolError(
+            'NOT_FOUND',
+            `No movie found matching "${movieName}"`,
+            undefined,
+            [
+              'Check the spelling of the movie name',
+              'Try using search_show with type filter to browse available movies',
+              'Include the release year if known',
+            ]
+          );
         }
 
         // Handle disambiguation - for bulk operations, we auto-select first result
@@ -569,7 +617,14 @@ export async function followShow(
     if (!Array.isArray(searchResults) || searchResults.length === 0) {
       return createToolError(
         'NOT_FOUND',
-        `No show found matching "${showName}". Try using search_show first.`
+        `No show found matching "${showName}"`,
+        undefined,
+        [
+          'Check the spelling of the show name',
+          'Try using search_show to browse available titles',
+          'Use the exact title as it appears on Trakt.tv',
+          'Try including the year if there are multiple versions',
+        ]
       );
     }
 
@@ -629,7 +684,14 @@ export async function unfollowShow(
     if (!Array.isArray(searchResults) || searchResults.length === 0) {
       return createToolError(
         'NOT_FOUND',
-        `No show found matching "${showName}". Try using search_show first.`
+        `No show found matching "${showName}"`,
+        undefined,
+        [
+          'Check the spelling of the show name',
+          'Try using search_show to browse available titles',
+          'Use the exact title as it appears on Trakt.tv',
+          'Try including the year if there are multiple versions',
+        ]
       );
     }
 

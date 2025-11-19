@@ -177,6 +177,99 @@ describe('tools', () => {
         expect(result.error.code).toBe('VALIDATION_ERROR');
       }
     });
+
+    it('should accept title parameter for movies', async () => {
+      vi.spyOn(mockClient, 'search').mockResolvedValue([
+        {
+          type: 'movie',
+          score: 100,
+          movie: {
+            title: 'Test Movie',
+            ids: { trakt: 1, slug: 'test-movie' },
+          },
+        },
+      ]);
+
+      vi.spyOn(mockClient, 'addToHistory').mockResolvedValue({
+        added: { episodes: 0, movies: 1 },
+        not_found: { movies: [], shows: [], seasons: [], episodes: [] },
+      });
+
+      const result = await tools.logWatch(mockClient, {
+        type: 'movie',
+        title: 'Test Movie', // Using title instead of movieName
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.added.movies).toBe(1);
+      }
+    });
+
+    it('should accept title parameter for episodes', async () => {
+      vi.spyOn(mockClient, 'search').mockResolvedValue([
+        {
+          type: 'show',
+          score: 100,
+          show: {
+            title: 'Test Show',
+            ids: { trakt: 1, slug: 'test-show' },
+          },
+        },
+      ]);
+
+      vi.spyOn(mockClient, 'searchEpisode').mockResolvedValue({
+        season: 1,
+        number: 1,
+        title: 'Test Episode',
+        ids: { trakt: 1 },
+      });
+
+      vi.spyOn(mockClient, 'addToHistory').mockResolvedValue({
+        added: { episodes: 1, movies: 0 },
+        not_found: { movies: [], shows: [], seasons: [], episodes: [] },
+      });
+
+      const result = await tools.logWatch(mockClient, {
+        type: 'episode',
+        title: 'Test Show', // Using title instead of showName
+        season: 1,
+        episode: 1,
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.added.episodes).toBe(1);
+      }
+    });
+
+    it('should prioritize movieName over title', async () => {
+      vi.spyOn(mockClient, 'search').mockResolvedValue([
+        {
+          type: 'movie',
+          score: 100,
+          movie: {
+            title: 'Correct Movie',
+            ids: { trakt: 1, slug: 'correct-movie' },
+          },
+        },
+      ]);
+
+      vi.spyOn(mockClient, 'addToHistory').mockResolvedValue({
+        added: { episodes: 0, movies: 1 },
+        not_found: { movies: [], shows: [], seasons: [], episodes: [] },
+      });
+
+      const result = await tools.logWatch(mockClient, {
+        type: 'movie',
+        title: 'Wrong Movie',
+        movieName: 'Correct Movie', // movieName should take precedence
+      });
+
+      expect(result.success).toBe(true);
+      // Verify the search was called with movieName, not title
+      expect(mockClient.search).toHaveBeenCalledWith('Correct Movie', 'movie');
+    });
   });
 
   describe('bulkLog', () => {

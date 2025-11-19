@@ -96,7 +96,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'log_watch',
         description:
-          'Log a single episode or movie as watched. Supports natural language dates like "yesterday", "last week". If no date provided, uses current time.',
+          'Log a single episode or movie as watched. Supports natural language dates like "yesterday", "last night", "3 days ago", "2 weeks ago". If no date provided, uses current time.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -105,13 +105,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               enum: ['episode', 'movie'],
               description: 'Content type',
             },
+            title: {
+              type: 'string',
+              description: 'Title of the movie or show (can be used instead of movieName/showName)',
+            },
             showName: {
               type: 'string',
-              description: 'Show name (required for episodes)',
+              description: 'Show name (required for episodes, unless title is provided)',
             },
             movieName: {
               type: 'string',
-              description: 'Movie name (required for movies)',
+              description: 'Movie name (required for movies, unless title is provided)',
             },
             season: {
               type: 'number',
@@ -124,7 +128,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             watchedAt: {
               type: 'string',
               description:
-                'When it was watched. Supports: "today", "yesterday", "last week", or ISO date (YYYY-MM-DD)',
+                'When it was watched. Supports: "today", "yesterday", "last night", "N days ago", "N weeks ago", "last week", or ISO date (YYYY-MM-DD)',
             },
             year: {
               type: 'number',
