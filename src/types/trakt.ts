@@ -52,8 +52,74 @@ export interface TraktWatchedItem {
   movie?: TraktMovie;
 }
 
+export interface TraktSearchResult {
+  type: string;
+  score: number;
+  show?: TraktShow;
+  movie?: TraktMovie;
+  episode?: TraktEpisode;
+}
+
+export interface TraktHistoryAddResponse {
+  added: {
+    episodes: number;
+    movies: number;
+  };
+  not_found: {
+    movies: unknown[];
+    shows: unknown[];
+    seasons: unknown[];
+    episodes: unknown[];
+  };
+}
+
+export interface TraktCalendarItem {
+  first_aired: string;
+  episode: TraktEpisode;
+  show: TraktShow;
+}
+
+export interface TraktWatchlistItem {
+  rank: number;
+  listed_at: string;
+  type: string;
+  show?: TraktShow;
+  movie?: TraktMovie;
+}
+
+export interface TraktHistorySummary {
+  total_watched: number;
+  unique_shows: number;
+  unique_movies: number;
+  total_episodes: number;
+  most_watched_show?: {
+    show: TraktShow;
+    episodes_watched: number;
+  };
+  recent_activity: {
+    last_24h: number;
+    last_week: number;
+    last_month: number;
+  };
+}
+
 export type ContentType = 'show' | 'movie';
 export type Privacy = 'public' | 'private';
+
+// Disambiguation types for human approval flow
+export interface DisambiguationOption {
+  title: string;
+  year?: number;
+  traktId: number;
+  type: 'show' | 'movie';
+}
+
+export interface DisambiguationResponse {
+  success: false;
+  needs_disambiguation: true;
+  options: DisambiguationOption[];
+  message: string;
+}
 
 // OAuth types
 export interface DeviceCodeResponse {

@@ -255,7 +255,11 @@ describe('TraktClient', () => {
 
       const result = await client.removeFromWatchlist(items);
 
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/sync/watchlist/remove', items, undefined);
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/sync/watchlist/remove',
+        items,
+        undefined
+      );
       expect(result).toEqual(mockResponse);
     });
   });
@@ -267,7 +271,10 @@ describe('TraktClient', () => {
 
       const result = await client.getCalendar('2024-01-01', 7);
 
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/calendars/my/shows/2024-01-01/7', undefined);
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        '/calendars/my/shows/2024-01-01/7',
+        undefined
+      );
       expect(result).toEqual(mockCalendar);
     });
   });

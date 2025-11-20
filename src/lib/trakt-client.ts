@@ -70,18 +70,44 @@ export class TraktClient {
       (error) => Promise.reject(error)
     );
 
-    // Add response interceptor for error handling
+    // Add response interceptor for error handling with retry logic
     this.client.interceptors.response.use(
       (response) => response,
       async (error: AxiosError) => {
+        const config = error.config as AxiosRequestConfig & { _retryCount?: number };
+
         if (error.response?.status === 401 || error.response?.status === 403) {
           // Token expired or invalid (Trakt.tv returns 403 for auth failures)
           throw new Error('Authentication failed. Please re-authenticate.');
         }
 
         if (error.response?.status === 429) {
-          // Rate limit exceeded
-          throw new Error('Rate limit exceeded. Please try again later.');
+          // Rate limit exceeded - implement exponential backoff retry
+          const retryCount = config._retryCount || 0;
+          const maxRetries = 3;
+
+          if (retryCount < maxRetries) {
+            // Calculate exponential backoff delay: 1s, 2s, 4s
+            const backoffDelay = Math.pow(2, retryCount) * 1000;
+
+            console.warn(
+              `Rate limit hit. Retrying in ${backoffDelay}ms (attempt ${retryCount + 1}/${maxRetries})`
+            );
+
+            // Wait for backoff delay
+            await new Promise((resolve) => setTimeout(resolve, backoffDelay));
+
+            // Increment retry count
+            config._retryCount = retryCount + 1;
+
+            // Retry the request
+            return this.client.request(config);
+          } else {
+            // Max retries exceeded
+            throw new Error(
+              'Rate limit exceeded after multiple retries. Please wait a few minutes and try again.'
+            );
+          }
         }
 
         throw error;
@@ -130,6 +156,13 @@ export class TraktClient {
     if (year) params.years = year;
 
     return this.get(`/search/${type || 'show,movie'}`, { params });
+  }
+
+  /**
+   * Search for a specific episode
+   */
+  async searchEpisode(showId: string, season: number, episode: number) {
+    return this.get(`/shows/${showId}/seasons/${season}/episodes/${episode}`);
   }
 
   /**
@@ -193,5 +226,26 @@ export class TraktClient {
    */
   async getCalendar(startDate: string, days = 7) {
     return this.get(`/calendars/my/shows/${startDate}/${days}`);
+  }
+
+  /**
+   * Get watched progress for a show
+   */
+  async getShowProgress(showId: string) {
+    return this.get(`/shows/${showId}/progress/watched`);
+  }
+
+  /**
+   * Get user's collected shows
+   */
+  async getCollectedShows() {
+    return this.get('/sync/collection/shows');
+  }
+
+  /**
+   * Remove items from history
+   */
+  async removeFromHistory(items: unknown) {
+    return this.post('/sync/history/remove', items);
   }
 }
