@@ -1,6 +1,8 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 import { TraktConfig } from '../types/trakt.js';
 import { TraktOAuth } from './oauth.js';
+import { logger } from './logger.js';
+import { LRUCache, generateSearchCacheKey, generateEpisodeCacheKey } from './cache.js';
 
 /**
  * Rate limiter for API requests
@@ -41,10 +43,18 @@ export class TraktClient {
   private oauth: TraktOAuth;
   private client: AxiosInstance;
   private rateLimiter: RateLimiter;
+  private searchCache: LRUCache<string, unknown>;
 
   constructor(config: TraktConfig, oauth: TraktOAuth) {
     this.oauth = oauth;
     this.rateLimiter = new RateLimiter();
+
+    // Initialize search cache with default settings
+    this.searchCache = new LRUCache({
+      maxSize: 500, // Cache up to 500 unique searches
+      ttlMs: 3600000, // 1 hour TTL
+      enableMetrics: true,
+    });
 
     this.client = axios.create({
       baseURL: config.apiBaseUrl,
@@ -55,7 +65,7 @@ export class TraktClient {
       },
     });
 
-    // Add request interceptor for authentication
+    // Add request interceptor for authentication and logging
     this.client.interceptors.request.use(
       async (config) => {
         await this.rateLimiter.waitIfNeeded();
@@ -65,16 +75,44 @@ export class TraktClient {
           config.headers.Authorization = `Bearer ${token}`;
         }
 
+        // Generate correlation ID and log request initiation
+        const correlationId = logger.generateCorrelationId();
+        const startTime = Date.now();
+
+        // Store metadata in config for use in response interceptor
+        (config as AxiosRequestConfig & { _correlationId?: string; _startTime?: number; _toolName?: string })._correlationId = correlationId;
+        (config as AxiosRequestConfig & { _correlationId?: string; _startTime?: number; _toolName?: string })._startTime = startTime;
+
         return config;
       },
       (error) => Promise.reject(error)
     );
 
-    // Add response interceptor for error handling with retry logic
+    // Add response interceptor for logging and error handling with retry logic
     this.client.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        // Log successful response
+        const config = response.config as AxiosRequestConfig & { _correlationId?: string; _startTime?: number; _toolName?: string };
+        const correlationId = config._correlationId || logger.generateCorrelationId();
+        const startTime = config._startTime || Date.now();
+
+        const partialLog = logger.createRequestLog(config, correlationId, config._toolName);
+        const fullLog = logger.completeRequestLog(partialLog, response, startTime);
+        logger.logRequest(fullLog);
+
+        return response;
+      },
       async (error: AxiosError) => {
-        const config = error.config as AxiosRequestConfig & { _retryCount?: number };
+        const config = error.config as AxiosRequestConfig & { _retryCount?: number; _correlationId?: string; _startTime?: number; _toolName?: string };
+
+        // Log error before handling (unless it's a retry)
+        if (!config._retryCount || config._retryCount === 0) {
+          const correlationId = config._correlationId || logger.generateCorrelationId();
+          const startTime = config._startTime || Date.now();
+          const partialLog = logger.createRequestLog(config, correlationId, config._toolName);
+          const fullLog = logger.completeRequestLogWithError(partialLog, error, startTime);
+          logger.logRequest(fullLog);
+        }
 
         if (error.response?.status === 401 || error.response?.status === 403) {
           // Token expired or invalid (Trakt.tv returns 403 for auth failures)
@@ -148,21 +186,55 @@ export class TraktClient {
   }
 
   /**
-   * Search for shows and movies
+   * Search for shows and movies (with caching)
    */
   async search(query: string, type?: 'show' | 'movie', year?: number) {
+    const cacheKey = generateSearchCacheKey(query, type, year);
+
+    // Check cache first
+    const cached = this.searchCache.get(cacheKey);
+    if (cached !== undefined) {
+      console.error(`[CACHE_HIT] Search: "${query}" (${type || 'all'}${year ? `, ${year}` : ''})`);
+      return cached;
+    }
+
+    // Cache miss - fetch from API
+    console.error(`[CACHE_MISS] Search: "${query}" (${type || 'all'}${year ? `, ${year}` : ''})`);
+
     const params: Record<string, string | number> = { query };
     if (type) params.type = type;
     if (year) params.years = year;
 
-    return this.get(`/search/${type || 'show,movie'}`, { params });
+    const result = await this.get(`/search/${type || 'show,movie'}`, { params });
+
+    // Store in cache
+    this.searchCache.set(cacheKey, result);
+
+    return result;
   }
 
   /**
-   * Search for a specific episode
+   * Search for a specific episode (with caching)
    */
   async searchEpisode(showId: string, season: number, episode: number) {
-    return this.get(`/shows/${showId}/seasons/${season}/episodes/${episode}`);
+    const cacheKey = generateEpisodeCacheKey(showId, season, episode);
+
+    // Check cache first
+    const cached = this.searchCache.get(cacheKey);
+    if (cached !== undefined) {
+      console.error(`[CACHE_HIT] Episode: ${showId} S${season}E${episode}`);
+      return cached;
+    }
+
+    // Cache miss - fetch from API
+    console.error(`[CACHE_MISS] Episode: ${showId} S${season}E${episode}`);
+
+    const result = await this.get(`/shows/${showId}/seasons/${season}/episodes/${episode}`);
+
+    // Store in cache
+    this.searchCache.set(cacheKey, result);
+
+    return result;
   }
 
   /**
@@ -247,5 +319,32 @@ export class TraktClient {
    */
   async removeFromHistory(items: unknown) {
     return this.post('/sync/history/remove', items);
+  }
+
+  /**
+   * Get cache metrics (for debugging/monitoring)
+   */
+  getCacheMetrics() {
+    return this.searchCache.getMetrics();
+  }
+
+  /**
+   * Clear search cache (for testing or manual refresh)
+   */
+  clearSearchCache(): void {
+    this.searchCache.clear();
+    console.error('[CACHE] Search cache cleared');
+  }
+
+  /**
+   * Prune expired cache entries
+   * Returns number of entries removed
+   */
+  pruneCache(): number {
+    const removed = this.searchCache.prune();
+    if (removed > 0) {
+      console.error(`[CACHE] Pruned ${removed} expired entries`);
+    }
+    return removed;
   }
 }

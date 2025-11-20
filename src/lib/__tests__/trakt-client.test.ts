@@ -278,4 +278,187 @@ describe('TraktClient', () => {
       expect(result).toEqual(mockCalendar);
     });
   });
+
+  describe('cache integration', () => {
+    describe('search caching', () => {
+      it('should cache search results', async () => {
+        const mockResults = [{ type: 'show', show: { title: 'Breaking Bad' } }];
+        mockAxiosInstance.get.mockResolvedValue({ data: mockResults });
+
+        // First call - should hit API
+        const result1 = await client.search('Breaking Bad', 'show');
+        expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1);
+        expect(result1).toEqual(mockResults);
+
+        // Second call - should hit cache
+        const result2 = await client.search('Breaking Bad', 'show');
+        expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1); // Still only 1 API call
+        expect(result2).toEqual(mockResults);
+      });
+
+      it('should generate different cache keys for different search params', async () => {
+        const mockResults1 = [{ type: 'movie', movie: { title: 'Dune', year: 2021 } }];
+        const mockResults2 = [{ type: 'movie', movie: { title: 'Dune', year: 1984 } }];
+
+        mockAxiosInstance.get
+          .mockResolvedValueOnce({ data: mockResults1 })
+          .mockResolvedValueOnce({ data: mockResults2 });
+
+        // Different year = different cache key
+        await client.search('Dune', 'movie', 2021);
+        await client.search('Dune', 'movie', 1984);
+
+        expect(mockAxiosInstance.get).toHaveBeenCalledTimes(2);
+      });
+
+      it('should generate different cache keys for different types', async () => {
+        const mockShowResults = [{ type: 'show', show: { title: 'The Matrix' } }];
+        const mockMovieResults = [{ type: 'movie', movie: { title: 'The Matrix' } }];
+
+        mockAxiosInstance.get
+          .mockResolvedValueOnce({ data: mockShowResults })
+          .mockResolvedValueOnce({ data: mockMovieResults });
+
+        await client.search('The Matrix', 'show');
+        await client.search('The Matrix', 'movie');
+
+        expect(mockAxiosInstance.get).toHaveBeenCalledTimes(2);
+      });
+
+      it('should be case-insensitive for queries', async () => {
+        const mockResults = [{ type: 'show', show: { title: 'Breaking Bad' } }];
+        mockAxiosInstance.get.mockResolvedValue({ data: mockResults });
+
+        // First call with lowercase
+        await client.search('breaking bad', 'show');
+        expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1);
+
+        // Second call with uppercase - should hit cache
+        await client.search('BREAKING BAD', 'show');
+        expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1);
+
+        // Third call with mixed case - should hit cache
+        await client.search('Breaking Bad', 'show');
+        expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1);
+      });
+
+      it('should trim whitespace in queries', async () => {
+        const mockResults = [{ type: 'show', show: { title: 'Breaking Bad' } }];
+        mockAxiosInstance.get.mockResolvedValue({ data: mockResults });
+
+        await client.search('  Breaking Bad  ', 'show');
+        expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1);
+
+        // Should hit cache despite different whitespace
+        await client.search('Breaking Bad', 'show');
+        expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe('episode caching', () => {
+      it('should cache episode lookups', async () => {
+        const mockEpisode = { season: 1, number: 1, title: 'Pilot' };
+        mockAxiosInstance.get.mockResolvedValue({ data: mockEpisode });
+
+        // First call - should hit API
+        const result1 = await client.searchEpisode('breaking-bad', 1, 1);
+        expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1);
+        expect(result1).toEqual(mockEpisode);
+
+        // Second call - should hit cache
+        const result2 = await client.searchEpisode('breaking-bad', 1, 1);
+        expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1); // Still only 1 API call
+        expect(result2).toEqual(mockEpisode);
+      });
+
+      it('should generate different cache keys for different episodes', async () => {
+        const mockEp1 = { season: 1, number: 1, title: 'Pilot' };
+        const mockEp2 = { season: 1, number: 2, title: 'Episode 2' };
+
+        mockAxiosInstance.get
+          .mockResolvedValueOnce({ data: mockEp1 })
+          .mockResolvedValueOnce({ data: mockEp2 });
+
+        await client.searchEpisode('breaking-bad', 1, 1);
+        await client.searchEpisode('breaking-bad', 1, 2);
+
+        expect(mockAxiosInstance.get).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    describe('cache metrics', () => {
+      it('should track cache metrics', async () => {
+        const mockResults = [{ type: 'show', show: { title: 'Test' } }];
+        mockAxiosInstance.get.mockResolvedValue({ data: mockResults });
+
+        // Initial metrics
+        let metrics = client.getCacheMetrics();
+        expect(metrics.hits).toBe(0);
+        expect(metrics.misses).toBe(0);
+        expect(metrics.hitRate).toBe(0);
+
+        // First call - cache miss
+        await client.search('Test', 'show');
+        metrics = client.getCacheMetrics();
+        expect(metrics.misses).toBe(1);
+        expect(metrics.hits).toBe(0);
+        expect(metrics.hitRate).toBe(0);
+
+        // Second call - cache hit
+        await client.search('Test', 'show');
+        metrics = client.getCacheMetrics();
+        expect(metrics.hits).toBe(1);
+        expect(metrics.misses).toBe(1);
+        expect(metrics.hitRate).toBe(0.5);
+
+        // Third call - cache hit
+        await client.search('Test', 'show');
+        metrics = client.getCacheMetrics();
+        expect(metrics.hits).toBe(2);
+        expect(metrics.misses).toBe(1);
+        expect(metrics.hitRate).toBeCloseTo(0.667, 2);
+      });
+
+      it('should return correct cache size', async () => {
+        const mockResults = [{ type: 'show', show: { title: 'Test' } }];
+        mockAxiosInstance.get.mockResolvedValue({ data: mockResults });
+
+        expect(client.getCacheMetrics().size).toBe(0);
+
+        await client.search('Test1', 'show');
+        expect(client.getCacheMetrics().size).toBe(1);
+
+        await client.search('Test2', 'show');
+        expect(client.getCacheMetrics().size).toBe(2);
+
+        await client.search('Test1', 'show'); // Cache hit, size unchanged
+        expect(client.getCacheMetrics().size).toBe(2);
+      });
+    });
+
+    describe('cache management', () => {
+      it('should clear cache', async () => {
+        const mockResults = [{ type: 'show', show: { title: 'Test' } }];
+        mockAxiosInstance.get.mockResolvedValue({ data: mockResults });
+
+        // Add to cache
+        await client.search('Test', 'show');
+        expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1);
+
+        // Clear cache
+        client.clearSearchCache();
+        expect(client.getCacheMetrics().size).toBe(0);
+
+        // Next call should hit API again
+        await client.search('Test', 'show');
+        expect(mockAxiosInstance.get).toHaveBeenCalledTimes(2);
+      });
+
+      it('should prune cache (no-op for non-expired entries)', () => {
+        // With default 1-hour TTL, entries won't expire in test
+        const removed = client.pruneCache();
+        expect(removed).toBe(0);
+      });
+    });
+  });
 });

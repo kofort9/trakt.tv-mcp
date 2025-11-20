@@ -293,6 +293,36 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ['showName'],
         },
       },
+      {
+        name: 'debug_last_request',
+        description:
+          'Debug tool: Get recent API request logs and performance metrics. Shows request/response details, timing, rate limits, and errors. Useful for debugging failed operations and performance analysis.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            limit: {
+              type: 'number',
+              description: 'Number of recent requests to retrieve (1-100, default: 10)',
+            },
+            toolName: {
+              type: 'string',
+              description: 'Optional: Filter by tool name (e.g., "log_watch", "search_show")',
+            },
+            method: {
+              type: 'string',
+              description: 'Optional: Filter by HTTP method (GET, POST, etc.)',
+            },
+            statusCode: {
+              type: 'number',
+              description: 'Optional: Filter by HTTP status code (200, 404, 500, etc.)',
+            },
+            includeMetrics: {
+              type: 'boolean',
+              description: 'Include performance metrics (default: true)',
+            },
+          },
+        },
+      },
     ],
   };
 });
@@ -510,6 +540,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         showName: args?.showName as string,
         year: args?.year as number | undefined,
         traktId: args?.traktId as number | undefined,
+      });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+        isError: !result.success,
+      };
+    }
+
+    if (name === 'debug_last_request') {
+      const result = await tools.debugLastRequest(traktClient, {
+        limit: args?.limit as number | undefined,
+        toolName: args?.toolName as string | undefined,
+        method: args?.method as string | undefined,
+        statusCode: args?.statusCode as number | undefined,
+        includeMetrics: args?.includeMetrics as boolean | undefined,
       });
 
       return {

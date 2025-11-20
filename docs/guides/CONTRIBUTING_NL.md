@@ -305,8 +305,8 @@ args: {
 ### Step 4: Document the Alias
 
 Update relevant documentation files:
-- `/CLAUDE_PROMPT_GUIDELINES.md` - Add to "Parameter Aliases" section
-- `/NL_PATTERNS_REFERENCE.md` - Add to "Parameter Aliases" table
+- `/docs/guides/docs/guides/docs/guides/CLAUDE_PROMPT_GUIDELINES.md` - Add to "Parameter Aliases" section
+- `/docs/guides/docs/guides/docs/guides/NL_PATTERNS_REFERENCE.md` - Add to "Parameter Aliases" table
 - JSDoc comments in the function
 
 ### Step 5: Add Tests
@@ -592,8 +592,8 @@ Before submitting a PR, complete this checklist:
 
 ### Documentation Checklist
 
-- [ ] Updated `CLAUDE_PROMPT_GUIDELINES.md` if needed
-- [ ] Updated `NL_PATTERNS_REFERENCE.md` if needed
+- [ ] Updated `docs/guides/docs/guides/CLAUDE_PROMPT_GUIDELINES.md` if needed
+- [ ] Updated `docs/guides/docs/guides/NL_PATTERNS_REFERENCE.md` if needed
 - [ ] Updated error messages to include new patterns
 - [ ] Added JSDoc comments to new functions
 - [ ] Created or updated test scripts if applicable
@@ -786,8 +786,8 @@ Add support for "this weekend" date pattern
 - [x] No regressions in existing functionality
 
 ## Documentation
-- [x] Updated CLAUDE_PROMPT_GUIDELINES.md
-- [x] Updated NL_PATTERNS_REFERENCE.md
+- [x] Updated docs/guides/docs/guides/CLAUDE_PROMPT_GUIDELINES.md
+- [x] Updated docs/guides/docs/guides/NL_PATTERNS_REFERENCE.md
 - [x] Added JSDoc comments
 - [x] Updated error message strings
 
@@ -807,7 +807,7 @@ Add support for "this weekend" date pattern
 **Questions about natural language implementation?**
 - Review existing patterns in `/src/lib/utils.ts`
 - Check test files for examples: `/src/lib/__tests__/utils.test.ts`
-- Read `CLAUDE_PROMPT_GUIDELINES.md` for context
+- Read `docs/guides/docs/guides/CLAUDE_PROMPT_GUIDELINES.md` for context
 
 **Found a bug?**
 - Open an issue with reproduction steps
