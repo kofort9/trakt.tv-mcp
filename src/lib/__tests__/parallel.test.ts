@@ -189,7 +189,7 @@ describe('parallelMap', () => {
     );
 
     // Results should all be present (order may vary due to Promise.allSettled)
-    expect(succeeded.sort()).toEqual([1, 2, 3, 4, 5]);
+    expect(succeeded.sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5]);
   });
 });
 

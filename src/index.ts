@@ -320,6 +320,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: 'boolean',
               description: 'Include performance metrics (default: true)',
             },
+            errorsOnly: {
+              type: 'boolean',
+              description: 'Filter to show only error responses (status code >= 400). Default: false',
+            },
           },
         },
       },
@@ -560,6 +564,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         method: args?.method as string | undefined,
         statusCode: args?.statusCode as number | undefined,
         includeMetrics: args?.includeMetrics as boolean | undefined,
+        errorsOnly: args?.errorsOnly as boolean | undefined,
       });
 
       return {

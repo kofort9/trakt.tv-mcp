@@ -794,10 +794,11 @@ export async function debugLastRequest(
     method?: string;
     statusCode?: number;
     includeMetrics?: boolean;
+    errorsOnly?: boolean;
   }
 ): Promise<ToolSuccess<{ logs: RequestLog[]; metrics?: ToolMetrics[] }> | ToolError> {
   try {
-    const { limit = 10, toolName, method, statusCode, includeMetrics = true } = args;
+    const { limit = 10, toolName, method, statusCode, includeMetrics = true, errorsOnly = false } = args;
 
     // Validate limit
     if (limit < 1 || limit > 100) {
@@ -810,11 +811,16 @@ export async function debugLastRequest(
     }
 
     // Get logs with filters
-    const logs = logger.getRecentLogs(limit, {
+    let logs = logger.getRecentLogs(limit, {
       toolName,
       method,
       statusCode,
     });
+
+    // Apply error filter if requested
+    if (errorsOnly) {
+      logs = logs.filter(log => log.statusCode && log.statusCode >= 400);
+    }
 
     // Get metrics if requested
     let metrics: ToolMetrics[] | undefined;
@@ -831,6 +837,7 @@ export async function debugLastRequest(
       if (toolName) parts.push(`for tool "${toolName}"`);
       if (method) parts.push(`with method ${method}`);
       if (statusCode) parts.push(`with status ${statusCode}`);
+      if (errorsOnly) parts.push(`(errors only)`);
       message = parts.join(' ') + '.';
 
       if (metrics && metrics.length > 0) {
