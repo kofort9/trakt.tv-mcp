@@ -113,6 +113,19 @@ export async function logWatch(
     let effectiveMovieName = movieName;
     let effectiveShowName = showName;
 
+    // Validate title parameter if provided
+    if (title !== undefined) {
+      if (typeof title !== 'string' || title.trim() === '') {
+        return createToolError(
+          'INVALID_INPUT',
+          'Invalid title: Title must be a non-empty string.',
+          undefined,
+          ['Provide a movie or show name', 'Use movieName or showName parameter instead']
+        );
+      }
+    }
+
+    // Then use title as alias
     if (title && !movieName && type === 'movie') {
       effectiveMovieName = title;
     }

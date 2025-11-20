@@ -243,6 +243,33 @@ describe('tools', () => {
       }
     });
 
+    it('should reject empty string for title parameter', async () => {
+      const result = await tools.logWatch(mockClient, {
+        type: 'movie',
+        title: '', // Empty string should be rejected
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success && 'error' in result) {
+        expect(result.error.code).toBe('INVALID_INPUT');
+        expect(result.error.message).toMatch(/Invalid title: Title must be a non-empty string/);
+        expect(result.error.suggestions).toContain('Provide a movie or show name');
+      }
+    });
+
+    it('should reject whitespace-only string for title parameter', async () => {
+      const result = await tools.logWatch(mockClient, {
+        type: 'movie',
+        title: '   ', // Whitespace-only should be rejected
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success && 'error' in result) {
+        expect(result.error.code).toBe('INVALID_INPUT');
+        expect(result.error.message).toMatch(/Invalid title: Title must be a non-empty string/);
+      }
+    });
+
     it('should prioritize movieName over title', async () => {
       vi.spyOn(mockClient, 'search').mockResolvedValue([
         {

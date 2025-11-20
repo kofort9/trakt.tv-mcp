@@ -14,7 +14,7 @@ export function parseNaturalDate(input: string): string {
   // Validate input is not empty
   if (!lowerInput || lowerInput === '') {
     throw new Error(
-      'Date parameter cannot be empty. Supported formats: "today", "yesterday", "last night", "N days ago", "N weeks ago", "last week", "last weekend", "last monday" (or any weekday), "last month", "January 2025", or ISO date (YYYY-MM-DD)'
+      'Date parameter cannot be empty. Supported formats: "today", "tonight", "yesterday", "last night", "this morning", "earlier today", "this afternoon", "this evening", "N days ago", "N weeks ago", "last week", "last weekend", "last monday" (or any weekday), "last month", "January 2025", or ISO date (YYYY-MM-DD)'
     );
   }
 
@@ -75,11 +75,43 @@ export function parseNaturalDate(input: string): string {
     return yesterday.toISOString();
   }
 
+  // Handle "tonight" - synonym for today
+  if (lowerInput === 'tonight') {
+    // Tonight = today's date (UTC midnight represents start of today)
+    const today = new Date(Date.UTC(currentYear, currentMonth, currentDate));
+    return today.toISOString();
+  }
+
+  // Handle time-of-day variants that all map to today
+  if (
+    lowerInput === 'this morning' ||
+    lowerInput === 'earlier today' ||
+    lowerInput === 'this afternoon' ||
+    lowerInput === 'this evening'
+  ) {
+    const today = new Date(Date.UTC(currentYear, currentMonth, currentDate));
+    return today.toISOString();
+  }
+
   // Handle "N days ago" patterns (e.g., "3 days ago", "5 days ago")
   const daysAgoMatch = lowerInput.match(/^(\d+)\s+days?\s+ago$/);
   if (daysAgoMatch) {
-    const daysAgo = parseInt(daysAgoMatch[1], 10);
-    const targetDate = new Date(Date.UTC(currentYear, currentMonth, currentDate - daysAgo));
+    const days = parseInt(daysAgoMatch[1], 10);
+
+    // Validate bounds
+    if (days === 0) {
+      throw new Error(
+        'Ambiguous date: "0 days ago" could mean today or yesterday. Use "today" or "yesterday" instead. Suggestions: today, yesterday'
+      );
+    }
+
+    if (days > 365) {
+      throw new Error(
+        `Date too far in past: ${days} days ago. Please use an ISO date (YYYY-MM-DD) for dates more than a year ago. Suggestions: Use ISO format like "2024-01-15", Maximum: "365 days ago"`
+      );
+    }
+
+    const targetDate = new Date(Date.UTC(currentYear, currentMonth, currentDate - days));
     return targetDate.toISOString();
   }
 
@@ -95,6 +127,20 @@ export function parseNaturalDate(input: string): string {
     };
     const weeksStr = weeksAgoMatch[1];
     const weeks = isNaN(Number(weeksStr)) ? numberMap[weeksStr] : parseInt(weeksStr, 10);
+
+    // Validate bounds
+    if (weeks === 0) {
+      throw new Error(
+        'Ambiguous date: "0 weeks ago" could mean this week or last week. Use "this week" or "last week" instead. Suggestions: last week, today'
+      );
+    }
+
+    if (weeks > 52) {
+      throw new Error(
+        `Date too far in past: ${weeks} weeks ago. Please use an ISO date (YYYY-MM-DD) for dates more than a year ago. Suggestions: Use ISO format like "2024-01-15", Maximum: "52 weeks ago"`
+      );
+    }
+
     const daysAgo = weeks * 7;
     const targetDate = new Date(Date.UTC(currentYear, currentMonth, currentDate - daysAgo));
     return targetDate.toISOString();
@@ -176,7 +222,7 @@ export function parseNaturalDate(input: string): string {
   }
 
   throw new Error(
-    `Unable to parse date: "${input}". Use ISO format (YYYY-MM-DD) or natural language (today, yesterday, last night, N days ago, N weeks ago, last week, last weekend, last monday, last month)`
+    `Unable to parse date: "${input}". Use ISO format (YYYY-MM-DD) or natural language (today, tonight, yesterday, last night, this morning, earlier today, this afternoon, this evening, N days ago, N weeks ago, last week, last weekend, last monday, last month)`
   );
 }
 

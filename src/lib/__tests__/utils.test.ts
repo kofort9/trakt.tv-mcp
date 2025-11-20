@@ -310,6 +310,124 @@ describe('utils', () => {
       expect(result).toBe(expectedDate.toISOString());
     });
 
+    // Test "tonight" parsing
+    it('should parse "tonight" as today', () => {
+      const result = parseNaturalDate('tonight');
+
+      // Verify it's today
+      const now = new Date();
+      const expectedDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+      );
+      expect(result).toBe(expectedDate.toISOString());
+
+      // Verify format
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/);
+    });
+
+    // Test time-of-day variants
+    it('should parse "this morning" as today', () => {
+      const result = parseNaturalDate('this morning');
+
+      const now = new Date();
+      const expectedDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+      );
+      expect(result).toBe(expectedDate.toISOString());
+    });
+
+    it('should parse "earlier today" as today', () => {
+      const result = parseNaturalDate('earlier today');
+
+      const now = new Date();
+      const expectedDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+      );
+      expect(result).toBe(expectedDate.toISOString());
+    });
+
+    it('should parse "this afternoon" as today', () => {
+      const result = parseNaturalDate('this afternoon');
+
+      const now = new Date();
+      const expectedDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+      );
+      expect(result).toBe(expectedDate.toISOString());
+    });
+
+    it('should parse "this evening" as today', () => {
+      const result = parseNaturalDate('this evening');
+
+      const now = new Date();
+      const expectedDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+      );
+      expect(result).toBe(expectedDate.toISOString());
+    });
+
+    // Test validation for "0 days ago"
+    it('should throw helpful error for "0 days ago"', () => {
+      expect(() => parseNaturalDate('0 days ago')).toThrow(
+        /Ambiguous date: "0 days ago" could mean today or yesterday/
+      );
+      expect(() => parseNaturalDate('0 days ago')).toThrow(/Suggestions: today, yesterday/);
+    });
+
+    // Test validation for extreme "days ago" values
+    it('should throw helpful error for "999 days ago"', () => {
+      expect(() => parseNaturalDate('999 days ago')).toThrow(/Date too far in past: 999 days ago/);
+      expect(() => parseNaturalDate('999 days ago')).toThrow(
+        /Please use an ISO date \(YYYY-MM-DD\) for dates more than a year ago/
+      );
+      expect(() => parseNaturalDate('999 days ago')).toThrow(/Maximum: "365 days ago"/);
+    });
+
+    it('should allow "365 days ago" (boundary)', () => {
+      const result = parseNaturalDate('365 days ago');
+
+      const now = new Date();
+      const expectedDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 365)
+      );
+      expect(result).toBe(expectedDate.toISOString());
+    });
+
+    it('should throw helpful error for "366 days ago" (just over boundary)', () => {
+      expect(() => parseNaturalDate('366 days ago')).toThrow(/Date too far in past: 366 days ago/);
+    });
+
+    // Test validation for "0 weeks ago"
+    it('should throw helpful error for "0 weeks ago"', () => {
+      expect(() => parseNaturalDate('0 weeks ago')).toThrow(
+        /Ambiguous date: "0 weeks ago" could mean this week or last week/
+      );
+      expect(() => parseNaturalDate('0 weeks ago')).toThrow(/Suggestions: last week, today/);
+    });
+
+    // Test validation for extreme "weeks ago" values
+    it('should throw helpful error for "100 weeks ago"', () => {
+      expect(() => parseNaturalDate('100 weeks ago')).toThrow(/Date too far in past: 100 weeks ago/);
+      expect(() => parseNaturalDate('100 weeks ago')).toThrow(
+        /Please use an ISO date \(YYYY-MM-DD\) for dates more than a year ago/
+      );
+      expect(() => parseNaturalDate('100 weeks ago')).toThrow(/Maximum: "52 weeks ago"/);
+    });
+
+    it('should allow "52 weeks ago" (boundary)', () => {
+      const result = parseNaturalDate('52 weeks ago');
+
+      const now = new Date();
+      const expectedDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 364)
+      );
+      expect(result).toBe(expectedDate.toISOString());
+    });
+
+    it('should throw helpful error for "53 weeks ago" (just over boundary)', () => {
+      expect(() => parseNaturalDate('53 weeks ago')).toThrow(/Date too far in past: 53 weeks ago/);
+    });
+
     // Test boundary: "last week" crossing month boundary
     it('should correctly handle "last week" crossing month boundaries', () => {
       const result = parseNaturalDate('last week');
