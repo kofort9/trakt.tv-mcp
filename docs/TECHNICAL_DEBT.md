@@ -202,6 +202,15 @@ private writeToFile(log: RequestLog): void {
 }
 ```
 
+**Resolution:**
+- **Date:** 2025-11-21
+- **Status:** ✅ Implemented
+- **Changes:**
+  - Moved default log directory to `~/.trakt-mcp/logs/`
+  - Enforced `700` permissions on directory and `600` on files
+  - Implemented 7-day retention policy with automatic cleanup
+  - Updated `src/lib/logger.ts` and added `src/lib/__tests__/logger-security.test.ts`
+
 **Affected Files:**
 - `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/logger.ts` (lines 86-402)
 - `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/__tests__/logger.test.ts`
