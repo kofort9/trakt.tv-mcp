@@ -279,7 +279,7 @@ export class Logger {
         // Ensure permissions are correct for existing directory
         try {
           fs.chmodSync(this.logDirectory, 0o700);
-        } catch (err) {
+        } catch {
           // Ignore if we can't change permissions (e.g. not owner)
         }
       }
