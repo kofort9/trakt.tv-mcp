@@ -1,4 +1,5 @@
 import { TraktClient } from './trakt-client.js';
+import { CacheMetrics } from './cache.js';
 import {
   parseNaturalDate,
   parseDateRange,
@@ -764,7 +765,7 @@ export async function unfollowShow(
  * - Tracking rate limit usage
  */
 export async function debugLastRequest(
-  _client: TraktClient,
+  client: TraktClient,
   args: {
     limit?: number;
     toolName?: string;
@@ -773,7 +774,7 @@ export async function debugLastRequest(
     includeMetrics?: boolean;
     errorsOnly?: boolean;
   }
-): Promise<ToolSuccess<{ logs: RequestLog[]; metrics?: ToolMetrics[] }> | ToolError> {
+): Promise<ToolSuccess<{ logs: RequestLog[]; metrics?: ToolMetrics[]; cacheMetrics?: CacheMetrics }> | ToolError> {
   try {
     const {
       limit = 10,
@@ -806,8 +807,10 @@ export async function debugLastRequest(
 
     // Get metrics if requested
     let metrics: ToolMetrics[] | undefined;
+    let cacheMetrics: CacheMetrics | undefined;
     if (includeMetrics) {
       metrics = logger.getMetrics(toolName);
+      cacheMetrics = client.getCacheMetrics();
     }
 
     // Format response with helpful message
@@ -825,12 +828,18 @@ export async function debugLastRequest(
       if (metrics && metrics.length > 0) {
         message += ` Performance metrics included for ${metrics.length} tool${metrics.length === 1 ? '' : 's'}.`;
       }
+      if (cacheMetrics) {
+        message += ` Cache status: ${cacheMetrics.size} items, ${(
+          cacheMetrics.hitRate * 100
+        ).toFixed(1)}% hit rate.`;
+      }
     }
 
     return createToolSuccess(
       {
         logs,
         ...(metrics && metrics.length > 0 ? { metrics } : {}),
+        ...(cacheMetrics ? { cacheMetrics } : {}),
       },
       message
     );

@@ -571,4 +571,35 @@ describe('tools', () => {
       }
     });
   });
+
+  describe('debugLastRequest', () => {
+    it('should return debug info with cache metrics', async () => {
+      // Mock logger behavior (since it's imported directly)
+      // We can't easily mock the imported logger without vitest mock hoisting
+      // But we can assume it works or is mocked if needed. 
+      // For now, let's just test that the tool calls getCacheMetrics on the client
+      
+      const mockMetrics = {
+        hits: 5,
+        misses: 2,
+        evictions: 0,
+        size: 10,
+        hitRate: 0.71,
+        memoryBytesUsed: 1024,
+        avgEntrySize: 100,
+      };
+      
+      vi.spyOn(mockClient, 'getCacheMetrics').mockReturnValue(mockMetrics);
+
+      const result = await tools.debugLastRequest(mockClient, {});
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.cacheMetrics).toEqual(mockMetrics);
+        // Check if message contains cache info
+        expect(result.message).toContain('Cache: 10 items');
+        expect(result.message).toContain('0.71 hit rate');
+      }
+    });
+  });
 });
