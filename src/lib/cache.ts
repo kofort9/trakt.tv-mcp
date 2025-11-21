@@ -32,6 +32,12 @@ export interface CacheMetrics {
 /**
  * Estimate size of value in bytes using JSON stringification
  * This provides a more accurate representation of the serialized size
+ * 
+ * Limitations:
+ * - Returns 0 for circular references or non-serializable objects (silent fallback)
+ * - Does not account for V8 internal object overhead (property descriptors, hidden classes)
+ * - Can be expensive for large objects (O(n) complexity)
+ * - Only measures serialized JSON size, not actual heap memory usage
  */
 function estimateSize(value: any): number {
   try {
