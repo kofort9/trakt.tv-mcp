@@ -10,6 +10,7 @@ MCP server for Trakt.tv API - enables AI assistants to track watched shows, movi
 - **Natural Language Support**: Use conversational phrases like "watched yesterday", "tonight", "3 days ago", "last Monday"
 - **Track Watched Content**: Log movies and TV episodes with flexible date expressions
 - **Bulk Logging**: Record multiple episodes or movies at once with range support ("episodes 1-5")
+- **Bulk Import Script**: Import 100+ historical entries from CSV files ([see guide](scripts/README.md))
 - **Watch History**: Query and summarize your viewing history by date range
 - **Search**: Find movies, TV shows, and anime on Trakt.tv
 - **Smart Disambiguation**: Automatically handles content with multiple versions or years
@@ -100,6 +101,9 @@ npm run test:watch
 
 # Run tests with UI
 npm run test:ui
+
+# Bulk import historical data from CSV
+npm run bulk-import -- --help
 ```
 
 ### Code Quality
