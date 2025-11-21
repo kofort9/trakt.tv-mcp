@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running code style checks..."
+echo ""
+
+# Run prettier
+echo "📝 Formatting code with Prettier..."
+npm run format || exit 1
+
+# Run ESLint
+echo "🔎 Linting code with ESLint..."
+npm run lint || exit 1
+
+echo ""
+echo "✅ Code style checks passed!"
+
