@@ -101,6 +101,60 @@ describe('Logger Security & Maintenance', () => {
     expect(fs.existsSync(newFile)).toBe(true);
   });
 
+  it('should cleanup logs older than configured maxLogAge', () => {
+    // 1. Create dummy old files
+    if (!fs.existsSync(testLogDir)) {
+      fs.mkdirSync(testLogDir, { recursive: true, mode: 0o700 });
+    }
+
+    const oldDate = new Date();
+    oldDate.setDate(oldDate.getDate() - 4); // 4 days ago
+    const oldFile = path.join(testLogDir, `trakt-mcp-old.log`);
+    
+    fs.writeFileSync(oldFile, 'old log content');
+    fs.utimesSync(oldFile, oldDate, oldDate);
+
+    // 2. Initialize logger with maxLogAge = 3
+    logger = new Logger({
+      logDirectory: testLogDir,
+      enableFileLogging: true,
+      maxLogAge: 3
+    });
+
+    // 3. Verify old file is gone (4 days > 3 days)
+    expect(fs.existsSync(oldFile)).toBe(false);
+  });
+
+  it('should respect maxLogFiles limit', () => {
+    if (!fs.existsSync(testLogDir)) {
+      fs.mkdirSync(testLogDir, { recursive: true, mode: 0o700 });
+    }
+
+    const maxFiles = 3;
+    
+    // Create more files than limit
+    for (let i = 0; i < 5; i++) {
+      const date = new Date();
+      date.setMinutes(date.getMinutes() - i); // Different times
+      const file = path.join(testLogDir, `trakt-mcp-test-${i}.log`);
+      fs.writeFileSync(file, `content ${i}`);
+      fs.utimesSync(file, date, date);
+    }
+
+    // Initialize logger with maxLogFiles = 3
+    logger = new Logger({
+      logDirectory: testLogDir,
+      enableFileLogging: true,
+      maxLogFiles: maxFiles
+    });
+
+    // Count remaining log files
+    const remainingFiles = fs.readdirSync(testLogDir).filter(f => f.endsWith('.log'));
+    
+    // Should be maxFiles + 1 (the current log file created by logger)
+    expect(remainingFiles.length).toBeLessThanOrEqual(maxFiles + 1);
+  });
+
   it('should respect custom log directory', () => {
     logger = new Logger({
       logDirectory: testLogDir,

@@ -71,6 +71,10 @@ export interface LoggerConfig {
   logDirectory?: string;
   /** Enable/disable file logging */
   enableFileLogging?: boolean;
+  /** Maximum age of logs in days before deletion (default: 7) */
+  maxLogAge?: number;
+  /** Maximum number of log files to keep (default: 10) */
+  maxLogFiles?: number;
 }
 
 /**
@@ -89,6 +93,8 @@ export class Logger {
   private maxFileSize: number;
   private logDirectory: string;
   private enableFileLogging: boolean;
+  private maxLogAge: number;
+  private maxLogFiles: number;
   private currentLogFile: string;
   private currentFileSize: number = 0;
   private metrics: Map<string, ToolMetrics> = new Map();
@@ -100,6 +106,8 @@ export class Logger {
     // Use ~/.trakt-mcp/logs/ for secure logging
     this.logDirectory = config.logDirectory || path.join(os.homedir(), '.trakt-mcp', 'logs');
     this.enableFileLogging = config.enableFileLogging ?? true;
+    this.maxLogAge = config.maxLogAge || 7;
+    this.maxLogFiles = config.maxLogFiles || 10;
 
     // Initialize log directory and file
     if (this.enableFileLogging) {
@@ -293,21 +301,42 @@ export class Logger {
     try {
       if (!fs.existsSync(this.logDirectory)) return;
 
-      const files = fs.readdirSync(this.logDirectory);
+      const files = fs.readdirSync(this.logDirectory)
+        .filter(file => file.startsWith('trakt-mcp-') && file.endsWith('.log'))
+        .map(file => {
+          const filePath = path.join(this.logDirectory, file);
+          return {
+            name: file,
+            path: filePath,
+            stats: fs.statSync(filePath)
+          };
+        })
+        .sort((a, b) => b.stats.mtimeMs - a.stats.mtimeMs); // Newest first
+
       const now = Date.now();
-      const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+      const maxAgeMs = this.maxLogAge * 24 * 60 * 60 * 1000;
 
-      for (const file of files) {
-        if (!file.startsWith('trakt-mcp-') || !file.endsWith('.log')) continue;
+      // 1. Cleanup by count (keep only maxLogFiles)
+      if (files.length > this.maxLogFiles) {
+        const filesToDelete = files.slice(this.maxLogFiles);
+        for (const file of filesToDelete) {
+          try {
+            fs.unlinkSync(file.path);
+          } catch (err) {
+            console.error(`Failed to delete excess log file ${file.name}:`, err);
+          }
+        }
+      }
 
-        const filePath = path.join(this.logDirectory, file);
+      // 2. Cleanup by age (for remaining files)
+      const remainingFiles = files.slice(0, this.maxLogFiles);
+      for (const file of remainingFiles) {
         try {
-          const stats = fs.statSync(filePath);
-          if (now - stats.mtimeMs > maxAge) {
-            fs.unlinkSync(filePath);
+          if (now - file.stats.mtimeMs > maxAgeMs) {
+            fs.unlinkSync(file.path);
           }
         } catch (err) {
-          console.error(`Failed to cleanup log file ${file}:`, err);
+          console.error(`Failed to cleanup old log file ${file.name}:`, err);
         }
       }
     } catch (error) {
@@ -332,6 +361,7 @@ export class Logger {
       if (this.currentFileSize + logSize > this.maxFileSize) {
         this.currentLogFile = this.getNewLogFileName();
         this.currentFileSize = 0;
+        this.cleanupOldLogs(); // Cleanup after rotation
       }
 
       // Ensure file exists with correct permissions (600)
