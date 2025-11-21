@@ -24,36 +24,52 @@ export interface CacheMetrics {
   evictions: number;
   size: number;
   hitRate: number;
-  memoryBytesUsed: number; // Approximate memory usage in bytes
-  avgEntrySize: number; // Average entry size in bytes
-  maxMemoryBytes?: number; // Optional memory limit
+  memoryUsage: number; // Current estimated memory usage in bytes
 }
 
 /**
  * Estimate size of value in bytes
- * 
- * Optimization:
- * - Uses fast path for primitive types (string, number, boolean)
- * - Uses JSON.stringify for objects (fallback)
- * 
- * Limitations:
- * - Returns 0 for circular references or non-serializable objects
- * - Does not account for V8 internal object overhead
- * - Only measures serialized size
+ * Handles circular references by tracking visited objects
+ * Limits depth to prevent stack overflow
  */
-function estimateSize(value: any): number {
-  if (value === null || value === undefined) return 0;
-  if (typeof value === 'string') return Buffer.byteLength(value, 'utf8');
-  if (typeof value === 'number') return 8; // 64-bit float
-  if (typeof value === 'boolean') return 4;
+function estimateSize(
+  value: unknown,
+  seen = new WeakSet<object>(),
+  depth = 0
+): number {
+  // Prevent stack overflow for deeply nested objects
+  if (depth > 20) return 0;
 
-  try {
-    const json = JSON.stringify(value);
-    return Buffer.byteLength(json, 'utf8');
-  } catch {
-    // Fallback for circular references or non-serializable objects
-    return 0;
+  if (value === null || value === undefined) return 0;
+  if (typeof value === 'boolean') return 4;
+  if (typeof value === 'number') return 8;
+  // String length * 2 is a good estimate for UTF-16 strings in memory
+  if (typeof value === 'string') return value.length * 2;
+  if (typeof value === 'symbol') return 0; // Symbols not counted
+  if (typeof value === 'bigint') return 8; // Estimate 64-bit int
+  if (typeof value === 'function') return 0; // Functions not counted
+
+  if (typeof value === 'object') {
+    if (seen.has(value as object)) return 0;
+    seen.add(value as object);
+
+    if (Array.isArray(value)) {
+      return value.reduce(
+        (acc, item) => acc + estimateSize(item, seen, depth + 1),
+        0
+      );
+    }
+
+    return Object.entries(value as Record<string, unknown>).reduce(
+      (acc, [k, v]) => {
+        return (
+          acc + estimateSize(k, seen, depth + 1) + estimateSize(v, seen, depth + 1)
+        );
+      },
+      0
+    );
   }
+  return 0;
 }
 
 /**
@@ -70,6 +86,7 @@ export class LRUCache<K, V> {
   private cache: Map<K, CacheEntry<V>>;
   private readonly config: CacheConfig;
   private metrics: CacheMetrics;
+  private hasWarnedMemory = false;
 
   constructor(config: Partial<CacheConfig> = {}) {
     this.config = {
@@ -89,9 +106,7 @@ export class LRUCache<K, V> {
       evictions: 0,
       size: 0,
       hitRate: 0,
-      memoryBytesUsed: 0,
-      avgEntrySize: 0,
-      maxMemoryBytes: this.config.maxMemoryBytes,
+      memoryUsage: 0,
     };
   }
 
@@ -110,8 +125,7 @@ export class LRUCache<K, V> {
 
     // Check expiry
     if (Date.now() > entry.expiry) {
-      this.metrics.memoryBytesUsed -= entry.size;
-      this.updateAvgEntrySize();
+      this.metrics.memoryUsage -= entry.size;
       this.cache.delete(key);
       this.metrics.size = this.cache.size;
       this.recordMiss();
@@ -155,24 +169,27 @@ export class LRUCache<K, V> {
       // Check warning threshold
       const threshold =
         this.config.maxMemoryBytes * (this.config.memoryWarningThreshold || 0.9);
-      if (this.metrics.memoryBytesUsed + valueSize > threshold) {
-        console.warn(
-          `Cache memory usage high: ${this.metrics.memoryBytesUsed + valueSize}/${this.config.maxMemoryBytes} bytes`
-        );
+      if (this.metrics.memoryUsage + valueSize > threshold) {
+        if (!this.hasWarnedMemory) {
+          console.warn(
+            `Cache memory usage high: ${this.metrics.memoryUsage + valueSize}/${this.config.maxMemoryBytes} bytes`
+          );
+          this.hasWarnedMemory = true;
+        }
+      } else {
+        this.hasWarnedMemory = false;
       }
 
       // Evict until we have space
-      // Use iterator to avoid creating new iterators in loop
-      const iterator = this.cache.keys();
       while (
-        this.metrics.memoryBytesUsed + valueSize > this.config.maxMemoryBytes &&
+        this.metrics.memoryUsage + valueSize > this.config.maxMemoryBytes &&
         this.cache.size > 0
       ) {
-        const result = iterator.next();
-        if (result.done) break;
-        
-        this.delete(result.value);
-        this.metrics.evictions++;
+        const firstKey = this.cache.keys().next().value;
+        if (firstKey !== undefined) {
+          this.delete(firstKey);
+          this.metrics.evictions++;
+        }
       }
     }
 
@@ -196,8 +213,7 @@ export class LRUCache<K, V> {
 
     this.cache.set(key, entry);
     this.metrics.size = this.cache.size;
-    this.metrics.memoryBytesUsed += valueSize;
-    this.updateAvgEntrySize();
+    this.metrics.memoryUsage += valueSize;
   }
 
   /**
@@ -208,8 +224,7 @@ export class LRUCache<K, V> {
     if (!entry) return false;
 
     if (Date.now() > entry.expiry) {
-      this.metrics.memoryBytesUsed -= entry.size;
-      this.updateAvgEntrySize();
+      this.metrics.memoryUsage -= entry.size;
       this.cache.delete(key);
       this.metrics.size = this.cache.size;
       return false;
@@ -224,13 +239,13 @@ export class LRUCache<K, V> {
   delete(key: K): boolean {
     const entry = this.cache.get(key);
     if (entry) {
-      this.metrics.memoryBytesUsed -= entry.size;
+      this.metrics.memoryUsage -= entry.size;
     }
 
     const deleted = this.cache.delete(key);
     if (deleted) {
       this.metrics.size = this.cache.size;
-      this.updateAvgEntrySize();
+      this.resetWarningFlag();
     }
     return deleted;
   }
@@ -241,8 +256,8 @@ export class LRUCache<K, V> {
   clear(): void {
     this.cache.clear();
     this.metrics.size = 0;
-    this.metrics.memoryBytesUsed = 0;
-    this.metrics.avgEntrySize = 0;
+    this.metrics.memoryUsage = 0;
+    this.hasWarnedMemory = false;
   }
 
   /**
@@ -255,15 +270,27 @@ export class LRUCache<K, V> {
 
     for (const [key, entry] of this.cache.entries()) {
       if (now > entry.expiry) {
-        this.metrics.memoryBytesUsed -= entry.size;
+        this.metrics.memoryUsage -= entry.size;
         this.cache.delete(key);
         removed++;
       }
     }
 
     this.metrics.size = this.cache.size;
-    this.updateAvgEntrySize();
+    if (removed > 0) {
+      this.resetWarningFlag();
+    }
     return removed;
+  }
+
+  private resetWarningFlag(): void {
+    if (!this.config.maxMemoryBytes) return;
+    
+    const threshold =
+      this.config.maxMemoryBytes * (this.config.memoryWarningThreshold || 0.9);
+    if (this.metrics.memoryUsage < threshold) {
+      this.hasWarnedMemory = false;
+    }
   }
 
   /**
@@ -283,9 +310,7 @@ export class LRUCache<K, V> {
       evictions: 0,
       size: this.cache.size,
       hitRate: 0,
-      memoryBytesUsed: this.metrics.memoryBytesUsed,
-      avgEntrySize: this.metrics.avgEntrySize,
-      maxMemoryBytes: this.config.maxMemoryBytes,
+      memoryUsage: this.metrics.memoryUsage,
     };
   }
 
@@ -293,7 +318,7 @@ export class LRUCache<K, V> {
    * Get current memory usage in bytes
    */
   getCurrentMemoryUsage(): number {
-    return this.metrics.memoryBytesUsed;
+    return this.metrics.memoryUsage;
   }
 
   /**
@@ -325,16 +350,6 @@ export class LRUCache<K, V> {
   private updateHitRate(): void {
     const total = this.metrics.hits + this.metrics.misses;
     this.metrics.hitRate = total > 0 ? this.metrics.hits / total : 0;
-  }
-
-  private updateAvgEntrySize(): void {
-    if (this.metrics.size > 0) {
-      this.metrics.avgEntrySize = Math.round(
-        this.metrics.memoryBytesUsed / this.metrics.size
-      );
-    } else {
-      this.metrics.avgEntrySize = 0;
-    }
   }
 }
 

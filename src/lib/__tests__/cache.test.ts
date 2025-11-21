@@ -498,38 +498,37 @@ describe('LRUCache', () => {
   describe('memory tracking', () => {
     it('should track memory usage for string values', () => {
       const cache = new LRUCache<string, string>({ enableMetrics: true });
-      // "value" -> 5 bytes
+      // "value" is 5 chars * 2 bytes = 10 bytes
       cache.set('key', 'value');
-      expect(cache.getCurrentMemoryUsage()).toBe(5);
+      expect(cache.getCurrentMemoryUsage()).toBe(10);
     });
 
     it('should track memory usage for number values', () => {
       const cache = new LRUCache<string, number>({ enableMetrics: true });
-      // number -> 8 bytes (fixed)
       cache.set('key', 123);
       expect(cache.getCurrentMemoryUsage()).toBe(8);
     });
 
     it('should track memory usage for object values', () => {
       const cache = new LRUCache<string, object>({ enableMetrics: true });
-      // {a: 1} -> JSON: {"a":1} (7 bytes)
+      // {a: 1} -> key "a" (2 bytes) + value 1 (8 bytes) = 10 bytes
       cache.set('key', { a: 1 });
-      expect(cache.getCurrentMemoryUsage()).toBe(7);
+      expect(cache.getCurrentMemoryUsage()).toBe(10);
     });
 
     it('should update memory usage on overwrite', () => {
       const cache = new LRUCache<string, string>({ enableMetrics: true });
-      cache.set('key', 'short'); // 5 bytes
-      expect(cache.getCurrentMemoryUsage()).toBe(5);
+      cache.set('key', 'short'); // 10 bytes
+      expect(cache.getCurrentMemoryUsage()).toBe(10);
 
-      cache.set('key', 'longer value'); // 12 bytes
-      expect(cache.getCurrentMemoryUsage()).toBe(12);
+      cache.set('key', 'longer value'); // 12 chars * 2 = 24 bytes
+      expect(cache.getCurrentMemoryUsage()).toBe(24);
     });
 
     it('should decrease memory usage on delete', () => {
       const cache = new LRUCache<string, string>({ enableMetrics: true });
-      cache.set('key', 'value'); // 5 bytes
-      expect(cache.getCurrentMemoryUsage()).toBe(5);
+      cache.set('key', 'value');
+      expect(cache.getCurrentMemoryUsage()).toBe(10);
 
       cache.delete('key');
       expect(cache.getCurrentMemoryUsage()).toBe(0);
@@ -550,22 +549,22 @@ describe('LRUCache', () => {
 
     it('should enforce max memory limit', () => {
       const cache = new LRUCache<string, string>({
-        maxMemoryBytes: 12, // Fits 2 items (5+5=10), but not 3 (15)
+        maxMemoryBytes: 20,
         enableMetrics: true,
       });
 
-      cache.set('k1', '12345'); // 5 bytes
-      cache.set('k2', '12345'); // 5 bytes -> Total 10 bytes
+      cache.set('k1', '12345'); // 10 bytes
+      cache.set('k2', '12345'); // 10 bytes -> Total 20 bytes
       expect(cache.size()).toBe(2);
 
-      cache.set('k3', '12345'); // Total 15 bytes (exceeds 12)
+      cache.set('k3', '12345'); // 10 bytes -> Total 30 bytes (exceeds 20)
       // Should evict k1 (LRU)
 
       expect(cache.size()).toBe(2);
       expect(cache.has('k1')).toBe(false);
       expect(cache.has('k2')).toBe(true);
       expect(cache.has('k3')).toBe(true);
-      expect(cache.getCurrentMemoryUsage()).toBe(10);
+      expect(cache.getCurrentMemoryUsage()).toBe(20);
     });
 
     it('should reject item larger than max memory', () => {
@@ -575,14 +574,12 @@ describe('LRUCache', () => {
         enableMetrics: true,
       });
 
-      // "large value" -> 11 bytes > 10 bytes
+      // "large value" is > 10 bytes
       cache.set('k1', 'large value');
 
       expect(cache.size()).toBe(0);
       expect(cache.getCurrentMemoryUsage()).toBe(0);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Cache item too large')
-      );
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Cache item too large'));
       consoleSpy.mockRestore();
     });
 
@@ -594,14 +591,10 @@ describe('LRUCache', () => {
         enableMetrics: true,
       });
 
-      // Need > 50 bytes
-      // "1" * 50 = 50 bytes.
-      const str1 = '1'.repeat(50);
-      cache.set('k1', str1); // 50 bytes
+      cache.set('k1', '1'.repeat(20)); // 40 bytes (20 chars * 2)
       expect(consoleSpy).not.toHaveBeenCalled();
 
-      // Add another small item to exceed 50 bytes
-      cache.set('k2', '1'); // 1 byte. Total 51 bytes > 50.
+      cache.set('k2', '1'.repeat(10)); // 20 bytes. Total 60 bytes. > 50 bytes.
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('Cache memory usage high')
       );
@@ -609,21 +602,51 @@ describe('LRUCache', () => {
       consoleSpy.mockRestore();
     });
 
-    it('should calculate average entry size', () => {
-      const cache = new LRUCache<string, string>({ enableMetrics: true });
+    it('should warn only once when crossing threshold', () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const cache = new LRUCache<string, string>({
+        maxMemoryBytes: 100,
+        memoryWarningThreshold: 0.5, // Warn at 50
+        enableMetrics: true,
+      });
 
-      cache.set('k1', 'val1'); // 4 bytes
-      expect(cache.getMetrics().avgEntrySize).toBe(4);
+      // Fill to warning level
+      cache.set('k1', '1'.repeat(30)); // 60 bytes
+      expect(consoleSpy).toHaveBeenCalledTimes(1);
 
-      cache.set('k2', 'val2'); // 4 bytes. Total 8 bytes, 2 items.
-      expect(cache.getMetrics().avgEntrySize).toBe(4);
+      // Add more items that keep us in warning zone
+      cache.set('k2', '1'.repeat(5)); // 10 bytes. Total 70.
+      expect(consoleSpy).toHaveBeenCalledTimes(1); // Should still be 1
 
-      cache.set('k3', 'longer value'); // 12 bytes. Total 20 bytes, 3 items.
-      // 20 / 3 = 6.66 -> 7
-      expect(cache.getMetrics().avgEntrySize).toBe(7);
+      cache.set('k3', '1'.repeat(5)); // 10 bytes. Total 80.
+      expect(consoleSpy).toHaveBeenCalledTimes(1); // Should still be 1
 
-      cache.clear();
-      expect(cache.getMetrics().avgEntrySize).toBe(0);
+      // Drop below threshold
+      cache.delete('k1'); // -60 bytes. Total 20 bytes.
+
+      // Go back above
+      cache.set('k1', '1'.repeat(30)); // +60 bytes. Total 80 bytes.
+      expect(consoleSpy).toHaveBeenCalledTimes(2); // Should warn again
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle deep nesting safely', () => {
+      const cache = new LRUCache<string, any>({ enableMetrics: true });
+
+      // Create a deeply nested object
+      let deepObj: any = { val: 1 };
+      for (let i = 0; i < 20000; i++) {
+        deepObj = { next: deepObj };
+      }
+
+      // This should NOT throw "RangeError: Maximum call stack size exceeded"
+      expect(() => cache.set('deep', deepObj)).not.toThrow();
+
+      // Should be cached with small size (due to depth limit)
+      // 20 levels * 8 bytes (key) = 160 bytes approximately
+      expect(cache.getCurrentMemoryUsage()).toBeGreaterThan(0);
+      expect(cache.getCurrentMemoryUsage()).toBeLessThan(1000);
     });
   });
 });

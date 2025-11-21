@@ -1,4 +1,5 @@
 import { TraktClient } from './trakt-client.js';
+import { CacheMetrics } from './cache.js';
 import {
   parseNaturalDate,
   parseDateRange,
@@ -14,7 +15,6 @@ import {
   ToolSuccess,
 } from './utils.js';
 import { logger, RequestLog, ToolMetrics } from './logger.js';
-import { CacheMetrics } from './cache.js';
 import { parallelSearchMovies } from './parallel.js';
 import {
   TraktEpisode,
@@ -807,12 +807,11 @@ export async function debugLastRequest(
 
     // Get metrics if requested
     let metrics: ToolMetrics[] | undefined;
+    let cacheMetrics: CacheMetrics | undefined;
     if (includeMetrics) {
       metrics = logger.getMetrics(toolName);
+      cacheMetrics = client.getCacheMetrics();
     }
-
-    // Get cache metrics
-    const cacheMetrics = client.getCacheMetrics();
 
     // Format response with helpful message
     let message: string;
@@ -829,18 +828,18 @@ export async function debugLastRequest(
       if (metrics && metrics.length > 0) {
         message += ` Performance metrics included for ${metrics.length} tool${metrics.length === 1 ? '' : 's'}.`;
       }
-    }
-    
-    // Append cache status to message
-    if (cacheMetrics) {
-      message += ` Cache: ${cacheMetrics.size} items, ${cacheMetrics.hitRate.toFixed(2)} hit rate.`;
+      if (cacheMetrics) {
+        message += ` Cache status: ${cacheMetrics.size} items, ${(
+          cacheMetrics.hitRate * 100
+        ).toFixed(1)}% hit rate.`;
+      }
     }
 
     return createToolSuccess(
       {
         logs,
         ...(metrics && metrics.length > 0 ? { metrics } : {}),
-        cacheMetrics,
+        ...(cacheMetrics ? { cacheMetrics } : {}),
       },
       message
     );
