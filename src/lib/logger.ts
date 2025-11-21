@@ -317,27 +317,31 @@ export class Logger {
       const now = Date.now();
       const maxAgeMs = this.maxLogAge * 24 * 60 * 60 * 1000;
 
-      // 1. Cleanup by count (keep only maxLogFiles)
-      if (files.length > this.maxLogFiles) {
-        const filesToDelete = files.slice(this.maxLogFiles);
+      // 1. Cleanup by age (for all files first)
+      const validFiles = files.filter((file) => {
+        if (now - file.stats.mtimeMs > maxAgeMs) {
+          try {
+            fs.unlinkSync(file.path);
+            return false; // Remove from list
+          } catch (err) {
+            console.error(`Failed to cleanup old log file ${file.name}:`, err);
+            return true; // Keep in list if failed to delete
+          }
+        }
+        return true;
+      });
+
+      // 2. Cleanup by count (keep only maxLogFiles)
+      if (validFiles.length > this.maxLogFiles) {
+        // Re-sort remaining files just in case
+        const sortedFiles = validFiles.sort((a, b) => b.stats.mtimeMs - a.stats.mtimeMs);
+        const filesToDelete = sortedFiles.slice(this.maxLogFiles);
         for (const file of filesToDelete) {
           try {
             fs.unlinkSync(file.path);
           } catch (err) {
             console.error(`Failed to delete excess log file ${file.name}:`, err);
           }
-        }
-      }
-
-      // 2. Cleanup by age (for remaining files)
-      const remainingFiles = files.slice(0, this.maxLogFiles);
-      for (const file of remainingFiles) {
-        try {
-          if (now - file.stats.mtimeMs > maxAgeMs) {
-            fs.unlinkSync(file.path);
-          }
-        } catch (err) {
-          console.error(`Failed to cleanup old log file ${file.name}:`, err);
         }
       }
     } catch (error) {

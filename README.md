@@ -63,6 +63,9 @@ This server is designed for AI assistant integration. See [Claude Prompt Guideli
   - Maximum of 10 log files are kept (configurable via `maxLogFiles`).
   - Logs older than 7 days are automatically deleted (configurable via `maxLogAge`).
 - **Redaction**: Sensitive headers like `Authorization` are redacted from all logs.
+- **Platform Notes**:
+  - Permission enforcement is active on Linux and macOS (POSIX).
+  - On Windows, file permissions are not strictly enforced by `chmod`. Ensure the log directory is in a secure, user-specific location.
 
 ## Development
 

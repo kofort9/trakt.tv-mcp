@@ -115,7 +115,10 @@ describe('Logger Security & Maintenance', () => {
 
     const oldDate = new Date();
     oldDate.setDate(oldDate.getDate() - 4); // 4 days ago
-    const oldFile = path.join(testLogDir, `trakt-mcp-old.log`);
+    const oldFile = path.join(
+      testLogDir,
+      `trakt-mcp-${oldDate.toISOString().replace(/[:.]/g, '-')}.log`
+    );
 
     fs.writeFileSync(oldFile, 'old log content');
     fs.utimesSync(oldFile, oldDate, oldDate);
@@ -159,6 +162,7 @@ describe('Logger Security & Maintenance', () => {
 
     // Should be maxFiles + 1 (the current log file created by logger)
     expect(remainingFiles.length).toBeLessThanOrEqual(maxFiles + 1);
+    expect(remainingFiles.length).toBeGreaterThanOrEqual(maxFiles);
   });
 
   it('should respect custom log directory', () => {
