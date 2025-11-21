@@ -3,15 +3,51 @@
 [![CI](https://github.com/kofifort/trakt.tv-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/kofifort/trakt.tv-mcp/actions/workflows/ci.yml)
 [![Security Audit](https://github.com/kofifort/trakt.tv-mcp/actions/workflows/security.yml/badge.svg)](https://github.com/kofifort/trakt.tv-mcp/actions/workflows/security.yml)
 
-MCP server for Trakt.tv API - enables AI assistants to track watched shows, movies, and anime
+MCP server for Trakt.tv API - enables AI assistants to track watched shows, movies, and anime using natural language
 
 ## Features
 
-- Track watched content on Trakt.tv via AI assistants like Claude
-- Search for movies, TV shows, and anime
-- Log individual episodes or entire seasons
-- View watch history and statistics
-- Full OAuth 2.0 authentication support
+- **Natural Language Support**: Use conversational phrases like "watched yesterday", "tonight", "3 days ago", "last Monday"
+- **Track Watched Content**: Log movies and TV episodes with flexible date expressions
+- **Bulk Logging**: Record multiple episodes or movies at once with range support ("episodes 1-5")
+- **Watch History**: Query and summarize your viewing history by date range
+- **Search**: Find movies, TV shows, and anime on Trakt.tv
+- **Smart Disambiguation**: Automatically handles content with multiple versions or years
+- **OAuth 2.0 Authentication**: Secure integration with your Trakt.tv account
+
+## Quick Start
+
+### For Users
+
+**Natural Language Examples:**
+```
+"Watched Breaking Bad S1E1 yesterday"
+"Binged episodes 1-5 of Demon Slayer tonight"
+"What did I watch last week?"
+"Watched Dune 2021 last Friday"
+```
+
+See [Natural Language Patterns Guide](docs/guides/NATURAL_LANGUAGE_PATTERNS.md) for complete usage documentation.
+
+### For AI Assistants (Claude)
+
+This server is designed for AI assistant integration. See [Claude Prompt Guidelines](docs/guides/CLAUDE_PROMPT_GUIDELINES.md) for:
+- How to interpret user queries
+- Natural language pattern mapping
+- Error handling and disambiguation
+- Best practices for conversational interactions
+
+## Documentation
+
+📚 **[Complete Documentation Index](docs/README.md)**
+
+**Quick Links:**
+- [Setup Instructions](#setup) (below)
+- [Natural Language Patterns](docs/guides/NATURAL_LANGUAGE_PATTERNS.md) - How to use conversational date/time expressions
+- [NL Patterns Quick Reference](docs/guides/NL_PATTERNS_REFERENCE.md) - Cheat sheet
+- [Claude Integration Guide](docs/guides/CLAUDE_PROMPT_GUIDELINES.md) - For AI assistants
+- [CHANGELOG](CHANGELOG.md) - Version history and release notes
+- [Testing Documentation](docs/testing/) - Test reports and quality assurance
 
 ## Development
 
@@ -90,6 +126,15 @@ GitHub Actions automatically runs quality checks on every push and pull request:
 - Security audits
 
 See [Branch Protection Recommendations](.github/BRANCH_PROTECTION.md) for setting up branch protection rules.
+
+## Contributing
+
+We welcome contributions! Before submitting changes:
+
+1. Read [CLAUDE.md](CLAUDE.md) for project architecture and guidelines
+2. Review [Natural Language Patterns Guide](docs/guides/NATURAL_LANGUAGE_PATTERNS.md) if adding date/time features
+3. See [Contributing NL Patterns](docs/guides/CONTRIBUTING_NL.md) for extending natural language support
+4. Ensure all tests pass and code quality checks succeed
 
 ## License
 

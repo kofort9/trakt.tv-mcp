@@ -13,6 +13,8 @@ import {
   ToolError,
   ToolSuccess,
 } from './utils.js';
+import { logger, RequestLog, ToolMetrics } from './logger.js';
+import { parallelSearchMovies } from './parallel.js';
 import {
   TraktEpisode,
   TraktShow,
@@ -48,17 +50,12 @@ export async function searchEpisode(
     const searchResults = await client.search(showName, 'show');
 
     if (!Array.isArray(searchResults) || searchResults.length === 0) {
-      return createToolError(
-        'NOT_FOUND',
-        `No show found matching "${showName}"`,
-        undefined,
-        [
-          'Check the spelling of the show name',
-          'Try using search_show to browse available titles',
-          'Use the exact title as it appears on Trakt.tv',
-          'Try including the year if there are multiple versions',
-        ]
-      );
+      return createToolError('NOT_FOUND', `No show found matching "${showName}"`, undefined, [
+        'Check the spelling of the show name',
+        'Try using search_show to browse available titles',
+        'Use the exact title as it appears on Trakt.tv',
+        'Try including the year if there are multiple versions',
+      ]);
     }
 
     // Handle disambiguation
@@ -315,17 +312,12 @@ export async function bulkLog(
       // Search for the show
       const searchResults = await client.search(showName, 'show');
       if (!Array.isArray(searchResults) || searchResults.length === 0) {
-        return createToolError(
-          'NOT_FOUND',
-          `No show found matching "${showName}"`,
-          undefined,
-          [
-            'Check the spelling of the show name',
-            'Try using search_show to browse available titles',
-            'Use the exact title as it appears on Trakt.tv',
-            'Try including the year if there are multiple versions',
-          ]
-        );
+        return createToolError('NOT_FOUND', `No show found matching "${showName}"`, undefined, [
+          'Check the spelling of the show name',
+          'Try using search_show to browse available titles',
+          'Use the exact title as it appears on Trakt.tv',
+          'Try including the year if there are multiple versions',
+        ]);
       }
 
       // Handle disambiguation
@@ -365,35 +357,55 @@ export async function bulkLog(
       const response = await client.addToHistory(historyData);
       return createToolSuccess<TraktHistoryAddResponse>(response as TraktHistoryAddResponse);
     } else {
-      // Movies
+      // Movies - NOW WITH PARALLEL PROCESSING
       if (!movieNames || movieNames.length === 0) {
         return createToolError('VALIDATION_ERROR', 'For movies, movieNames is required');
       }
 
-      const movieData: Array<{ watched_at: string; ids: { trakt: number } }> = [];
-
-      // Search for each movie
+      // Validate all movie names first
       for (const movieName of movieNames) {
         validateNonEmptyString(movieName, 'movieName');
+      }
 
-        const searchResults = await client.search(movieName, 'movie');
-        if (!Array.isArray(searchResults) || searchResults.length === 0) {
-          return createToolError(
-            'NOT_FOUND',
-            `No movie found matching "${movieName}"`,
-            undefined,
-            [
-              'Check the spelling of the movie name',
-              'Try using search_show with type filter to browse available movies',
-              'Include the release year if known',
-            ]
-          );
+      // Parallel search for all movies
+      const { results: searchResults, errors: searchErrors } = await parallelSearchMovies(
+        client,
+        movieNames,
+        year
+      );
+
+      // Handle search errors
+      if (searchErrors.size > 0) {
+        const errorList = Array.from(searchErrors.entries())
+          .map(([movie, error]) => `  - ${movie}: ${error}`)
+          .join('\n');
+
+        return createToolError(
+          'TRAKT_API_ERROR',
+          `Failed to search for ${searchErrors.size} movie(s):\n${errorList}`,
+          { failedMovies: Array.from(searchErrors.keys()) }
+        );
+      }
+
+      // Process search results and handle disambiguation
+      const movieData: Array<{ watched_at: string; ids: { trakt: number } }> = [];
+
+      for (const movieName of movieNames) {
+        const normalizedName = movieName.toLowerCase().trim();
+        const results = searchResults.get(normalizedName);
+
+        if (!results || results.length === 0) {
+          return createToolError('NOT_FOUND', `No movie found matching "${movieName}"`, undefined, [
+            'Check the spelling of the movie name',
+            'Try using search_show with type filter to browse available movies',
+            'Include the release year if known',
+          ]);
         }
 
         // Handle disambiguation - for bulk operations, we auto-select first result
         // to avoid complex multi-movie disambiguation flows
         const disambiguationResult = handleSearchDisambiguation(
-          searchResults,
+          results,
           movieName,
           'movie',
           year,
@@ -628,17 +640,12 @@ export async function followShow(
     // Search for the show
     const searchResults = await client.search(showName, 'show');
     if (!Array.isArray(searchResults) || searchResults.length === 0) {
-      return createToolError(
-        'NOT_FOUND',
-        `No show found matching "${showName}"`,
-        undefined,
-        [
-          'Check the spelling of the show name',
-          'Try using search_show to browse available titles',
-          'Use the exact title as it appears on Trakt.tv',
-          'Try including the year if there are multiple versions',
-        ]
-      );
+      return createToolError('NOT_FOUND', `No show found matching "${showName}"`, undefined, [
+        'Check the spelling of the show name',
+        'Try using search_show to browse available titles',
+        'Use the exact title as it appears on Trakt.tv',
+        'Try including the year if there are multiple versions',
+      ]);
     }
 
     // Handle disambiguation
@@ -686,7 +693,9 @@ export async function unfollowShow(
     year?: number;
     traktId?: number;
   }
-): Promise<ToolSuccess<{ show: TraktShow; removed: boolean }> | ToolError | DisambiguationResponse> {
+): Promise<
+  ToolSuccess<{ show: TraktShow; removed: boolean }> | ToolError | DisambiguationResponse
+> {
   try {
     const { showName, year, traktId } = args;
 
@@ -695,17 +704,12 @@ export async function unfollowShow(
     // Search for the show
     const searchResults = await client.search(showName, 'show');
     if (!Array.isArray(searchResults) || searchResults.length === 0) {
-      return createToolError(
-        'NOT_FOUND',
-        `No show found matching "${showName}"`,
-        undefined,
-        [
-          'Check the spelling of the show name',
-          'Try using search_show to browse available titles',
-          'Use the exact title as it appears on Trakt.tv',
-          'Try including the year if there are multiple versions',
-        ]
-      );
+      return createToolError('NOT_FOUND', `No show found matching "${showName}"`, undefined, [
+        'Check the spelling of the show name',
+        'Try using search_show to browse available titles',
+        'Use the exact title as it appears on Trakt.tv',
+        'Try including the year if there are multiple versions',
+      ]);
     }
 
     // Handle disambiguation
@@ -740,5 +744,98 @@ export async function unfollowShow(
   } catch (error) {
     const message = sanitizeError(error, 'unfollowShow');
     return createToolError('TRAKT_API_ERROR', message);
+  }
+}
+
+/**
+ * Debug tool: Get recent API request logs and performance metrics
+ *
+ * This tool provides detailed information about recent API requests for debugging:
+ * - Request/response details (URL, method, status, body)
+ * - Timing information (duration in milliseconds)
+ * - Rate limit information
+ * - Error details if request failed
+ * - Performance metrics per tool
+ *
+ * Useful for:
+ * - Debugging failed operations
+ * - Understanding API behavior
+ * - Performance analysis
+ * - Tracking rate limit usage
+ */
+export async function debugLastRequest(
+  _client: TraktClient,
+  args: {
+    limit?: number;
+    toolName?: string;
+    method?: string;
+    statusCode?: number;
+    includeMetrics?: boolean;
+    errorsOnly?: boolean;
+  }
+): Promise<ToolSuccess<{ logs: RequestLog[]; metrics?: ToolMetrics[] }> | ToolError> {
+  try {
+    const {
+      limit = 10,
+      toolName,
+      method,
+      statusCode,
+      includeMetrics = true,
+      errorsOnly = false,
+    } = args;
+
+    // Validate limit
+    if (limit < 1 || limit > 100) {
+      return createToolError('VALIDATION_ERROR', 'Limit must be between 1 and 100', undefined, [
+        'Use a value between 1 and 100',
+        'Default is 10',
+      ]);
+    }
+
+    // Get logs with filters
+    let logs = logger.getRecentLogs(limit, {
+      toolName,
+      method,
+      statusCode,
+    });
+
+    // Apply error filter if requested
+    if (errorsOnly) {
+      logs = logs.filter((log) => log.statusCode && log.statusCode >= 400);
+    }
+
+    // Get metrics if requested
+    let metrics: ToolMetrics[] | undefined;
+    if (includeMetrics) {
+      metrics = logger.getMetrics(toolName);
+    }
+
+    // Format response with helpful message
+    let message: string;
+    if (logs.length === 0) {
+      message = 'No request logs found matching the specified filters.';
+    } else {
+      const parts = [`Found ${logs.length} request${logs.length === 1 ? '' : 's'}`];
+      if (toolName) parts.push(`for tool "${toolName}"`);
+      if (method) parts.push(`with method ${method}`);
+      if (statusCode) parts.push(`with status ${statusCode}`);
+      if (errorsOnly) parts.push(`(errors only)`);
+      message = parts.join(' ') + '.';
+
+      if (metrics && metrics.length > 0) {
+        message += ` Performance metrics included for ${metrics.length} tool${metrics.length === 1 ? '' : 's'}.`;
+      }
+    }
+
+    return createToolSuccess(
+      {
+        logs,
+        ...(metrics && metrics.length > 0 ? { metrics } : {}),
+      },
+      message
+    );
+  } catch (error) {
+    const message = sanitizeError(error, 'debugLastRequest');
+    return createToolError('DEBUG_ERROR', message);
   }
 }

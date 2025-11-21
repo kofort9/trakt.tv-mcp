@@ -533,7 +533,7 @@ The server returns a disambiguation response when:
 - **[CLAUDE_PROMPT_GUIDELINES.md](./CLAUDE_PROMPT_GUIDELINES.md)** - Comprehensive guide for AI assistants
 - **[CONTRIBUTING_NL.md](./CONTRIBUTING_NL.md)** - Guide for adding new NL patterns
 - **[NATURAL_LANGUAGE_PATTERNS.md](./NATURAL_LANGUAGE_PATTERNS.md)** - Full pattern library with examples
-- **[TEST_REPORT_summarize_history.md](./TEST_REPORT_summarize_history.md)** - Test results and validation
+- **[TEST_REPORT_summarize_history.md](../testing/TEST_REPORT_summarize_history.md)** - Test results and validation
 
 ---
 

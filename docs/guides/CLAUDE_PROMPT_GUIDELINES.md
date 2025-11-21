@@ -1145,5 +1145,5 @@ Which one did you watch?
 **For implementation details, see:**
 - `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/utils.ts` - Date parsing and validation
 - `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/tools.ts` - Tool implementations
-- `/Users/kofifort/Repos/trakt.tv-mcp/NATURAL_LANGUAGE_PATTERNS.md` - Pattern library
-- `/Users/kofifort/Repos/trakt.tv-mcp/NL_PATTERNS_REFERENCE.md` - Quick reference card
+- `/Users/kofifort/Repos/trakt.tv-mcp/docs/guides/NATURAL_LANGUAGE_PATTERNS.md` - Pattern library
+- `/Users/kofifort/Repos/trakt.tv-mcp/docs/guides/NL_PATTERNS_REFERENCE.md` - Quick reference card

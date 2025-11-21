@@ -24,6 +24,8 @@ export default [
         clearTimeout: 'readonly',
         clearInterval: 'readonly',
         Buffer: 'readonly',
+        performance: 'readonly',
+        URLSearchParams: 'readonly',
       },
     },
     plugins: {
