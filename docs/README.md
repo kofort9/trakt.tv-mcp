@@ -84,6 +84,7 @@ docs/
 ### Development
 - [README - Development Section](../README.md#development)
 - [Debugging Guide](DEBUGGING.md) - Debug tools and log analysis
+- [Cache Implementation](CACHE.md) - Memory management and caching behavior
 - [CHANGELOG](../CHANGELOG.md) - Version history
 - [CLAUDE.md](../CLAUDE.md) - Project instructions for Claude Code
 - [Technical Debt & Improvements](TECHNICAL_DEBT.md) - Tracked future improvements
