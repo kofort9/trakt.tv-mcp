@@ -145,7 +145,10 @@ describe('Logger Security & Maintenance', () => {
     for (let i = 0; i < 5; i++) {
       const date = new Date();
       date.setMinutes(date.getMinutes() - i); // Different times
-      const file = path.join(testLogDir, `trakt-mcp-test-${i}.log`);
+      const file = path.join(
+        testLogDir,
+        `trakt-mcp-${date.toISOString().replace(/[:.]/g, '-')}.log`
+      );
       fs.writeFileSync(file, `content ${i}`);
       fs.utimesSync(file, date, date);
     }
@@ -160,9 +163,42 @@ describe('Logger Security & Maintenance', () => {
     // Count remaining log files
     const remainingFiles = fs.readdirSync(testLogDir).filter((f) => f.endsWith('.log'));
 
-    // Should be maxFiles + 1 (the current log file created by logger)
-    expect(remainingFiles.length).toBeLessThanOrEqual(maxFiles + 1);
-    expect(remainingFiles.length).toBeGreaterThanOrEqual(maxFiles);
+    // Should be maxFiles (new logger hasn't written yet, so no new file created)
+    expect(remainingFiles.length).toBe(maxFiles);
+  });
+
+  it('should cleanup on rotation', () => {
+    // Create a new logger with small max size to force rotation
+    const rotationLogger = new Logger({
+      logDirectory: testLogDir,
+      enableFileLogging: true,
+      maxFileSize: 10, // Small size
+      maxLogFiles: 2, // Small file limit
+    });
+
+    // Use fake timers to ensure unique timestamps for rotated files
+    vi.useFakeTimers();
+    const startTime = new Date();
+
+    // Generate logs to force multiple rotations
+    // Each log is ~150 bytes, so each write forces rotation
+    for (let i = 0; i < 5; i++) {
+      vi.setSystemTime(new Date(startTime.getTime() + i * 1000));
+      rotationLogger.logRequest({
+        correlationId: `test-rot-${i}`,
+        timestamp: new Date().toISOString(),
+        method: 'GET',
+        url: 'https://test.com',
+        headers: {},
+        durationMs: 10,
+      });
+    }
+
+    vi.useRealTimers();
+
+    const files = fs.readdirSync(testLogDir).filter((f) => f.endsWith('.log'));
+    // Should have maxLogFiles (2) + current file = 3 files
+    expect(files.length).toBe(3);
   });
 
   it('should respect custom log directory', () => {
