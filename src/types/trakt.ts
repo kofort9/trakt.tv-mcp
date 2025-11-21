@@ -142,3 +142,31 @@ export interface TokenResponse {
 export interface StoredToken extends TokenResponse {
   expires_at: number;
 }
+
+export interface TraktUser {
+  username: string;
+  name: string;
+  ids: {
+    slug: string;
+  };
+  joined_at: string;
+  location: string;
+  about: string;
+  gender: string;
+  age: number;
+  images: {
+    avatar: {
+      full: string;
+    };
+  };
+}
+
+export interface TraktSettings {
+  user: TraktUser;
+  account: {
+    timezone: string;
+    date_format: string;
+    time_24hr: boolean;
+    cover_image: string;
+  };
+}

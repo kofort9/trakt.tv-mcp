@@ -267,10 +267,17 @@ export class TraktClient {
   }
 
   /**
-   * Get episodes for a season
+   * Get season episodes
    */
   async getSeasonEpisodes(showId: string, season: number) {
     return this.get(`/shows/${showId}/seasons/${season}`);
+  }
+
+  /**
+   * Get user's settings (includes profile info)
+   */
+  async getUserSettings() {
+    return this.get('/users/settings');
   }
 
   /**
