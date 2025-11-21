@@ -595,9 +595,58 @@ describe('LRUCache', () => {
       expect(consoleSpy).not.toHaveBeenCalled();
 
       cache.set('k2', '1'.repeat(10)); // 20 bytes. Total 60 bytes. > 50 bytes.
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Cache memory usage high'));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Cache memory usage high')
+      );
 
       consoleSpy.mockRestore();
+    });
+
+    it('should warn only once when crossing threshold', () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const cache = new LRUCache<string, string>({
+        maxMemoryBytes: 100,
+        memoryWarningThreshold: 0.5, // Warn at 50
+        enableMetrics: true,
+      });
+
+      // Fill to warning level
+      cache.set('k1', '1'.repeat(30)); // 60 bytes
+      expect(consoleSpy).toHaveBeenCalledTimes(1);
+
+      // Add more items that keep us in warning zone
+      cache.set('k2', '1'.repeat(5)); // 10 bytes. Total 70.
+      expect(consoleSpy).toHaveBeenCalledTimes(1); // Should still be 1
+
+      cache.set('k3', '1'.repeat(5)); // 10 bytes. Total 80.
+      expect(consoleSpy).toHaveBeenCalledTimes(1); // Should still be 1
+
+      // Drop below threshold
+      cache.delete('k1'); // -60 bytes. Total 20 bytes.
+
+      // Go back above
+      cache.set('k1', '1'.repeat(30)); // +60 bytes. Total 80 bytes.
+      expect(consoleSpy).toHaveBeenCalledTimes(2); // Should warn again
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle deep nesting safely', () => {
+      const cache = new LRUCache<string, any>({ enableMetrics: true });
+
+      // Create a deeply nested object
+      let deepObj: any = { val: 1 };
+      for (let i = 0; i < 20000; i++) {
+        deepObj = { next: deepObj };
+      }
+
+      // This should NOT throw "RangeError: Maximum call stack size exceeded"
+      expect(() => cache.set('deep', deepObj)).not.toThrow();
+
+      // Should be cached with small size (due to depth limit)
+      // 20 levels * 8 bytes (key) = 160 bytes approximately
+      expect(cache.getCurrentMemoryUsage()).toBeGreaterThan(0);
+      expect(cache.getCurrentMemoryUsage()).toBeLessThan(1000);
     });
   });
 });
