@@ -24,6 +24,16 @@ import { parallelMap } from '../src/lib/parallel.js';
 import { TraktSearchResult, TraktMovie, TraktShow, TraktEpisode } from '../src/types/trakt.js';
 
 // ============================================================================
+// Configuration
+// ============================================================================
+
+const RATE_LIMIT_CONFIG = {
+  maxConcurrency: 5,
+  batchSize: 10,
+  delayBetweenBatches: 100,
+};
+
+// ============================================================================
 // Type Definitions
 // ============================================================================
 
@@ -107,11 +117,17 @@ function readMoviesCSV(filePath: string): MovieRow[] {
 
     return records.map((record: Record<string, string>) => ({
       title: record.title,
-      year: record.year ? parseInt(record.year, 10) : undefined,
+      year: record.year
+        ? isNaN(parseInt(record.year, 10))
+          ? undefined
+          : parseInt(record.year, 10)
+        : undefined,
       watched_date: record.watched_date,
     }));
   } catch (error) {
-    throw new Error(`Failed to read movies CSV: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(
+      `Failed to read movies CSV: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 }
 
@@ -134,7 +150,9 @@ function readEpisodesCSV(filePath: string): EpisodeRow[] {
       watched_date: record.watched_date,
     }));
   } catch (error) {
-    throw new Error(`Failed to read episodes CSV: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(
+      `Failed to read episodes CSV: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 }
 
@@ -178,7 +196,9 @@ function validateMovies(movies: MovieRow[]): ValidationResult {
     if (!movie.watched_date) {
       errors.push(`Row ${rowNum}: Missing watched_date`);
     } else if (!isValidDate(movie.watched_date)) {
-      errors.push(`Row ${rowNum}: Invalid watched_date format. Expected YYYY-MM-DD, got "${movie.watched_date}"`);
+      errors.push(
+        `Row ${rowNum}: Invalid watched_date format. Expected YYYY-MM-DD, got "${movie.watched_date}"`
+      );
     }
 
     if (movie.year !== undefined && (isNaN(movie.year) || movie.year < 1800 || movie.year > 2100)) {
@@ -216,7 +236,9 @@ function validateEpisodes(episodes: EpisodeRow[]): ValidationResult {
     if (!episode.watched_date) {
       errors.push(`Row ${rowNum}: Missing watched_date`);
     } else if (!isValidDate(episode.watched_date)) {
-      errors.push(`Row ${rowNum}: Invalid watched_date format. Expected YYYY-MM-DD, got "${episode.watched_date}"`);
+      errors.push(
+        `Row ${rowNum}: Invalid watched_date format. Expected YYYY-MM-DD, got "${episode.watched_date}"`
+      );
     }
   });
 
@@ -238,7 +260,17 @@ async function searchMovie(
   row: MovieRow
 ): Promise<{ matched?: MatchedMovie; ambiguous?: AmbiguousMatch; failed?: FailedMatch }> {
   try {
-    const results = await client.search(row.title, 'movie', row.year) as TraktSearchResult[];
+    const rawResults = await client.search(row.title, 'movie', row.year);
+    if (!Array.isArray(rawResults)) {
+      return {
+        failed: {
+          row,
+          type: 'movie',
+          reason: 'Invalid API response',
+        },
+      };
+    }
+    const results = rawResults as TraktSearchResult[];
 
     if (!results || results.length === 0) {
       return {
@@ -318,7 +350,7 @@ async function searchEpisode(
 ): Promise<{ matched?: MatchedEpisode; ambiguous?: AmbiguousMatch; failed?: FailedMatch }> {
   try {
     // First, search for the show
-    const showResults = await client.search(row.show_name, 'show') as TraktSearchResult[];
+    const showResults = (await client.search(row.show_name, 'show')) as TraktSearchResult[];
 
     if (!showResults || showResults.length === 0) {
       return {
@@ -361,11 +393,11 @@ async function searchEpisode(
 
     // Now get the specific episode
     try {
-      const episode = await client.searchEpisode(
+      const episode = (await client.searchEpisode(
         show.ids.trakt.toString(),
         row.season,
         row.episode
-      ) as TraktEpisode;
+      )) as TraktEpisode;
 
       return {
         matched: {
@@ -419,11 +451,7 @@ async function searchAndMatchMovies(
       }
       return result;
     },
-    {
-      maxConcurrency: 5,
-      batchSize: 10,
-      delayBetweenBatches: 100,
-    }
+    RATE_LIMIT_CONFIG
   );
 
   // Categorize results
@@ -464,11 +492,7 @@ async function searchAndMatchEpisodes(
       }
       return result;
     },
-    {
-      maxConcurrency: 5,
-      batchSize: 10,
-      delayBetweenBatches: 100,
-    }
+    RATE_LIMIT_CONFIG
   );
 
   // Categorize results
@@ -495,7 +519,10 @@ async function searchAndMatchEpisodes(
 async function importToHistory(
   client: TraktClient,
   matched: { movies: MatchedMovie[]; episodes: MatchedEpisode[] }
-): Promise<{ added: { movies: number; episodes: number }; not_found: { movies: unknown[]; episodes: unknown[] } }> {
+): Promise<{
+  added: { movies: number; episodes: number };
+  not_found: { movies: unknown[]; episodes: unknown[] };
+}> {
   const payload: {
     movies?: Array<{ watched_at: string; ids: { trakt: number } }>;
     episodes?: Array<{ watched_at: string; ids: { trakt: number } }>;
@@ -516,7 +543,10 @@ async function importToHistory(
   }
 
   const response = await client.addToHistory(payload);
-  return response as { added: { movies: number; episodes: number }; not_found: { movies: unknown[]; episodes: unknown[] } };
+  return response as {
+    added: { movies: number; episodes: number };
+    not_found: { movies: unknown[]; episodes: unknown[] };
+  };
 }
 
 // ============================================================================
@@ -552,11 +582,18 @@ function generateReport(result: ImportResult, dryRun: boolean): void {
   // Show API response if available (not dry-run)
   if (result.apiResponse) {
     console.log('\n' + chalk.bold('Import Results:'));
-    console.log(chalk.green(`  ✓ Added to history: ${result.apiResponse.added.movies + result.apiResponse.added.episodes}`));
+    console.log(
+      chalk.green(
+        `  ✓ Added to history: ${result.apiResponse.added.movies + result.apiResponse.added.episodes}`
+      )
+    );
     console.log(chalk.green(`    - Movies: ${result.apiResponse.added.movies}`));
     console.log(chalk.green(`    - Episodes: ${result.apiResponse.added.episodes}`));
 
-    if (result.apiResponse.not_found.movies.length > 0 || result.apiResponse.not_found.episodes.length > 0) {
+    if (
+      result.apiResponse.not_found.movies.length > 0 ||
+      result.apiResponse.not_found.episodes.length > 0
+    ) {
       console.log(
         chalk.yellow(
           `  ? Not found by API: ${result.apiResponse.not_found.movies.length + result.apiResponse.not_found.episodes.length}`
@@ -569,7 +606,11 @@ function generateReport(result: ImportResult, dryRun: boolean): void {
   if (totalMovies > 0) {
     console.log('\n' + chalk.bold('Sample Movie Matches:'));
     result.matchedMovies.slice(0, 3).forEach((match) => {
-      console.log(chalk.green(`  ✓ ${match.movie.title} (${match.movie.year}) [Trakt ID: ${match.movie.ids.trakt}]`));
+      console.log(
+        chalk.green(
+          `  ✓ ${match.movie.title} (${match.movie.year}) [Trakt ID: ${match.movie.ids.trakt}]`
+        )
+      );
     });
     if (totalMovies > 3) {
       console.log(chalk.dim(`  ... and ${totalMovies - 3} more`));
@@ -702,7 +743,9 @@ async function main(): Promise<void> {
   }
 
   if (!args.moviesPath && !args.episodesPath) {
-    console.error(chalk.red('Error: Please specify at least one CSV file (--movies or --episodes)'));
+    console.error(
+      chalk.red('Error: Please specify at least one CSV file (--movies or --episodes)')
+    );
     console.log('Run with --help for usage information');
     process.exit(1);
   }
@@ -735,6 +778,10 @@ async function main(): Promise<void> {
       movies = readMoviesCSV(args.moviesPath);
       spinner.succeed(`Read ${movies.length} movies from ${args.moviesPath}`);
 
+      if (movies.length === 0) {
+        console.warn(chalk.yellow('Warning: Movies CSV is empty'));
+      }
+
       spinner.start('Validating movies data...');
       const validation = validateMovies(movies);
       if (!validation.valid) {
@@ -749,6 +796,10 @@ async function main(): Promise<void> {
       spinner.start(`Reading episodes from ${args.episodesPath}...`);
       episodes = readEpisodesCSV(args.episodesPath);
       spinner.succeed(`Read ${episodes.length} episodes from ${args.episodesPath}`);
+
+      if (episodes.length === 0) {
+        console.warn(chalk.yellow('Warning: Episodes CSV is empty'));
+      }
 
       spinner.start('Validating episodes data...');
       const validation = validateEpisodes(episodes);
@@ -804,7 +855,10 @@ async function main(): Promise<void> {
       process.exit(1);
     }
   } catch (error) {
-    console.error(chalk.red('\n✗ Fatal error:'), error instanceof Error ? error.message : String(error));
+    console.error(
+      chalk.red('\n✗ Fatal error:'),
+      error instanceof Error ? error.message : String(error)
+    );
     process.exit(1);
   }
 }
