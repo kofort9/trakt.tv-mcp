@@ -19,6 +19,7 @@ Welcome to the Trakt.tv MCP server documentation. This directory contains all pr
 ### For Contributors
 
 - **[Testing Documentation](testing/)** - Test reports, results, and testing guidelines
+- **[Debugging Guide](DEBUGGING.md)** - How to use debug tools and analyze logs
 - **[Technical Debt & Improvements](TECHNICAL_DEBT.md)** - Tracked improvements and future enhancements
 - **[Archive](archive/)** - Historical bug reports and resolved issues
 
@@ -29,6 +30,7 @@ Welcome to the Trakt.tv MCP server documentation. This directory contains all pr
 ```
 docs/
 ├── README.md                          # This file - navigation index
+├── DEBUGGING.md                       # Debugging guide
 ├── TECHNICAL_DEBT.md                  # Technical debt and future improvements
 ├── guides/                            # User and developer guides
 │   ├── CLAUDE_PROMPT_GUIDELINES.md   # AI assistant integration guide
@@ -81,6 +83,7 @@ docs/
 
 ### Development
 - [README - Development Section](../README.md#development)
+- [Debugging Guide](DEBUGGING.md) - Debug tools and log analysis
 - [CHANGELOG](../CHANGELOG.md) - Version history
 - [CLAUDE.md](../CLAUDE.md) - Project instructions for Claude Code
 - [Technical Debt & Improvements](TECHNICAL_DEBT.md) - Tracked future improvements
