@@ -1,0 +1,7 @@
+echo "🧪 Running tests before push..."
+echo ""
+
+npm test || exit 1
+
+echo ""
+echo "✅ All tests passed! Proceeding with push..."

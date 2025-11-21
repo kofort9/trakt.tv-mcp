@@ -1,0 +1,19 @@
+---
+description: Run pre-commit checks before committing code
+globs: 
+---
+# Pre-commit Checks
+
+Before creating a git commit, YOU MUST run the following command to ensure code quality and prevent CI failures:
+
+```bash
+npm run verify
+```
+
+This command runs:
+1. Formatting (`npm run format`)
+2. Build (`npm run build`)
+3. Linting (`npm run lint`)
+4. Tests (`npm test`)
+
+If any of these steps fail, fix the issues BEFORE committing. Do not commit broken code or code that fails linting/formatting.

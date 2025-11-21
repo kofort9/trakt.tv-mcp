@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- MCP Resources for read-only access:
+  - `trakt://profile`: User profile information
+  - `trakt://watchlist/shows`: TV shows watchlist
+  - `trakt://watchlist/movies`: Movies watchlist
+  - `trakt://history/shows/recent`: Recent TV show history
+  - `trakt://history/movies/recent`: Recent movie history
 - Comprehensive natural language date parsing support
 - Time-of-day expressions ("tonight", "this morning", "this evening")
 - Relative date patterns ("N days ago", "N weeks ago", "last night")

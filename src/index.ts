@@ -1,11 +1,19 @@
 #!/usr/bin/env node
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
 import { loadConfig } from './lib/config.js';
 import { TraktOAuth } from './lib/oauth.js';
 import { TraktClient } from './lib/trakt-client.js';
 import * as tools from './lib/tools.js';
+import { PROFILE_RESOURCE, getProfile } from './resources/profile.js';
+import { WATCHLIST_RESOURCES, getWatchlist } from './resources/watchlist.js';
+import { HISTORY_RESOURCES, getHistory } from './resources/history.js';
 
 // Server configuration
 const SERVER_NAME = 'trakt-mcp-server';
@@ -28,6 +36,67 @@ const server = new Server(
     },
   }
 );
+
+// Handle list_resources request
+server.setRequestHandler(ListResourcesRequestSchema, async () => {
+  return {
+    resources: [PROFILE_RESOURCE, ...WATCHLIST_RESOURCES, ...HISTORY_RESOURCES],
+  };
+});
+
+// Handle read_resource request
+server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+  const { uri } = request.params;
+
+  try {
+    if (uri === PROFILE_RESOURCE.uri) {
+      const text = await getProfile(traktClient);
+      return {
+        contents: [
+          {
+            uri,
+            mimeType: PROFILE_RESOURCE.mimeType,
+            text,
+          },
+        ],
+      };
+    }
+
+    if (WATCHLIST_RESOURCES.some((r) => r.uri === uri)) {
+      const text = await getWatchlist(traktClient, uri);
+      const resource = WATCHLIST_RESOURCES.find((r) => r.uri === uri)!;
+      return {
+        contents: [
+          {
+            uri,
+            mimeType: resource.mimeType,
+            text,
+          },
+        ],
+      };
+    }
+
+    if (HISTORY_RESOURCES.some((r) => r.uri === uri)) {
+      const text = await getHistory(traktClient, uri);
+      const resource = HISTORY_RESOURCES.find((r) => r.uri === uri)!;
+      return {
+        contents: [
+          {
+            uri,
+            mimeType: resource.mimeType,
+            text,
+          },
+        ],
+      };
+    }
+
+    throw new Error(`Resource not found: ${uri}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`Error reading resource ${uri}:`, error);
+    throw new Error(`Failed to read resource: ${errorMessage}`);
+  }
+});
 
 // Handle list_tools request
 server.setRequestHandler(ListToolsRequestSchema, async () => {

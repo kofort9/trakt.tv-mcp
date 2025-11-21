@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
-import { TraktConfig } from '../types/trakt.js';
+import { TraktConfig, TraktSettings } from '../types/trakt.js';
 import { TraktOAuth } from './oauth.js';
 import { logger } from './logger.js';
 import { LRUCache, generateSearchCacheKey, generateEpisodeCacheKey } from './cache.js';
@@ -267,10 +267,17 @@ export class TraktClient {
   }
 
   /**
-   * Get episodes for a season
+   * Get season episodes
    */
   async getSeasonEpisodes(showId: string, season: number) {
     return this.get(`/shows/${showId}/seasons/${season}`);
+  }
+
+  /**
+   * Get user's settings (includes profile info)
+   */
+  async getUserSettings() {
+    return this.get<TraktSettings>('/users/settings');
   }
 
   /**

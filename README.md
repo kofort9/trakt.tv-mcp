@@ -16,6 +16,16 @@ MCP server for Trakt.tv API - enables AI assistants to track watched shows, movi
 - **Smart Disambiguation**: Automatically handles content with multiple versions or years
 - **OAuth 2.0 Authentication**: Secure integration with your Trakt.tv account
 
+## MCP Resources
+
+The server exposes the following data as read-only resources for AI assistants:
+
+- `trakt://profile` - User profile information (JSON)
+- `trakt://watchlist/shows` - TV shows in watchlist (JSON)
+- `trakt://watchlist/movies` - Movies in watchlist (JSON)
+- `trakt://history/shows/recent` - Recently watched TV shows (last 50 items) (JSON)
+- `trakt://history/movies/recent` - Recently watched movies (last 50 items) (JSON)
+
 ## Quick Start
 
 ### For Users
