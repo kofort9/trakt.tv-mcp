@@ -579,9 +579,7 @@ describe('LRUCache', () => {
 
       expect(cache.size()).toBe(0);
       expect(cache.getCurrentMemoryUsage()).toBe(0);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Cache item too large')
-      );
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Cache item too large'));
       consoleSpy.mockRestore();
     });
 
@@ -597,9 +595,7 @@ describe('LRUCache', () => {
       expect(consoleSpy).not.toHaveBeenCalled();
 
       cache.set('k2', '1'.repeat(10)); // 20 bytes. Total 60 bytes. > 50 bytes.
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Cache memory usage high')
-      );
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Cache memory usage high'));
 
       consoleSpy.mockRestore();
     });

@@ -30,7 +30,7 @@ export interface CacheMetrics {
 /**
  * Estimate size of value in bytes
  */
-function estimateSize(value: any): number {
+function estimateSize(value: unknown): number {
   if (value === null || value === undefined) return 0;
   if (typeof value === 'boolean') return 4;
   if (typeof value === 'number') return 8;
@@ -39,13 +39,12 @@ function estimateSize(value: any): number {
     return value.reduce((acc, item) => acc + estimateSize(item), 0);
   }
   if (typeof value === 'object') {
-    return Object.entries(value).reduce((acc, [k, v]) => {
+    return Object.entries(value as Record<string, unknown>).reduce((acc, [k, v]) => {
       return acc + estimateSize(k) + estimateSize(v);
     }, 0);
   }
   return 0;
 }
-
 
 /**
  * LRU (Least Recently Used) Cache implementation with TTL support
@@ -141,8 +140,7 @@ export class LRUCache<K, V> {
       }
 
       // Check warning threshold
-      const threshold =
-        this.config.maxMemoryBytes * (this.config.memoryWarningThreshold || 0.9);
+      const threshold = this.config.maxMemoryBytes * (this.config.memoryWarningThreshold || 0.9);
       if (this.metrics.memoryUsage + valueSize > threshold) {
         console.warn(
           `Cache memory usage high: ${this.metrics.memoryUsage + valueSize}/${this.config.maxMemoryBytes} bytes`
