@@ -87,7 +87,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             traktId: {
               type: 'number',
-              description: 'Optional: Trakt ID for exact show identification (obtained from search_show)',
+              description:
+                'Optional: Trakt ID for exact show identification (obtained from search_show)',
             },
           },
           required: ['showName', 'season', 'episode'],
@@ -136,7 +137,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             traktId: {
               type: 'number',
-              description: 'Optional: Trakt ID for exact identification (obtained from search_show)',
+              description:
+                'Optional: Trakt ID for exact identification (obtained from search_show)',
             },
           },
           required: ['type'],
@@ -182,7 +184,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             traktId: {
               type: 'number',
-              description: 'Optional: Trakt ID for exact identification (obtained from search_show)',
+              description:
+                'Optional: Trakt ID for exact identification (obtained from search_show)',
             },
           },
           required: ['type'],
@@ -264,7 +267,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             traktId: {
               type: 'number',
-              description: 'Optional: Trakt ID for exact identification (obtained from search_show)',
+              description:
+                'Optional: Trakt ID for exact identification (obtained from search_show)',
             },
           },
           required: ['showName'],
@@ -287,7 +291,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             traktId: {
               type: 'number',
-              description: 'Optional: Trakt ID for exact identification (obtained from search_show)',
+              description:
+                'Optional: Trakt ID for exact identification (obtained from search_show)',
             },
           },
           required: ['showName'],
@@ -322,7 +327,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             errorsOnly: {
               type: 'boolean',
-              description: 'Filter to show only error responses (status code >= 400). Default: false',
+              description:
+                'Filter to show only error responses (status code >= 400). Default: false',
             },
           },
         },

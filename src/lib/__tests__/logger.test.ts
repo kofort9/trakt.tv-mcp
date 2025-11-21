@@ -24,7 +24,7 @@ describe('Logger', () => {
     logger.clear();
     if (fs.existsSync(testLogDir)) {
       const files = fs.readdirSync(testLogDir);
-      files.forEach(file => {
+      files.forEach((file) => {
         fs.unlinkSync(path.join(testLogDir, file));
       });
       fs.rmdirSync(testLogDir);
@@ -270,7 +270,7 @@ describe('Logger', () => {
       const logs = logger.getRecentLogs(10, { toolName: 'log_watch' });
 
       expect(logs).toHaveLength(3);
-      logs.forEach(log => {
+      logs.forEach((log) => {
         expect(log.toolName).toBe('log_watch');
       });
     });
@@ -279,7 +279,7 @@ describe('Logger', () => {
       const logs = logger.getRecentLogs(10, { method: 'GET' });
 
       expect(logs).toHaveLength(2);
-      logs.forEach(log => {
+      logs.forEach((log) => {
         expect(log.method).toBe('GET');
       });
     });
@@ -393,8 +393,8 @@ describe('Logger', () => {
       const metrics = logger.getMetrics();
 
       expect(metrics).toHaveLength(2);
-      expect(metrics.find(m => m.toolName === 'log_watch')).toBeDefined();
-      expect(metrics.find(m => m.toolName === 'get_history')).toBeDefined();
+      expect(metrics.find((m) => m.toolName === 'log_watch')).toBeDefined();
+      expect(metrics.find((m) => m.toolName === 'get_history')).toBeDefined();
     });
   });
 

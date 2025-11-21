@@ -61,15 +61,30 @@ describe('Cache Performance Benchmarks', () => {
       // Simulate realistic search pattern with 100 requests
       // 70% unique searches, 30% repeated searches
       const uniqueSearches = [
-        'Breaking Bad', 'Game of Thrones', 'The Wire', 'Sopranos',
-        'Better Call Saul', 'Westworld', 'The Crown', 'Stranger Things',
-        'The Office', 'Friends', 'How I Met Your Mother', 'Parks and Recreation',
-        'Community', 'Arrested Development', 'The IT Crowd', 'Silicon Valley',
-        'Black Mirror', 'Fargo', 'True Detective', 'Mindhunter',
+        'Breaking Bad',
+        'Game of Thrones',
+        'The Wire',
+        'Sopranos',
+        'Better Call Saul',
+        'Westworld',
+        'The Crown',
+        'Stranger Things',
+        'The Office',
+        'Friends',
+        'How I Met Your Mother',
+        'Parks and Recreation',
+        'Community',
+        'Arrested Development',
+        'The IT Crowd',
+        'Silicon Valley',
+        'Black Mirror',
+        'Fargo',
+        'True Detective',
+        'Mindhunter',
       ];
 
-      const mockResults = uniqueSearches.map(title => [
-        { type: 'show', show: { title, year: 2010 } }
+      const mockResults = uniqueSearches.map((title) => [
+        { type: 'show', show: { title, year: 2010 } },
       ]);
 
       // Setup mock to return different results for each unique search
@@ -105,7 +120,7 @@ describe('Cache Performance Benchmarks', () => {
       const metrics = client.getCacheMetrics();
 
       // Validate success criteria
-      expect(metrics.hitRate).toBeGreaterThan(0.30);
+      expect(metrics.hitRate).toBeGreaterThan(0.3);
       expect(metrics.hits + metrics.misses).toBe(totalRequests);
 
       console.log('\n=== Cache Hit Rate Benchmark ===');
@@ -114,7 +129,7 @@ describe('Cache Performance Benchmarks', () => {
       console.log(`Cache Misses: ${metrics.misses}`);
       console.log(`Hit Rate: ${(metrics.hitRate * 100).toFixed(2)}%`);
       console.log(`Target: >30%`);
-      console.log(`Status: ${metrics.hitRate > 0.30 ? 'PASS' : 'FAIL'}`);
+      console.log(`Status: ${metrics.hitRate > 0.3 ? 'PASS' : 'FAIL'}`);
     });
 
     it('should use <50MB memory for 500 entries', () => {
@@ -126,7 +141,8 @@ describe('Cache Performance Benchmarks', () => {
             title: 'Breaking Bad',
             year: 2008,
             ids: { trakt: 1388, slug: 'breaking-bad', tvdb: 81189, imdb: 'tt0903747', tmdb: 1396 },
-            overview: 'When Walter White, a New Mexico chemistry teacher, is diagnosed with Stage III cancer...',
+            overview:
+              'When Walter White, a New Mexico chemistry teacher, is diagnosed with Stage III cancer...',
             first_aired: '2008-01-20T10:00:00.000Z',
             runtime: 45,
             network: 'AMC',
@@ -136,8 +152,8 @@ describe('Cache Performance Benchmarks', () => {
             rating: 9.3,
             votes: 50000,
             genres: ['drama', 'crime', 'thriller'],
-          }
-        }
+          },
+        },
       ];
 
       mockAxiosInstance.get.mockResolvedValue({ data: mockResult });
@@ -267,7 +283,11 @@ describe('Cache Performance Benchmarks', () => {
       // Simulate Zipfian distribution (80/20 rule)
       // 80% of requests target 20% of content
       const popularShows = [
-        'Breaking Bad', 'Game of Thrones', 'The Wire', 'Sopranos', 'Better Call Saul'
+        'Breaking Bad',
+        'Game of Thrones',
+        'The Wire',
+        'Sopranos',
+        'Better Call Saul',
       ];
 
       const longTailShows = Array.from({ length: 45 }, (_, i) => `Show ${i}`);
@@ -294,10 +314,10 @@ describe('Cache Performance Benchmarks', () => {
       console.log(`Total Requests: 100`);
       console.log(`Cache Hit Rate: ${(metrics.hitRate * 100).toFixed(2)}%`);
       console.log(`Expected: >60% (due to 80/20 distribution)`);
-      console.log(`Status: ${metrics.hitRate > 0.60 ? 'PASS' : 'FAIL'}`);
+      console.log(`Status: ${metrics.hitRate > 0.6 ? 'PASS' : 'FAIL'}`);
 
       // With 80/20 distribution, we expect >60% hit rate
-      expect(metrics.hitRate).toBeGreaterThan(0.60);
+      expect(metrics.hitRate).toBeGreaterThan(0.6);
     });
   });
 });

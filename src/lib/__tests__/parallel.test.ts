@@ -7,7 +7,7 @@ import { TraktSearchResult } from '../../types/trakt.js';
  * Helper function for delays in tests
  */
 function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 describe('parallelMap', () => {
@@ -61,15 +61,12 @@ describe('parallelMap', () => {
   it('should handle partial failures', async () => {
     const items = [1, 2, 3, 4, 5];
 
-    const { succeeded, failed } = await parallelMap(
-      items,
-      async (item) => {
-        if (item === 3) {
-          throw new Error('Intentional failure');
-        }
-        return item * 2;
+    const { succeeded, failed } = await parallelMap(items, async (item) => {
+      if (item === 3) {
+        throw new Error('Intentional failure');
       }
-    );
+      return item * 2;
+    });
 
     expect(succeeded).toHaveLength(4);
     expect(succeeded.sort((a, b) => a - b)).toEqual([2, 4, 8, 10]);
@@ -82,12 +79,9 @@ describe('parallelMap', () => {
   it('should handle all failures', async () => {
     const items = [1, 2, 3];
 
-    const { succeeded, failed } = await parallelMap(
-      items,
-      async () => {
-        throw new Error('All fail');
-      }
-    );
+    const { succeeded, failed } = await parallelMap(items, async () => {
+      throw new Error('All fail');
+    });
 
     expect(succeeded).toHaveLength(0);
     expect(failed).toHaveLength(3);
@@ -96,10 +90,7 @@ describe('parallelMap', () => {
   it('should handle all successes', async () => {
     const items = [1, 2, 3, 4, 5];
 
-    const { succeeded, failed } = await parallelMap(
-      items,
-      async (item) => item * 2
-    );
+    const { succeeded, failed } = await parallelMap(items, async (item) => item * 2);
 
     expect(succeeded).toHaveLength(5);
     expect(failed).toHaveLength(0);
@@ -109,15 +100,11 @@ describe('parallelMap', () => {
     const items = Array.from({ length: 25 }, (_, i) => i);
     const startTime = Date.now();
 
-    await parallelMap(
-      items,
-      async (item) => item,
-      {
-        batchSize: 10,
-        delayBetweenBatches: 100,
-        maxConcurrency: 10,
-      }
-    );
+    await parallelMap(items, async (item) => item, {
+      batchSize: 10,
+      delayBetweenBatches: 100,
+      maxConcurrency: 10,
+    });
 
     const duration = Date.now() - startTime;
 
@@ -128,20 +115,14 @@ describe('parallelMap', () => {
   });
 
   it('should handle empty array', async () => {
-    const { succeeded, failed } = await parallelMap(
-      [],
-      async (item) => item
-    );
+    const { succeeded, failed } = await parallelMap([], async (item) => item);
 
     expect(succeeded).toHaveLength(0);
     expect(failed).toHaveLength(0);
   });
 
   it('should handle single item', async () => {
-    const { succeeded, failed } = await parallelMap(
-      [42],
-      async (item) => item * 2
-    );
+    const { succeeded, failed } = await parallelMap([42], async (item) => item * 2);
 
     expect(succeeded).toEqual([84]);
     expect(failed).toHaveLength(0);
@@ -150,25 +131,18 @@ describe('parallelMap', () => {
   it('should respect batch size smaller than concurrency', async () => {
     const items = [1, 2, 3, 4, 5];
 
-    const { succeeded } = await parallelMap(
-      items,
-      async (item) => item,
-      {
-        batchSize: 2,
-        maxConcurrency: 5,
-      }
-    );
+    const { succeeded } = await parallelMap(items, async (item) => item, {
+      batchSize: 2,
+      maxConcurrency: 5,
+    });
 
     expect(succeeded).toHaveLength(5);
   });
 
   it('should handle errors without message property', async () => {
-    const { failed } = await parallelMap(
-      [1],
-      async () => {
-        throw 'string error'; // Not an Error object
-      }
-    );
+    const { failed } = await parallelMap([1], async () => {
+      throw 'string error'; // Not an Error object
+    });
 
     expect(failed).toHaveLength(1);
     expect(failed[0].error).toBe('Unknown error');
@@ -218,10 +192,11 @@ describe('parallelSearchMovies', () => {
 
     (mockClient.search as ReturnType<typeof vi.fn>).mockResolvedValue(mockSearchResults);
 
-    const { results, errors } = await parallelSearchMovies(
-      mockClient,
-      ['The Matrix', 'Inception', 'Interstellar']
-    );
+    const { results, errors } = await parallelSearchMovies(mockClient, [
+      'The Matrix',
+      'Inception',
+      'Interstellar',
+    ]);
 
     expect(results.size).toBe(3);
     expect(errors.size).toBe(0);
@@ -247,10 +222,12 @@ describe('parallelSearchMovies', () => {
 
     (mockClient.search as ReturnType<typeof vi.fn>).mockResolvedValue(mockSearchResults);
 
-    const { results, errors } = await parallelSearchMovies(
-      mockClient,
-      ['The Matrix', 'the matrix', 'THE MATRIX', 'The Matrix ']
-    );
+    const { results, errors } = await parallelSearchMovies(mockClient, [
+      'The Matrix',
+      'the matrix',
+      'THE MATRIX',
+      'The Matrix ',
+    ]);
 
     // Should only search once
     expect(mockClient.search).toHaveBeenCalledTimes(1);
@@ -285,10 +262,11 @@ describe('parallelSearchMovies', () => {
         },
       ]);
 
-    const { results, errors } = await parallelSearchMovies(
-      mockClient,
-      ['Working Movie', 'Failing Movie', 'Another Working Movie']
-    );
+    const { results, errors } = await parallelSearchMovies(mockClient, [
+      'Working Movie',
+      'Failing Movie',
+      'Another Working Movie',
+    ]);
 
     expect(results.size).toBe(2);
     expect(errors.size).toBe(1);
@@ -317,10 +295,7 @@ describe('parallelSearchMovies', () => {
   it('should handle invalid search results format', async () => {
     (mockClient.search as ReturnType<typeof vi.fn>).mockResolvedValue('invalid' as any);
 
-    const { results, errors } = await parallelSearchMovies(
-      mockClient,
-      ['Bad Movie']
-    );
+    const { results, errors } = await parallelSearchMovies(mockClient, ['Bad Movie']);
 
     expect(results.size).toBe(0);
     expect(errors.size).toBe(1);
@@ -342,10 +317,7 @@ describe('parallelSearchMovies', () => {
 
     (mockClient.search as ReturnType<typeof vi.fn>).mockResolvedValue(mockSearchResults);
 
-    const { results } = await parallelSearchMovies(
-      mockClient,
-      ['The Matrix']
-    );
+    const { results } = await parallelSearchMovies(mockClient, ['The Matrix']);
 
     // Normalized key for lookup
     expect(results.get('the matrix')).toBeDefined();
@@ -388,23 +360,24 @@ describe('parallelSearchMovies', () => {
 
     (mockClient.search as ReturnType<typeof vi.fn>).mockResolvedValue(mockSearchResults);
 
-    const { results } = await parallelSearchMovies(
-      mockClient,
-      ["Ocean's Eleven", "Spider-Man: No Way Home"]
-    );
+    const { results } = await parallelSearchMovies(mockClient, [
+      "Ocean's Eleven",
+      'Spider-Man: No Way Home',
+    ]);
 
     expect(results.get("ocean's eleven")).toBeDefined();
-    expect(results.get("spider-man: no way home")).toBeDefined();
+    expect(results.get('spider-man: no way home')).toBeDefined();
   });
 
   it('should handle whitespace variations in movie names', async () => {
     const mockSearchResults: TraktSearchResult[] = [];
     (mockClient.search as ReturnType<typeof vi.fn>).mockResolvedValue(mockSearchResults);
 
-    const { results } = await parallelSearchMovies(
-      mockClient,
-      ['  The Matrix  ', 'The Matrix', ' The Matrix']
-    );
+    const { results } = await parallelSearchMovies(mockClient, [
+      '  The Matrix  ',
+      'The Matrix',
+      ' The Matrix',
+    ]);
 
     // Should deduplicate despite whitespace
     expect(mockClient.search).toHaveBeenCalledTimes(1);
@@ -440,15 +413,11 @@ describe('parallelMap - Performance benchmarks', () => {
     const items = Array.from({ length: 100 }, (_, i) => i);
 
     const startTime = Date.now();
-    const { succeeded, failed } = await parallelMap(
-      items,
-      async (item) => item * 2,
-      {
-        maxConcurrency: 10,
-        batchSize: 20,
-        delayBetweenBatches: 10,
-      }
-    );
+    const { succeeded, failed } = await parallelMap(items, async (item) => item * 2, {
+      maxConcurrency: 10,
+      batchSize: 20,
+      delayBetweenBatches: 10,
+    });
     const duration = Date.now() - startTime;
 
     expect(succeeded).toHaveLength(100);

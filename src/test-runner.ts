@@ -151,7 +151,8 @@ async function main() {
       season: 1,
       episode: 1,
     });
-    const isExpectedError = !result.success && 'error' in result && result.error.code === 'NOT_FOUND';
+    const isExpectedError =
+      !result.success && 'error' in result && result.error.code === 'NOT_FOUND';
     recordTest(
       '1.4: Invalid Show Name',
       isExpectedError ? 'PASS' : 'FAIL',
@@ -669,7 +670,8 @@ async function main() {
     const result = await tools.followShow(client, {
       showName: 'ThisShowDoesNotExist12345',
     });
-    const isExpectedError = !result.success && 'error' in result && result.error.code === 'NOT_FOUND';
+    const isExpectedError =
+      !result.success && 'error' in result && result.error.code === 'NOT_FOUND';
     recordTest(
       '5.5: Follow Non-Existent Show',
       isExpectedError ? 'PASS' : 'FAIL',

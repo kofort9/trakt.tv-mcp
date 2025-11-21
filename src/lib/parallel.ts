@@ -40,11 +40,7 @@ export async function parallelMap<T, R>(
   operation: (item: T) => Promise<R>,
   config: Partial<ParallelConfig> = {}
 ): Promise<ParallelResult<R>> {
-  const {
-    maxConcurrency = 5,
-    batchSize = 10,
-    delayBetweenBatches = 0,
-  } = config;
+  const { maxConcurrency = 5, batchSize = 10, delayBetweenBatches = 0 } = config;
 
   const succeeded: R[] = [];
   const failed: Array<{ item: T; error: string }> = [];
@@ -57,9 +53,7 @@ export async function parallelMap<T, R>(
     const chunks = chunkArray(batch, maxConcurrency);
 
     for (const chunk of chunks) {
-      const results = await Promise.allSettled(
-        chunk.map(item => operation(item))
-      );
+      const results = await Promise.allSettled(chunk.map((item) => operation(item)));
 
       // Process results
       results.forEach((result, index) => {
@@ -98,7 +92,7 @@ function chunkArray<T>(array: T[], size: number): T[][] {
  * Promise-based delay
  */
 function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -128,7 +122,7 @@ export async function parallelSearchMovies(
 }> {
   // Deduplicate movie names (case-insensitive) while preserving original casing
   const uniqueMoviesMap = new Map<string, string>();
-  movieNames.forEach(name => {
+  movieNames.forEach((name) => {
     const normalizedName = name.toLowerCase().trim();
     if (!uniqueMoviesMap.has(normalizedName)) {
       uniqueMoviesMap.set(normalizedName, name);

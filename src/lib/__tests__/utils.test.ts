@@ -152,7 +152,15 @@ describe('utils', () => {
 
     // Test all weekdays
     it('should parse all weekday patterns', () => {
-      const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const weekdays = [
+        'sunday',
+        'monday',
+        'tuesday',
+        'wednesday',
+        'thursday',
+        'friday',
+        'saturday',
+      ];
 
       weekdays.forEach((day, expectedDayOfWeek) => {
         const result = parseNaturalDate(`last ${day}`);
@@ -181,7 +189,9 @@ describe('utils', () => {
         const parsed = new Date(result);
 
         // Should be exactly 7 days ago
-        const daysDifference = Math.floor((now.getTime() - parsed.getTime()) / (1000 * 60 * 60 * 24));
+        const daysDifference = Math.floor(
+          (now.getTime() - parsed.getTime()) / (1000 * 60 * 60 * 24)
+        );
         expect(daysDifference).toBe(7);
       }
     });
@@ -407,7 +417,9 @@ describe('utils', () => {
 
     // Test validation for extreme "weeks ago" values
     it('should throw helpful error for "100 weeks ago"', () => {
-      expect(() => parseNaturalDate('100 weeks ago')).toThrow(/Date too far in past: 100 weeks ago/);
+      expect(() => parseNaturalDate('100 weeks ago')).toThrow(
+        /Date too far in past: 100 weeks ago/
+      );
       expect(() => parseNaturalDate('100 weeks ago')).toThrow(
         /Please use an ISO date \(YYYY-MM-DD\) for dates more than a year ago/
       );

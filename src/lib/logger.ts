@@ -140,7 +140,11 @@ export class Logger {
   /**
    * Create a request log from Axios config (before request)
    */
-  createRequestLog(config: AxiosRequestConfig, correlationId: string, toolName?: string): Partial<RequestLog> {
+  createRequestLog(
+    config: AxiosRequestConfig,
+    correlationId: string,
+    toolName?: string
+  ): Partial<RequestLog> {
     return {
       correlationId,
       timestamp: new Date().toISOString(),
@@ -204,33 +208,36 @@ export class Logger {
   /**
    * Get recent request logs
    */
-  getRecentLogs(limit: number = 10, filters?: {
-    toolName?: string;
-    method?: string;
-    statusCode?: number;
-    startDate?: string;
-    endDate?: string;
-  }): RequestLog[] {
+  getRecentLogs(
+    limit: number = 10,
+    filters?: {
+      toolName?: string;
+      method?: string;
+      statusCode?: number;
+      startDate?: string;
+      endDate?: string;
+    }
+  ): RequestLog[] {
     let logs = [...this.buffer].reverse(); // Most recent first
 
     // Apply filters
     if (filters) {
       if (filters.toolName) {
-        logs = logs.filter(log => log.toolName === filters.toolName);
+        logs = logs.filter((log) => log.toolName === filters.toolName);
       }
       if (filters.method) {
-        logs = logs.filter(log => log.method === filters.method);
+        logs = logs.filter((log) => log.method === filters.method);
       }
       if (filters.statusCode) {
-        logs = logs.filter(log => log.statusCode === filters.statusCode);
+        logs = logs.filter((log) => log.statusCode === filters.statusCode);
       }
       if (filters.startDate) {
         const startTime = new Date(filters.startDate).getTime();
-        logs = logs.filter(log => new Date(log.timestamp).getTime() >= startTime);
+        logs = logs.filter((log) => new Date(log.timestamp).getTime() >= startTime);
       }
       if (filters.endDate) {
         const endTime = new Date(filters.endDate).getTime();
-        logs = logs.filter(log => new Date(log.timestamp).getTime() <= endTime);
+        logs = logs.filter((log) => new Date(log.timestamp).getTime() <= endTime);
       }
     }
 

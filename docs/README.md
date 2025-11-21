@@ -19,6 +19,7 @@ Welcome to the Trakt.tv MCP server documentation. This directory contains all pr
 ### For Contributors
 
 - **[Testing Documentation](testing/)** - Test reports, results, and testing guidelines
+- **[Technical Debt & Improvements](TECHNICAL_DEBT.md)** - Tracked improvements and future enhancements
 - **[Archive](archive/)** - Historical bug reports and resolved issues
 
 ---
@@ -28,6 +29,7 @@ Welcome to the Trakt.tv MCP server documentation. This directory contains all pr
 ```
 docs/
 ├── README.md                          # This file - navigation index
+├── TECHNICAL_DEBT.md                  # Technical debt and future improvements
 ├── guides/                            # User and developer guides
 │   ├── CLAUDE_PROMPT_GUIDELINES.md   # AI assistant integration guide
 │   ├── NATURAL_LANGUAGE_PATTERNS.md  # Natural language pattern library
@@ -81,6 +83,10 @@ docs/
 - [README - Development Section](../README.md#development)
 - [CHANGELOG](../CHANGELOG.md) - Version history
 - [CLAUDE.md](../CLAUDE.md) - Project instructions for Claude Code
+- [Technical Debt & Improvements](TECHNICAL_DEBT.md) - Tracked future improvements
+  - Performance optimizations
+  - Security hardening
+  - Documentation cleanup
 
 ### Historical Records
 - [Bug Fix Report](archive/BUG_FIX_REPORT.md) - Resolved bug documentation
@@ -111,6 +117,13 @@ docs/
 - Completing a testing phase
 - Verifying bug fixes
 - Releasing a new version
+
+**Update TECHNICAL_DEBT.md when:**
+- Identifying performance bottlenecks or optimization opportunities
+- Discovering security concerns or hardening needs
+- Planning future features that are deferred
+- Finding code that needs refactoring but can't be done immediately
+- Noting infrastructure or operational improvements
 
 ### Documentation Standards
 

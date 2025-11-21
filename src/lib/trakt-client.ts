@@ -80,8 +80,20 @@ export class TraktClient {
         const startTime = Date.now();
 
         // Store metadata in config for use in response interceptor
-        (config as AxiosRequestConfig & { _correlationId?: string; _startTime?: number; _toolName?: string })._correlationId = correlationId;
-        (config as AxiosRequestConfig & { _correlationId?: string; _startTime?: number; _toolName?: string })._startTime = startTime;
+        (
+          config as AxiosRequestConfig & {
+            _correlationId?: string;
+            _startTime?: number;
+            _toolName?: string;
+          }
+        )._correlationId = correlationId;
+        (
+          config as AxiosRequestConfig & {
+            _correlationId?: string;
+            _startTime?: number;
+            _toolName?: string;
+          }
+        )._startTime = startTime;
 
         return config;
       },
@@ -92,7 +104,11 @@ export class TraktClient {
     this.client.interceptors.response.use(
       (response) => {
         // Log successful response
-        const config = response.config as AxiosRequestConfig & { _correlationId?: string; _startTime?: number; _toolName?: string };
+        const config = response.config as AxiosRequestConfig & {
+          _correlationId?: string;
+          _startTime?: number;
+          _toolName?: string;
+        };
         const correlationId = config._correlationId || logger.generateCorrelationId();
         const startTime = config._startTime || Date.now();
 
@@ -103,7 +119,12 @@ export class TraktClient {
         return response;
       },
       async (error: AxiosError) => {
-        const config = error.config as AxiosRequestConfig & { _retryCount?: number; _correlationId?: string; _startTime?: number; _toolName?: string };
+        const config = error.config as AxiosRequestConfig & {
+          _retryCount?: number;
+          _correlationId?: string;
+          _startTime?: number;
+          _toolName?: string;
+        };
 
         // Log error before handling (unless it's a retry)
         if (!config._retryCount || config._retryCount === 0) {

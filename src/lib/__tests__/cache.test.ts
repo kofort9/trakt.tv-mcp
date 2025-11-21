@@ -150,7 +150,7 @@ describe('LRUCache', () => {
       expect(cache.get('key1')).toBe('value1');
 
       // Wait for TTL to expire
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 150));
 
       expect(cache.get('key1')).toBeUndefined();
       expect(cache.has('key1')).toBe(false);
@@ -166,7 +166,7 @@ describe('LRUCache', () => {
       cache.set('key1', 'value1');
       expect(cache.size()).toBe(1);
 
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 150));
 
       expect(cache.has('key1')).toBe(false);
       expect(cache.size()).toBe(0); // Entry removed
@@ -185,7 +185,7 @@ describe('LRUCache', () => {
 
       expect(cache.size()).toBe(3);
 
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 150));
 
       const pruned = cache.prune();
       expect(pruned).toBe(3);
@@ -201,11 +201,11 @@ describe('LRUCache', () => {
 
       cache.set('key1', 'value1');
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       cache.set('key2', 'value2'); // Added after 100ms, still fresh
 
-      await new Promise(resolve => setTimeout(resolve, 150)); // Total 250ms
+      await new Promise((resolve) => setTimeout(resolve, 150)); // Total 250ms
 
       const pruned = cache.prune();
       expect(pruned).toBe(1); // Only key1 expired

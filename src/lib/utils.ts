@@ -1,5 +1,9 @@
 import { parseISO } from 'date-fns';
-import type { TraktSearchResult, DisambiguationResponse, DisambiguationOption } from '../types/trakt.js';
+import type {
+  TraktSearchResult,
+  DisambiguationResponse,
+  DisambiguationOption,
+} from '../types/trakt.js';
 
 /**
  * Parse natural language date strings into ISO format
@@ -165,12 +169,16 @@ export function parseNaturalDate(input: string): string {
       daysToLastSaturday = dayOfWeek + 1;
     }
 
-    const lastSaturday = new Date(Date.UTC(currentYear, currentMonth, currentDate - daysToLastSaturday));
+    const lastSaturday = new Date(
+      Date.UTC(currentYear, currentMonth, currentDate - daysToLastSaturday)
+    );
     return lastSaturday.toISOString();
   }
 
   // Handle "last [weekday]" patterns - e.g., "last monday", "last tuesday"
-  const weekdayMatch = lowerInput.match(/^last\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/);
+  const weekdayMatch = lowerInput.match(
+    /^last\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/
+  );
   if (weekdayMatch) {
     const targetWeekday = weekdayMatch[1];
     const weekdayMap: { [key: string]: number } = {
@@ -428,19 +436,20 @@ export function sanitizeError(error: unknown, context?: string): string {
     const errorMappings: Record<string, string> = {
       // Network errors
       'Network Error': 'Unable to connect to Trakt.tv. Please check your internet connection.',
-      'ECONNREFUSED': 'Unable to connect to Trakt.tv. The service may be temporarily unavailable.',
-      'ETIMEDOUT': 'Request timed out. Please try again.',
-      'ENOTFOUND': 'Unable to reach Trakt.tv. Please check your internet connection.',
+      ECONNREFUSED: 'Unable to connect to Trakt.tv. The service may be temporarily unavailable.',
+      ETIMEDOUT: 'Request timed out. Please try again.',
+      ENOTFOUND: 'Unable to reach Trakt.tv. Please check your internet connection.',
 
       // Authentication errors
       'Authentication failed': 'Authentication failed. Please re-authenticate with Trakt.tv.',
       'Invalid token': 'Your session has expired. Please re-authenticate.',
-      'Unauthorized': 'Authentication required. Please authenticate with Trakt.tv.',
+      Unauthorized: 'Authentication required. Please authenticate with Trakt.tv.',
 
       // Rate limiting
       'Rate limit exceeded':
         'Rate limit exceeded. Trakt.tv limits requests to 1000 per 5 minutes. Please wait a moment and try again.',
-      '429': 'Rate limit exceeded. Trakt.tv limits requests to 1000 per 5 minutes. Please wait a few minutes and try again.',
+      '429':
+        'Rate limit exceeded. Trakt.tv limits requests to 1000 per 5 minutes. Please wait a few minutes and try again.',
 
       // API errors
       '404': 'The requested content was not found on Trakt.tv.',

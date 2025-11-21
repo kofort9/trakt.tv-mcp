@@ -50,17 +50,12 @@ export async function searchEpisode(
     const searchResults = await client.search(showName, 'show');
 
     if (!Array.isArray(searchResults) || searchResults.length === 0) {
-      return createToolError(
-        'NOT_FOUND',
-        `No show found matching "${showName}"`,
-        undefined,
-        [
-          'Check the spelling of the show name',
-          'Try using search_show to browse available titles',
-          'Use the exact title as it appears on Trakt.tv',
-          'Try including the year if there are multiple versions',
-        ]
-      );
+      return createToolError('NOT_FOUND', `No show found matching "${showName}"`, undefined, [
+        'Check the spelling of the show name',
+        'Try using search_show to browse available titles',
+        'Use the exact title as it appears on Trakt.tv',
+        'Try including the year if there are multiple versions',
+      ]);
     }
 
     // Handle disambiguation
@@ -317,17 +312,12 @@ export async function bulkLog(
       // Search for the show
       const searchResults = await client.search(showName, 'show');
       if (!Array.isArray(searchResults) || searchResults.length === 0) {
-        return createToolError(
-          'NOT_FOUND',
-          `No show found matching "${showName}"`,
-          undefined,
-          [
-            'Check the spelling of the show name',
-            'Try using search_show to browse available titles',
-            'Use the exact title as it appears on Trakt.tv',
-            'Try including the year if there are multiple versions',
-          ]
-        );
+        return createToolError('NOT_FOUND', `No show found matching "${showName}"`, undefined, [
+          'Check the spelling of the show name',
+          'Try using search_show to browse available titles',
+          'Use the exact title as it appears on Trakt.tv',
+          'Try including the year if there are multiple versions',
+        ]);
       }
 
       // Handle disambiguation
@@ -405,16 +395,11 @@ export async function bulkLog(
         const results = searchResults.get(normalizedName);
 
         if (!results || results.length === 0) {
-          return createToolError(
-            'NOT_FOUND',
-            `No movie found matching "${movieName}"`,
-            undefined,
-            [
-              'Check the spelling of the movie name',
-              'Try using search_show with type filter to browse available movies',
-              'Include the release year if known',
-            ]
-          );
+          return createToolError('NOT_FOUND', `No movie found matching "${movieName}"`, undefined, [
+            'Check the spelling of the movie name',
+            'Try using search_show with type filter to browse available movies',
+            'Include the release year if known',
+          ]);
         }
 
         // Handle disambiguation - for bulk operations, we auto-select first result
@@ -655,17 +640,12 @@ export async function followShow(
     // Search for the show
     const searchResults = await client.search(showName, 'show');
     if (!Array.isArray(searchResults) || searchResults.length === 0) {
-      return createToolError(
-        'NOT_FOUND',
-        `No show found matching "${showName}"`,
-        undefined,
-        [
-          'Check the spelling of the show name',
-          'Try using search_show to browse available titles',
-          'Use the exact title as it appears on Trakt.tv',
-          'Try including the year if there are multiple versions',
-        ]
-      );
+      return createToolError('NOT_FOUND', `No show found matching "${showName}"`, undefined, [
+        'Check the spelling of the show name',
+        'Try using search_show to browse available titles',
+        'Use the exact title as it appears on Trakt.tv',
+        'Try including the year if there are multiple versions',
+      ]);
     }
 
     // Handle disambiguation
@@ -713,7 +693,9 @@ export async function unfollowShow(
     year?: number;
     traktId?: number;
   }
-): Promise<ToolSuccess<{ show: TraktShow; removed: boolean }> | ToolError | DisambiguationResponse> {
+): Promise<
+  ToolSuccess<{ show: TraktShow; removed: boolean }> | ToolError | DisambiguationResponse
+> {
   try {
     const { showName, year, traktId } = args;
 
@@ -722,17 +704,12 @@ export async function unfollowShow(
     // Search for the show
     const searchResults = await client.search(showName, 'show');
     if (!Array.isArray(searchResults) || searchResults.length === 0) {
-      return createToolError(
-        'NOT_FOUND',
-        `No show found matching "${showName}"`,
-        undefined,
-        [
-          'Check the spelling of the show name',
-          'Try using search_show to browse available titles',
-          'Use the exact title as it appears on Trakt.tv',
-          'Try including the year if there are multiple versions',
-        ]
-      );
+      return createToolError('NOT_FOUND', `No show found matching "${showName}"`, undefined, [
+        'Check the spelling of the show name',
+        'Try using search_show to browse available titles',
+        'Use the exact title as it appears on Trakt.tv',
+        'Try including the year if there are multiple versions',
+      ]);
     }
 
     // Handle disambiguation
@@ -798,16 +775,21 @@ export async function debugLastRequest(
   }
 ): Promise<ToolSuccess<{ logs: RequestLog[]; metrics?: ToolMetrics[] }> | ToolError> {
   try {
-    const { limit = 10, toolName, method, statusCode, includeMetrics = true, errorsOnly = false } = args;
+    const {
+      limit = 10,
+      toolName,
+      method,
+      statusCode,
+      includeMetrics = true,
+      errorsOnly = false,
+    } = args;
 
     // Validate limit
     if (limit < 1 || limit > 100) {
-      return createToolError(
-        'VALIDATION_ERROR',
-        'Limit must be between 1 and 100',
-        undefined,
-        ['Use a value between 1 and 100', 'Default is 10']
-      );
+      return createToolError('VALIDATION_ERROR', 'Limit must be between 1 and 100', undefined, [
+        'Use a value between 1 and 100',
+        'Default is 10',
+      ]);
     }
 
     // Get logs with filters
@@ -819,7 +801,7 @@ export async function debugLastRequest(
 
     // Apply error filter if requested
     if (errorsOnly) {
-      logs = logs.filter(log => log.statusCode && log.statusCode >= 400);
+      logs = logs.filter((log) => log.statusCode && log.statusCode >= 400);
     }
 
     // Get metrics if requested
