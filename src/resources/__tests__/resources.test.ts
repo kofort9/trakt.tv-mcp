@@ -51,13 +51,13 @@ describe('Resources', () => {
           timezone: 'UTC',
           date_format: 'mdy',
           time_24hr: true,
-          cover_image: 'cover.jpg'
-        }
+          cover_image: 'cover.jpg',
+        },
       });
 
       const result = await getProfile(mockClient);
       const parsed = JSON.parse(result);
-      
+
       expect(parsed).toEqual(mockUser);
     });
   });
@@ -65,73 +65,74 @@ describe('Resources', () => {
   describe('Watchlist Resource', () => {
     it('should return shows watchlist', async () => {
       const mockWatchlist = [
-        { type: 'show', show: { title: 'Show 1', ids: { trakt: 1, slug: 'show-1' } } }
+        { type: 'show', show: { title: 'Show 1', ids: { trakt: 1, slug: 'show-1' } } },
       ];
-      
+
       vi.spyOn(mockClient, 'getWatchlist').mockResolvedValue(mockWatchlist);
 
       const result = await getWatchlist(mockClient, 'trakt://watchlist/shows');
       const parsed = JSON.parse(result);
-      
+
       expect(parsed).toEqual(mockWatchlist);
       expect(mockClient.getWatchlist).toHaveBeenCalledWith('shows');
     });
 
     it('should return movies watchlist', async () => {
-        const mockWatchlist = [
-          { type: 'movie', movie: { title: 'Movie 1', ids: { trakt: 1, slug: 'movie-1' } } }
-        ];
-        
-        vi.spyOn(mockClient, 'getWatchlist').mockResolvedValue(mockWatchlist);
-  
-        const result = await getWatchlist(mockClient, 'trakt://watchlist/movies');
-        const parsed = JSON.parse(result);
-        
-        expect(parsed).toEqual(mockWatchlist);
-        expect(mockClient.getWatchlist).toHaveBeenCalledWith('movies');
+      const mockWatchlist = [
+        { type: 'movie', movie: { title: 'Movie 1', ids: { trakt: 1, slug: 'movie-1' } } },
+      ];
+
+      vi.spyOn(mockClient, 'getWatchlist').mockResolvedValue(mockWatchlist);
+
+      const result = await getWatchlist(mockClient, 'trakt://watchlist/movies');
+      const parsed = JSON.parse(result);
+
+      expect(parsed).toEqual(mockWatchlist);
+      expect(mockClient.getWatchlist).toHaveBeenCalledWith('movies');
     });
 
     it('should throw error for unknown URI', async () => {
-      await expect(getWatchlist(mockClient, 'trakt://watchlist/invalid'))
-        .rejects.toThrow('Unknown watchlist URI');
+      await expect(getWatchlist(mockClient, 'trakt://watchlist/invalid')).rejects.toThrow(
+        'Unknown watchlist URI'
+      );
     });
   });
 
   describe('History Resource', () => {
     it('should return recent shows history', async () => {
-        const mockHistory = [
-            { type: 'episode', show: { title: 'Show 1' }, watched_at: '2024-01-01' }
-        ];
-        
-        vi.spyOn(mockClient, 'getHistory').mockResolvedValue(mockHistory);
+      const mockHistory = [
+        { type: 'episode', show: { title: 'Show 1' }, watched_at: '2024-01-01' },
+      ];
 
-        const result = await getHistory(mockClient, 'trakt://history/shows/recent');
-        const parsed = JSON.parse(result);
-        
-        expect(parsed.metadata.type).toBe('shows');
-        expect(parsed.items).toEqual(mockHistory);
-        expect(mockClient.getHistory).toHaveBeenCalledWith('shows', undefined, undefined, 1);
+      vi.spyOn(mockClient, 'getHistory').mockResolvedValue(mockHistory);
+
+      const result = await getHistory(mockClient, 'trakt://history/shows/recent');
+      const parsed = JSON.parse(result);
+
+      expect(parsed.metadata.type).toBe('shows');
+      expect(parsed.items).toEqual(mockHistory);
+      expect(mockClient.getHistory).toHaveBeenCalledWith('shows', undefined, undefined, 1);
     });
 
     it('should return recent movies history', async () => {
-        const mockHistory = [
-            { type: 'movie', movie: { title: 'Movie 1' }, watched_at: '2024-01-01' }
-        ];
-        
-        vi.spyOn(mockClient, 'getHistory').mockResolvedValue(mockHistory);
+      const mockHistory = [
+        { type: 'movie', movie: { title: 'Movie 1' }, watched_at: '2024-01-01' },
+      ];
 
-        const result = await getHistory(mockClient, 'trakt://history/movies/recent');
-        const parsed = JSON.parse(result);
-        
-        expect(parsed.metadata.type).toBe('movies');
-        expect(parsed.items).toEqual(mockHistory);
-        expect(mockClient.getHistory).toHaveBeenCalledWith('movies', undefined, undefined, 1);
+      vi.spyOn(mockClient, 'getHistory').mockResolvedValue(mockHistory);
+
+      const result = await getHistory(mockClient, 'trakt://history/movies/recent');
+      const parsed = JSON.parse(result);
+
+      expect(parsed.metadata.type).toBe('movies');
+      expect(parsed.items).toEqual(mockHistory);
+      expect(mockClient.getHistory).toHaveBeenCalledWith('movies', undefined, undefined, 1);
     });
 
     it('should throw error for unknown URI', async () => {
-        await expect(getHistory(mockClient, 'trakt://history/invalid'))
-          .rejects.toThrow('Unknown history URI');
+      await expect(getHistory(mockClient, 'trakt://history/invalid')).rejects.toThrow(
+        'Unknown history URI'
+      );
     });
   });
 });
-

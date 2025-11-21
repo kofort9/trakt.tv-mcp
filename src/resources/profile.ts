@@ -11,4 +11,3 @@ export async function getProfile(client: TraktClient) {
   const settings = await client.getUserSettings();
   return JSON.stringify(settings.user, null, 2);
 }
-

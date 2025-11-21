@@ -283,12 +283,16 @@ export class Logger {
     try {
       if (!fs.existsSync(this.logDirectory)) {
         fs.mkdirSync(this.logDirectory, { recursive: true, mode: 0o700 });
+        // Explicitly set permissions to ensure they are correct (ignoring umask)
+        fs.chmodSync(this.logDirectory, 0o700);
       } else {
         // Ensure permissions are correct for existing directory
         try {
           fs.chmodSync(this.logDirectory, 0o700);
-        } catch {
+        } catch (error) {
           // Ignore if we can't change permissions (e.g. not owner)
+          // but log it for debugging
+          console.debug('Could not set log directory permissions:', error);
         }
       }
     } catch (error) {
@@ -333,9 +337,7 @@ export class Logger {
 
       // 2. Cleanup by count (keep only maxLogFiles)
       if (validFiles.length > this.maxLogFiles) {
-        // Re-sort remaining files just in case
-        const sortedFiles = validFiles.sort((a, b) => b.stats.mtimeMs - a.stats.mtimeMs);
-        const filesToDelete = sortedFiles.slice(this.maxLogFiles);
+        const filesToDelete = validFiles.slice(this.maxLogFiles);
         for (const file of filesToDelete) {
           try {
             fs.unlinkSync(file.path);
@@ -369,10 +371,15 @@ export class Logger {
         this.cleanupOldLogs(); // Cleanup after rotation
       }
 
-      // Ensure file exists with correct permissions (600)
       if (!fs.existsSync(this.currentLogFile)) {
         const fd = fs.openSync(this.currentLogFile, 'w', 0o600);
         fs.closeSync(fd);
+        // Explicitly set permissions to ensure they are correct (ignoring umask)
+        try {
+          fs.chmodSync(this.currentLogFile, 0o600);
+        } catch (error) {
+          console.debug('Could not set log file permissions:', error);
+        }
       }
 
       fs.appendFileSync(this.currentLogFile, logLine);

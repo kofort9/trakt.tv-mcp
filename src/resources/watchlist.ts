@@ -12,7 +12,7 @@ export const WATCHLIST_RESOURCES = [
     name: 'Watchlist (Movies)',
     description: 'Movies in your watchlist',
     mimeType: 'application/json',
-  }
+  },
 ];
 
 export async function getWatchlist(client: TraktClient, uri: string) {
@@ -26,4 +26,3 @@ export async function getWatchlist(client: TraktClient, uri: string) {
   }
   throw new Error(`Unknown watchlist URI: ${uri}`);
 }
-

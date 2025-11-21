@@ -12,7 +12,7 @@ export const HISTORY_RESOURCES = [
     name: 'Recent History (Movies)',
     description: 'Recently watched movies (last 50 items)',
     mimeType: 'application/json',
-  }
+  },
 ];
 
 export async function getHistory(client: TraktClient, uri: string) {
@@ -26,16 +26,15 @@ export async function getHistory(client: TraktClient, uri: string) {
   }
 
   const data = await client.getHistory(type, undefined, undefined, 1);
-  
+
   const response = {
     metadata: {
       type,
       count: Array.isArray(data) ? data.length : 0,
-      description: "Most recent 50 items. Use get_history tool for more."
+      description: 'Most recent 50 items. Use get_history tool for more.',
     },
-    items: data
+    items: data,
   };
 
   return JSON.stringify(response, null, 2);
 }
-
