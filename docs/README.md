@@ -116,6 +116,13 @@ docs/
   - Common issues
   - Performance profiling
 
+### Performance & Caching
+
+- [Cache Implementation](CACHE.md) - Memory management and caching behavior
+  - Memory tracking
+  - Cache limits
+  - Eviction policies
+
 ### Project Management
 
 - [Technical Debt](TECHNICAL_DEBT.md)
