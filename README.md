@@ -47,8 +47,25 @@ This server is designed for AI assistant integration. See [Claude Prompt Guideli
 - [Natural Language Patterns](docs/guides/NATURAL_LANGUAGE_PATTERNS.md) - How to use conversational date/time expressions
 - [NL Patterns Quick Reference](docs/guides/NL_PATTERNS_REFERENCE.md) - Cheat sheet
 - [Claude Integration Guide](docs/guides/CLAUDE_PROMPT_GUIDELINES.md) - For AI assistants
-- [CHANGELOG](CHANGELOG.md) - Version history and release notes
 - [Testing Documentation](docs/testing/) - Test reports and quality assurance
+- [CHANGELOG](CHANGELOG.md) - Version history and release notes
+
+## Security
+
+### Logs and Data Privacy
+
+- **Log Directory**: Logs are stored in `~/.trakt-mcp/logs` (user home directory).
+- **Permissions**:
+  - Directory permissions are restricted to `0o700` (owner read/write/execute only).
+  - Log files are restricted to `0o600` (owner read/write only).
+- **Retention**:
+  - Logs are automatically rotated when they reach 10MB.
+  - Maximum of 10 log files are kept (configurable via `maxLogFiles`).
+  - Logs older than 7 days are automatically deleted (configurable via `maxLogAge`).
+- **Redaction**: Sensitive headers like `Authorization` are redacted from all logs.
+- **Platform Notes**:
+  - Permission enforcement is active on Linux and macOS (POSIX).
+  - On Windows, file permissions are not strictly enforced by `chmod`. Ensure the log directory is in a secure, user-specific location.
 
 ## Development
 
