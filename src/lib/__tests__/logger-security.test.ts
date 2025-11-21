@@ -78,16 +78,22 @@ describe('Logger Security & Maintenance', () => {
 
     const oldDate = new Date();
     oldDate.setDate(oldDate.getDate() - 8); // 8 days ago
-    const oldFile = path.join(testLogDir, `trakt-mcp-${oldDate.toISOString().replace(/[:.]/g, '-')}.log`);
-    
+    const oldFile = path.join(
+      testLogDir,
+      `trakt-mcp-${oldDate.toISOString().replace(/[:.]/g, '-')}.log`
+    );
+
     fs.writeFileSync(oldFile, 'old log content');
-    
+
     // Manually update mtime to be old (fs.writeFileSync sets it to now)
     fs.utimesSync(oldFile, oldDate, oldDate);
 
     // 2. Create dummy new file
     const newDate = new Date();
-    const newFile = path.join(testLogDir, `trakt-mcp-${newDate.toISOString().replace(/[:.]/g, '-')}.log`);
+    const newFile = path.join(
+      testLogDir,
+      `trakt-mcp-${newDate.toISOString().replace(/[:.]/g, '-')}.log`
+    );
     fs.writeFileSync(newFile, 'new log content');
 
     // 3. Initialize logger which should trigger cleanup
@@ -110,7 +116,7 @@ describe('Logger Security & Maintenance', () => {
     const oldDate = new Date();
     oldDate.setDate(oldDate.getDate() - 4); // 4 days ago
     const oldFile = path.join(testLogDir, `trakt-mcp-old.log`);
-    
+
     fs.writeFileSync(oldFile, 'old log content');
     fs.utimesSync(oldFile, oldDate, oldDate);
 
@@ -118,7 +124,7 @@ describe('Logger Security & Maintenance', () => {
     logger = new Logger({
       logDirectory: testLogDir,
       enableFileLogging: true,
-      maxLogAge: 3
+      maxLogAge: 3,
     });
 
     // 3. Verify old file is gone (4 days > 3 days)
@@ -131,7 +137,7 @@ describe('Logger Security & Maintenance', () => {
     }
 
     const maxFiles = 3;
-    
+
     // Create more files than limit
     for (let i = 0; i < 5; i++) {
       const date = new Date();
@@ -145,12 +151,12 @@ describe('Logger Security & Maintenance', () => {
     logger = new Logger({
       logDirectory: testLogDir,
       enableFileLogging: true,
-      maxLogFiles: maxFiles
+      maxLogFiles: maxFiles,
     });
 
     // Count remaining log files
-    const remainingFiles = fs.readdirSync(testLogDir).filter(f => f.endsWith('.log'));
-    
+    const remainingFiles = fs.readdirSync(testLogDir).filter((f) => f.endsWith('.log'));
+
     // Should be maxFiles + 1 (the current log file created by logger)
     expect(remainingFiles.length).toBeLessThanOrEqual(maxFiles + 1);
   });
@@ -160,8 +166,7 @@ describe('Logger Security & Maintenance', () => {
       logDirectory: testLogDir,
       enableFileLogging: true,
     });
-    
+
     expect(fs.existsSync(testLogDir)).toBe(true);
   });
 });
-

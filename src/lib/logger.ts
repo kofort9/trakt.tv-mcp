@@ -301,14 +301,15 @@ export class Logger {
     try {
       if (!fs.existsSync(this.logDirectory)) return;
 
-      const files = fs.readdirSync(this.logDirectory)
-        .filter(file => file.startsWith('trakt-mcp-') && file.endsWith('.log'))
-        .map(file => {
+      const files = fs
+        .readdirSync(this.logDirectory)
+        .filter((file) => file.startsWith('trakt-mcp-') && file.endsWith('.log'))
+        .map((file) => {
           const filePath = path.join(this.logDirectory, file);
           return {
             name: file,
             path: filePath,
-            stats: fs.statSync(filePath)
+            stats: fs.statSync(filePath),
           };
         })
         .sort((a, b) => b.stats.mtimeMs - a.stats.mtimeMs); // Newest first
