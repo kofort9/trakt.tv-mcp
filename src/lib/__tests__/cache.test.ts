@@ -580,9 +580,7 @@ describe('LRUCache', () => {
 
       expect(cache.size()).toBe(0);
       expect(cache.getCurrentMemoryUsage()).toBe(0);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Cache item too large')
-      );
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Cache item too large'));
       consoleSpy.mockRestore();
     });
 

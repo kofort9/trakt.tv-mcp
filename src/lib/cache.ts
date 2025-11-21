@@ -41,21 +41,21 @@ export interface CacheMetrics {
  * - Does not account for V8 internal object overhead
  * - Only measures serialized size
  */
-function estimateSize(value: any): number {
+function estimateSize(value: unknown): number {
   if (value === null || value === undefined) return 0;
   if (typeof value === 'string') return Buffer.byteLength(value, 'utf8');
   if (typeof value === 'number') return 8; // 64-bit float
   if (typeof value === 'boolean') return 4;
-
-  try {
-    const json = JSON.stringify(value);
-    return Buffer.byteLength(json, 'utf8');
-  } catch {
-    // Fallback for circular references or non-serializable objects
-    return 0;
+  if (Array.isArray(value)) {
+    return value.reduce((acc, item) => acc + estimateSize(item), 0);
   }
+  if (typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>).reduce((acc, [k, v]) => {
+      return acc + estimateSize(k) + estimateSize(v);
+    }, 0);
+  }
+  return 0;
 }
-
 /**
  * LRU (Least Recently Used) Cache implementation with TTL support
  *
