@@ -41,6 +41,7 @@ You can retrieve current memory usage via `getMetrics()` or `getCurrentMemoryUsa
 
 ```typescript
 const metrics = cache.getMetrics();
-console.log(`Memory usage: ${metrics.memoryUsage} bytes`);
+console.log(`Memory usage: ${metrics.memoryBytesUsed} bytes`);
+console.log(`Average entry size: ${metrics.avgEntrySize} bytes`);
 ```
 
