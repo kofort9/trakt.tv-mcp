@@ -97,12 +97,14 @@ export class Logger {
   constructor(config: LoggerConfig = {}) {
     this.maxBufferSize = config.maxBufferSize || 1000;
     this.maxFileSize = config.maxFileSize || 10 * 1024 * 1024; // 10MB
-    this.logDirectory = config.logDirectory || path.join(os.tmpdir(), 'trakt-mcp-logs');
+    // Use ~/.trakt-mcp/logs/ for secure logging
+    this.logDirectory = config.logDirectory || path.join(os.homedir(), '.trakt-mcp', 'logs');
     this.enableFileLogging = config.enableFileLogging ?? true;
 
     // Initialize log directory and file
     if (this.enableFileLogging) {
       this.ensureLogDirectory();
+      this.cleanupOldLogs();
       this.currentLogFile = this.getNewLogFileName();
     } else {
       this.currentLogFile = '';
@@ -272,11 +274,44 @@ export class Logger {
   private ensureLogDirectory(): void {
     try {
       if (!fs.existsSync(this.logDirectory)) {
-        fs.mkdirSync(this.logDirectory, { recursive: true });
+        fs.mkdirSync(this.logDirectory, { recursive: true, mode: 0o700 });
+      } else {
+        // Ensure permissions are correct for existing directory
+        try {
+          fs.chmodSync(this.logDirectory, 0o700);
+        } catch (err) {
+          // Ignore if we can't change permissions (e.g. not owner)
+        }
       }
     } catch (error) {
       console.error('Failed to create log directory:', error);
       this.enableFileLogging = false;
+    }
+  }
+
+  private cleanupOldLogs(): void {
+    try {
+      if (!fs.existsSync(this.logDirectory)) return;
+
+      const files = fs.readdirSync(this.logDirectory);
+      const now = Date.now();
+      const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+      for (const file of files) {
+        if (!file.startsWith('trakt-mcp-') || !file.endsWith('.log')) continue;
+
+        const filePath = path.join(this.logDirectory, file);
+        try {
+          const stats = fs.statSync(filePath);
+          if (now - stats.mtimeMs > maxAge) {
+            fs.unlinkSync(filePath);
+          }
+        } catch (err) {
+          console.error(`Failed to cleanup log file ${file}:`, err);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to cleanup old logs:', error);
     }
   }
 
@@ -297,6 +332,12 @@ export class Logger {
       if (this.currentFileSize + logSize > this.maxFileSize) {
         this.currentLogFile = this.getNewLogFileName();
         this.currentFileSize = 0;
+      }
+
+      // Ensure file exists with correct permissions (600)
+      if (!fs.existsSync(this.currentLogFile)) {
+        const fd = fs.openSync(this.currentLogFile, 'w', 0o600);
+        fs.closeSync(fd);
       }
 
       fs.appendFileSync(this.currentLogFile, logLine);
