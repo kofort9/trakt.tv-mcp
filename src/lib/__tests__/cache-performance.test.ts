@@ -180,13 +180,21 @@ describe('Cache Performance Benchmarks', () => {
 
         console.log('\n=== Memory Usage Benchmark ===');
         console.log(`Cache Entries: ${metrics.size}`);
-        console.log(`Memory Used: ${memoryUsedMB.toFixed(2)} MB`);
-        console.log(`Target: <50 MB`);
+        console.log(`Heap Memory Used (Process): ${memoryUsedMB.toFixed(2)} MB`);
+        console.log(
+          `tracked Memory Usage (Internal): ${(metrics.memoryBytesUsed / 1024).toFixed(2)} KB`
+        );
+        console.log(`Avg Entry Size: ${metrics.avgEntrySize} bytes`);
+        console.log(`Target: <50 MB Heap`);
         console.log(`Status: ${memoryUsedMB < 50 ? 'PASS' : 'FAIL'}`);
 
         // Note: In practice, each entry is small (~2-5KB), so 500 entries ≈ 1-2.5MB
         expect(memoryUsedMB).toBeLessThan(50);
         expect(metrics.size).toBeLessThanOrEqual(500);
+        
+        // Verify internal tracking is working
+        expect(metrics.memoryBytesUsed).toBeGreaterThan(0);
+        expect(metrics.avgEntrySize).toBeGreaterThan(0);
       });
     });
 
