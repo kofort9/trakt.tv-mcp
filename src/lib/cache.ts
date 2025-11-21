@@ -7,12 +7,15 @@ export interface CacheEntry<T> {
   value: T;
   expiry: number; // Unix timestamp in ms
   hits: number; // Track cache hits for metrics
+  size: number; // Estimated size in bytes
 }
 
 export interface CacheConfig {
   maxSize: number; // Maximum number of entries
   ttlMs: number; // Time to live in milliseconds
   enableMetrics: boolean; // Track cache performance
+  maxMemoryBytes?: number; // Optional maximum memory limit in bytes
+  memoryWarningThreshold?: number; // Percentage (0-1) of maxMemory to trigger warning
 }
 
 export interface CacheMetrics {
@@ -21,6 +24,52 @@ export interface CacheMetrics {
   evictions: number;
   size: number;
   hitRate: number;
+  memoryUsage: number; // Current estimated memory usage in bytes
+}
+
+/**
+ * Estimate size of value in bytes
+ * Handles circular references by tracking visited objects
+ * Limits depth to prevent stack overflow
+ */
+function estimateSize(
+  value: unknown,
+  seen = new WeakSet<object>(),
+  depth = 0
+): number {
+  // Prevent stack overflow for deeply nested objects
+  if (depth > 20) return 0;
+
+  if (value === null || value === undefined) return 0;
+  if (typeof value === 'boolean') return 4;
+  if (typeof value === 'number') return 8;
+  // String length * 2 is a good estimate for UTF-16 strings in memory
+  if (typeof value === 'string') return value.length * 2;
+  if (typeof value === 'symbol') return 0; // Symbols not counted
+  if (typeof value === 'bigint') return 8; // Estimate 64-bit int
+  if (typeof value === 'function') return 0; // Functions not counted
+
+  if (typeof value === 'object') {
+    if (seen.has(value as object)) return 0;
+    seen.add(value as object);
+
+    if (Array.isArray(value)) {
+      return value.reduce(
+        (acc, item) => acc + estimateSize(item, seen, depth + 1),
+        0
+      );
+    }
+
+    return Object.entries(value as Record<string, unknown>).reduce(
+      (acc, [k, v]) => {
+        return (
+          acc + estimateSize(k, seen, depth + 1) + estimateSize(v, seen, depth + 1)
+        );
+      },
+      0
+    );
+  }
+  return 0;
 }
 
 /**
@@ -37,12 +86,15 @@ export class LRUCache<K, V> {
   private cache: Map<K, CacheEntry<V>>;
   private readonly config: CacheConfig;
   private metrics: CacheMetrics;
+  private hasWarnedMemory = false;
 
   constructor(config: Partial<CacheConfig> = {}) {
     this.config = {
       maxSize: config.maxSize || 500, // Default: cache 500 search results
       ttlMs: config.ttlMs || 3600000, // Default: 1 hour TTL
       enableMetrics: config.enableMetrics ?? true,
+      maxMemoryBytes: config.maxMemoryBytes,
+      memoryWarningThreshold: config.memoryWarningThreshold || 0.9, // Default: warn at 90%
     };
 
     // Use Map which preserves insertion order (ES6+)
@@ -54,6 +106,7 @@ export class LRUCache<K, V> {
       evictions: 0,
       size: 0,
       hitRate: 0,
+      memoryUsage: 0,
     };
   }
 
@@ -72,6 +125,7 @@ export class LRUCache<K, V> {
 
     // Check expiry
     if (Date.now() > entry.expiry) {
+      this.metrics.memoryUsage -= entry.size;
       this.cache.delete(key);
       this.metrics.size = this.cache.size;
       this.recordMiss();
@@ -95,9 +149,48 @@ export class LRUCache<K, V> {
    * Evicts LRU entry if at capacity
    */
   set(key: K, value: V): void {
+    const valueSize = estimateSize(value);
+
     // Remove existing entry if present (will be re-added at end)
     if (this.cache.has(key)) {
-      this.cache.delete(key);
+      this.delete(key);
+    }
+
+    // Check memory limits if configured
+    if (this.config.maxMemoryBytes) {
+      // If new item is larger than total max memory, don't cache it
+      if (valueSize > this.config.maxMemoryBytes) {
+        console.warn(
+          `Cache item too large: ${valueSize} bytes > ${this.config.maxMemoryBytes} bytes`
+        );
+        return;
+      }
+
+      // Check warning threshold
+      const threshold =
+        this.config.maxMemoryBytes * (this.config.memoryWarningThreshold || 0.9);
+      if (this.metrics.memoryUsage + valueSize > threshold) {
+        if (!this.hasWarnedMemory) {
+          console.warn(
+            `Cache memory usage high: ${this.metrics.memoryUsage + valueSize}/${this.config.maxMemoryBytes} bytes`
+          );
+          this.hasWarnedMemory = true;
+        }
+      } else {
+        this.hasWarnedMemory = false;
+      }
+
+      // Evict until we have space
+      while (
+        this.metrics.memoryUsage + valueSize > this.config.maxMemoryBytes &&
+        this.cache.size > 0
+      ) {
+        const firstKey = this.cache.keys().next().value;
+        if (firstKey !== undefined) {
+          this.delete(firstKey);
+          this.metrics.evictions++;
+        }
+      }
     }
 
     // Evict LRU entry if at capacity
@@ -105,7 +198,7 @@ export class LRUCache<K, V> {
       // First key in Map is the oldest (LRU)
       const firstKey = this.cache.keys().next().value;
       if (firstKey !== undefined) {
-        this.cache.delete(firstKey);
+        this.delete(firstKey);
         this.metrics.evictions++;
       }
     }
@@ -115,10 +208,12 @@ export class LRUCache<K, V> {
       value,
       expiry: Date.now() + this.config.ttlMs,
       hits: 0,
+      size: valueSize,
     };
 
     this.cache.set(key, entry);
     this.metrics.size = this.cache.size;
+    this.metrics.memoryUsage += valueSize;
   }
 
   /**
@@ -129,6 +224,7 @@ export class LRUCache<K, V> {
     if (!entry) return false;
 
     if (Date.now() > entry.expiry) {
+      this.metrics.memoryUsage -= entry.size;
       this.cache.delete(key);
       this.metrics.size = this.cache.size;
       return false;
@@ -141,9 +237,15 @@ export class LRUCache<K, V> {
    * Delete a key from cache
    */
   delete(key: K): boolean {
+    const entry = this.cache.get(key);
+    if (entry) {
+      this.metrics.memoryUsage -= entry.size;
+    }
+
     const deleted = this.cache.delete(key);
     if (deleted) {
       this.metrics.size = this.cache.size;
+      this.resetWarningFlag();
     }
     return deleted;
   }
@@ -154,6 +256,8 @@ export class LRUCache<K, V> {
   clear(): void {
     this.cache.clear();
     this.metrics.size = 0;
+    this.metrics.memoryUsage = 0;
+    this.hasWarnedMemory = false;
   }
 
   /**
@@ -166,13 +270,27 @@ export class LRUCache<K, V> {
 
     for (const [key, entry] of this.cache.entries()) {
       if (now > entry.expiry) {
+        this.metrics.memoryUsage -= entry.size;
         this.cache.delete(key);
         removed++;
       }
     }
 
     this.metrics.size = this.cache.size;
+    if (removed > 0) {
+      this.resetWarningFlag();
+    }
     return removed;
+  }
+
+  private resetWarningFlag(): void {
+    if (!this.config.maxMemoryBytes) return;
+    
+    const threshold =
+      this.config.maxMemoryBytes * (this.config.memoryWarningThreshold || 0.9);
+    if (this.metrics.memoryUsage < threshold) {
+      this.hasWarnedMemory = false;
+    }
   }
 
   /**
@@ -192,7 +310,15 @@ export class LRUCache<K, V> {
       evictions: 0,
       size: this.cache.size,
       hitRate: 0,
+      memoryUsage: this.metrics.memoryUsage,
     };
+  }
+
+  /**
+   * Get current memory usage in bytes
+   */
+  getCurrentMemoryUsage(): number {
+    return this.metrics.memoryUsage;
   }
 
   /**
