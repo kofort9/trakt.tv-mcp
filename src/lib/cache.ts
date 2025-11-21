@@ -30,16 +30,23 @@ export interface CacheMetrics {
 }
 
 /**
- * Estimate size of value in bytes using JSON stringification
- * This provides a more accurate representation of the serialized size
+ * Estimate size of value in bytes
+ * 
+ * Optimization:
+ * - Uses fast path for primitive types (string, number, boolean)
+ * - Uses JSON.stringify for objects (fallback)
  * 
  * Limitations:
- * - Returns 0 for circular references or non-serializable objects (silent fallback)
- * - Does not account for V8 internal object overhead (property descriptors, hidden classes)
- * - Can be expensive for large objects (O(n) complexity)
- * - Only measures serialized JSON size, not actual heap memory usage
+ * - Returns 0 for circular references or non-serializable objects
+ * - Does not account for V8 internal object overhead
+ * - Only measures serialized size
  */
 function estimateSize(value: any): number {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === 'string') return Buffer.byteLength(value, 'utf8');
+  if (typeof value === 'number') return 8; // 64-bit float
+  if (typeof value === 'boolean') return 4;
+
   try {
     const json = JSON.stringify(value);
     return Buffer.byteLength(json, 'utf8');
@@ -155,15 +162,17 @@ export class LRUCache<K, V> {
       }
 
       // Evict until we have space
+      // Use iterator to avoid creating new iterators in loop
+      const iterator = this.cache.keys();
       while (
         this.metrics.memoryBytesUsed + valueSize > this.config.maxMemoryBytes &&
         this.cache.size > 0
       ) {
-        const firstKey = this.cache.keys().next().value;
-        if (firstKey !== undefined) {
-          this.delete(firstKey);
-          this.metrics.evictions++;
-        }
+        const result = iterator.next();
+        if (result.done) break;
+        
+        this.delete(result.value);
+        this.metrics.evictions++;
       }
     }
 

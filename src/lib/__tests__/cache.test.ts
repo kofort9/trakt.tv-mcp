@@ -498,16 +498,16 @@ describe('LRUCache', () => {
   describe('memory tracking', () => {
     it('should track memory usage for string values', () => {
       const cache = new LRUCache<string, string>({ enableMetrics: true });
-      // "value" -> JSON: "value" (7 bytes)
+      // "value" -> 5 bytes
       cache.set('key', 'value');
-      expect(cache.getCurrentMemoryUsage()).toBe(7);
+      expect(cache.getCurrentMemoryUsage()).toBe(5);
     });
 
     it('should track memory usage for number values', () => {
       const cache = new LRUCache<string, number>({ enableMetrics: true });
-      // 123 -> JSON: 123 (3 bytes)
+      // number -> 8 bytes (fixed)
       cache.set('key', 123);
-      expect(cache.getCurrentMemoryUsage()).toBe(3);
+      expect(cache.getCurrentMemoryUsage()).toBe(8);
     });
 
     it('should track memory usage for object values', () => {
@@ -519,17 +519,17 @@ describe('LRUCache', () => {
 
     it('should update memory usage on overwrite', () => {
       const cache = new LRUCache<string, string>({ enableMetrics: true });
-      cache.set('key', 'short'); // JSON: "short" (7 bytes)
-      expect(cache.getCurrentMemoryUsage()).toBe(7);
+      cache.set('key', 'short'); // 5 bytes
+      expect(cache.getCurrentMemoryUsage()).toBe(5);
 
-      cache.set('key', 'longer value'); // JSON: "longer value" (14 bytes)
-      expect(cache.getCurrentMemoryUsage()).toBe(14);
+      cache.set('key', 'longer value'); // 12 bytes
+      expect(cache.getCurrentMemoryUsage()).toBe(12);
     });
 
     it('should decrease memory usage on delete', () => {
       const cache = new LRUCache<string, string>({ enableMetrics: true });
-      cache.set('key', 'value');
-      expect(cache.getCurrentMemoryUsage()).toBe(7);
+      cache.set('key', 'value'); // 5 bytes
+      expect(cache.getCurrentMemoryUsage()).toBe(5);
 
       cache.delete('key');
       expect(cache.getCurrentMemoryUsage()).toBe(0);
@@ -550,22 +550,22 @@ describe('LRUCache', () => {
 
     it('should enforce max memory limit', () => {
       const cache = new LRUCache<string, string>({
-        maxMemoryBytes: 15, // Reduced to work with smaller JSON sizes
+        maxMemoryBytes: 12, // Fits 2 items (5+5=10), but not 3 (15)
         enableMetrics: true,
       });
 
-      cache.set('k1', '12345'); // JSON: "12345" (7 bytes)
-      cache.set('k2', '12345'); // JSON: "12345" (7 bytes) -> Total 14 bytes
+      cache.set('k1', '12345'); // 5 bytes
+      cache.set('k2', '12345'); // 5 bytes -> Total 10 bytes
       expect(cache.size()).toBe(2);
 
-      cache.set('k3', '12345'); // Total 21 bytes (exceeds 15)
+      cache.set('k3', '12345'); // Total 15 bytes (exceeds 12)
       // Should evict k1 (LRU)
 
       expect(cache.size()).toBe(2);
       expect(cache.has('k1')).toBe(false);
       expect(cache.has('k2')).toBe(true);
       expect(cache.has('k3')).toBe(true);
-      expect(cache.getCurrentMemoryUsage()).toBe(14);
+      expect(cache.getCurrentMemoryUsage()).toBe(10);
     });
 
     it('should reject item larger than max memory', () => {
@@ -575,7 +575,7 @@ describe('LRUCache', () => {
         enableMetrics: true,
       });
 
-      // "large value" -> JSON: "large value" (13 bytes) > 10 bytes
+      // "large value" -> 11 bytes > 10 bytes
       cache.set('k1', 'large value');
 
       expect(cache.size()).toBe(0);
@@ -594,14 +594,14 @@ describe('LRUCache', () => {
         enableMetrics: true,
       });
 
-      // Need larger strings to hit 50 bytes
-      // "1...1" (48 chars) -> JSON: "..." (50 chars/bytes)
-      const str1 = '1'.repeat(48);
+      // Need > 50 bytes
+      // "1" * 50 = 50 bytes.
+      const str1 = '1'.repeat(50);
       cache.set('k1', str1); // 50 bytes
       expect(consoleSpy).not.toHaveBeenCalled();
 
       // Add another small item to exceed 50 bytes
-      cache.set('k2', '1'); // JSON: "1" (3 bytes). Total 53 bytes.
+      cache.set('k2', '1'); // 1 byte. Total 51 bytes > 50.
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('Cache memory usage high')
       );
@@ -612,15 +612,15 @@ describe('LRUCache', () => {
     it('should calculate average entry size', () => {
       const cache = new LRUCache<string, string>({ enableMetrics: true });
 
-      cache.set('k1', 'val1'); // JSON: "val1" (6 bytes)
-      expect(cache.getMetrics().avgEntrySize).toBe(6);
+      cache.set('k1', 'val1'); // 4 bytes
+      expect(cache.getMetrics().avgEntrySize).toBe(4);
 
-      cache.set('k2', 'val2'); // JSON: "val2" (6 bytes). Total 12 bytes, 2 items.
-      expect(cache.getMetrics().avgEntrySize).toBe(6);
+      cache.set('k2', 'val2'); // 4 bytes. Total 8 bytes, 2 items.
+      expect(cache.getMetrics().avgEntrySize).toBe(4);
 
-      cache.set('k3', 'longer value'); // JSON: "longer value" (14 bytes). Total 26 bytes, 3 items.
-      // 26 / 3 = 8.66 -> 9
-      expect(cache.getMetrics().avgEntrySize).toBe(9);
+      cache.set('k3', 'longer value'); // 12 bytes. Total 20 bytes, 3 items.
+      // 20 / 3 = 6.66 -> 7
+      expect(cache.getMetrics().avgEntrySize).toBe(7);
 
       cache.clear();
       expect(cache.getMetrics().avgEntrySize).toBe(0);
