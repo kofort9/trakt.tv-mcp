@@ -2,26 +2,38 @@
 
 Welcome to the Trakt.tv MCP server documentation. This directory contains all project documentation organized by topic.
 
+---
+
 ## Quick Navigation
 
 ### For Users
 
 - **[README](../README.md)** - Project overview, setup instructions, and quick start
 - **[CHANGELOG](../CHANGELOG.md)** - Version history and release notes
-- **[Natural Language Patterns Guide](guides/NATURAL_LANGUAGE_PATTERNS.md)** - How to use natural language with the server
-- **[NL Patterns Quick Reference](guides/NL_PATTERNS_REFERENCE.md)** - Cheat sheet for date and episode formats
+- **[Natural Language Guide](guides/NATURAL_LANGUAGE_GUIDE.md)** - Complete guide to natural language patterns and usage
 
 ### For AI Assistants (Claude, etc.)
 
-- **[Claude Prompt Guidelines](guides/CLAUDE_PROMPT_GUIDELINES.md)** - How AI assistants should interpret user queries and map them to tool calls
-- **[Contributing Natural Language Patterns](guides/CONTRIBUTING_NL.md)** - How to extend natural language support
+- **[Contributing Guide](guides/CONTRIBUTING.md)** - Guidelines for AI assistants and developers
+  - AI assistant integration patterns
+  - How to interpret user queries
+  - Natural language pattern mapping
 
 ### For Contributors
 
-- **[Testing Documentation](testing/)** - Test reports, results, and testing guidelines
+- **[Contributing Guide](guides/CONTRIBUTING.md)** - How to contribute to this project
+  - Adding new features
+  - Extending natural language support
+  - Code quality standards
+- **[Testing Guide](testing/TESTING_GUIDE.md)** - Comprehensive testing documentation
+- **[Test Quick Reference](testing/TEST_QUICK_REFERENCE.md)** - Quick testing cheat sheet
 - **[Debugging Guide](DEBUGGING.md)** - How to use debug tools and analyze logs
-- **[Technical Debt & Improvements](TECHNICAL_DEBT.md)** - Tracked improvements and future enhancements
-- **[Archive](archive/)** - Historical bug reports and resolved issues
+- **[Technical Debt](TECHNICAL_DEBT.md)** - Tracked improvements and future enhancements
+
+### Historical Documentation
+
+- **[Archive](archive/)** - Historical bug reports, test reports, and implementation documents
+  - See [Archive README](archive/README.md) for complete index
 
 ---
 
@@ -29,71 +41,98 @@ Welcome to the Trakt.tv MCP server documentation. This directory contains all pr
 
 ```
 docs/
-├── README.md                          # This file - navigation index
-├── DEBUGGING.md                       # Debugging guide
-├── TECHNICAL_DEBT.md                  # Technical debt and future improvements
-├── guides/                            # User and developer guides
-│   ├── CLAUDE_PROMPT_GUIDELINES.md   # AI assistant integration guide
-│   ├── NATURAL_LANGUAGE_PATTERNS.md  # Natural language pattern library
-│   ├── NL_PATTERNS_REFERENCE.md      # Quick reference card
-│   └── CONTRIBUTING_NL.md            # How to add new patterns
-├── testing/                           # Test documentation
-│   ├── PHASE3_COMPREHENSIVE_TEST_REPORT.md
-│   ├── PHASE3_RETEST_EXECUTIVE_SUMMARY.md
-│   ├── PHASE3_RETEST_RESULTS.md
-│   ├── PHASE3_TESTING_SUMMARY.md
-│   ├── PHASE3_TEST_RESULTS.md
-│   ├── PHASE3_TEST_SUMMARY.md
-│   ├── NATURAL_LANGUAGE_TEST_REPORT.md
-│   ├── SUMMARIZE_HISTORY_TEST_SUMMARY.md
-│   ├── TEST_REPORT_summarize_history.md
-│   ├── TEST_QUICK_REFERENCE.md
-│   └── FINAL_TEST_REPORT_WITH_BUGS.md
-└── archive/                           # Historical documentation
-    ├── BUG_FIX_REPORT.md
-    └── CRITICAL_BUGS_AND_PLAN.md
+├── README.md                           # This file - navigation index
+├── DEBUGGING.md                        # Debugging guide
+├── TECHNICAL_DEBT.md                   # Technical debt and future improvements
+├── guides/                             # User and developer guides
+│   ├── CONTRIBUTING.md                 # Contributing guide (AI + developers)
+│   └── NATURAL_LANGUAGE_GUIDE.md       # Complete NL pattern reference
+├── testing/                            # Test documentation
+│   ├── TESTING_GUIDE.md                # Comprehensive testing guide
+│   └── TEST_QUICK_REFERENCE.md         # Quick testing cheat sheet
+└── archive/                            # Historical documentation
+    ├── README.md                       # Archive index
+    ├── implementation/                 # Implementation phase docs
+    └── test-reports/                   # Historical test reports
 ```
+
+**Total Active Documentation:** 10 files (down from ~30)
 
 ---
 
 ## Documentation by Topic
 
-### Authentication & Setup
+### Setup & Configuration
+
 - [README - Setup Section](../README.md#setup)
 - Environment configuration
 - OAuth 2.0 device flow setup
 - Trakt.tv API credentials
 
 ### Natural Language Support
-- [Natural Language Patterns Guide](guides/NATURAL_LANGUAGE_PATTERNS.md) - Comprehensive pattern documentation
-- [NL Patterns Quick Reference](guides/NL_PATTERNS_REFERENCE.md) - Quick lookup
-- [Contributing NL Patterns](guides/CONTRIBUTING_NL.md) - Extending pattern support
+
+- [Natural Language Guide](guides/NATURAL_LANGUAGE_GUIDE.md) - Comprehensive pattern documentation
+  - Date expressions (35+ patterns)
+  - Episode specifications
+  - Common usage patterns
+  - Validation rules
+  - Error handling
+  - Disambiguation
 
 ### AI Assistant Integration
-- [Claude Prompt Guidelines](guides/CLAUDE_PROMPT_GUIDELINES.md) - How Claude should interpret queries
-- Pattern mapping examples
-- Disambiguation handling
-- Error message presentation
+
+- [Contributing Guide - AI Assistants Section](guides/CONTRIBUTING.md#for-ai-assistants-integration-guidelines)
+  - How Claude should interpret queries
+  - Pattern mapping examples
+  - Disambiguation handling
+  - Error message presentation
+  - Best practices
+
+### Development & Contributing
+
+- [Contributing Guide](guides/CONTRIBUTING.md)
+  - Architecture principles
+  - Adding new features
+  - Extending natural language patterns
+  - Code quality standards
+  - Testing requirements
+- [CLAUDE.md](../CLAUDE.md) - Project-specific instructions for Claude Code
 
 ### Testing
-- [Phase 3 Comprehensive Test Report](testing/PHASE3_COMPREHENSIVE_TEST_REPORT.md) - Latest full test results
-- [Phase 3 Retest Executive Summary](testing/PHASE3_RETEST_EXECUTIVE_SUMMARY.md) - Post-fix verification
-- [Natural Language Test Report](testing/NATURAL_LANGUAGE_TEST_REPORT.md) - NL pattern testing
-- [Test Quick Reference](testing/TEST_QUICK_REFERENCE.md) - Testing commands and patterns
 
-### Development
-- [README - Development Section](../README.md#development)
-- [Debugging Guide](DEBUGGING.md) - Debug tools and log analysis
-- [CHANGELOG](../CHANGELOG.md) - Version history
-- [CLAUDE.md](../CLAUDE.md) - Project instructions for Claude Code
-- [Technical Debt & Improvements](TECHNICAL_DEBT.md) - Tracked future improvements
+- [Testing Guide](testing/TESTING_GUIDE.md) - Comprehensive testing documentation
+  - Testing tools and setup
+  - Test status summary
+  - Running tests
+  - Edge case testing
+  - MCP Inspector testing
+- [Test Quick Reference](testing/TEST_QUICK_REFERENCE.md) - Quick testing commands and examples
+
+### Debugging & Troubleshooting
+
+- [Debugging Guide](DEBUGGING.md)
+  - Debug tools
+  - Log analysis
+  - Common issues
+  - Performance profiling
+
+### Project Management
+
+- [Technical Debt](TECHNICAL_DEBT.md)
   - Performance optimizations
   - Security hardening
-  - Documentation cleanup
+  - Documentation improvements
+  - Future features
+- [CHANGELOG](../CHANGELOG.md) - Version history
 
 ### Historical Records
-- [Bug Fix Report](archive/BUG_FIX_REPORT.md) - Resolved bug documentation
-- [Critical Bugs and Plan](archive/CRITICAL_BUGS_AND_PLAN.md) - Historical bug tracking
+
+- [Archive](archive/) - Historical documentation
+  - [Archive README](archive/README.md) - Complete archive index
+  - Implementation phase documents
+  - Phase 3 test reports
+  - Bug fix reports
+  - Linear import guide
 
 ---
 
@@ -111,22 +150,21 @@ docs/
 - Merging significant features or fixes
 - Making breaking changes
 
-**Update Pattern Guides when:**
+**Update Natural Language Guide when:**
 - Adding new natural language patterns
 - Changing date parsing behavior
 - Adding or modifying tool parameters
 
-**Create Test Reports when:**
-- Completing a testing phase
-- Verifying bug fixes
-- Releasing a new version
+**Update Testing Guide when:**
+- Adding new test suites
+- Discovering new edge cases
+- Updating test procedures or tools
 
-**Update TECHNICAL_DEBT.md when:**
-- Identifying performance bottlenecks or optimization opportunities
-- Discovering security concerns or hardening needs
+**Update Technical Debt when:**
+- Identifying performance bottlenecks
+- Discovering security concerns
 - Planning future features that are deferred
-- Finding code that needs refactoring but can't be done immediately
-- Noting infrastructure or operational improvements
+- Finding code that needs refactoring
 
 ### Documentation Standards
 
@@ -134,7 +172,7 @@ docs/
 - Use clear, direct language
 - Include code examples for technical concepts
 - Provide both conceptual explanations and practical examples
-- Reference specific file paths and line numbers where helpful
+- Reference specific file paths where helpful
 
 **Format Conventions:**
 - Use markdown for all documentation
@@ -145,25 +183,42 @@ docs/
 **Cross-References:**
 - Use relative paths for internal links
 - Verify links after moving or renaming files
-- Include file paths in format: `/Users/kofifort/Repos/trakt.tv-mcp/path/to/file.ts`
+- Include absolute file paths in format: `/Users/kofifort/Repos/trakt.tv-mcp/path/to/file.ts`
 
 ---
 
 ## Getting Help
 
 **For Users:**
-- Check [Natural Language Patterns](guides/NATURAL_LANGUAGE_PATTERNS.md) for usage examples
+- Check [Natural Language Guide](guides/NATURAL_LANGUAGE_GUIDE.md) for usage examples
 - Review [README](../README.md) for setup troubleshooting
 
 **For Developers:**
 - See [CLAUDE.md](../CLAUDE.md) for project-specific AI instructions
-- Review [Test Reports](testing/) for quality assurance details
+- Review [Testing Guide](testing/TESTING_GUIDE.md) for quality assurance details
+- Check [Contributing Guide](guides/CONTRIBUTING.md) for contribution guidelines
 
 **For AI Assistants:**
-- Start with [Claude Prompt Guidelines](guides/CLAUDE_PROMPT_GUIDELINES.md)
-- Reference [NL Patterns Quick Reference](guides/NL_PATTERNS_REFERENCE.md) for pattern mapping
+- Start with [Contributing Guide - AI Assistants Section](guides/CONTRIBUTING.md#for-ai-assistants-integration-guidelines)
+- Reference [Natural Language Guide](guides/NATURAL_LANGUAGE_GUIDE.md) for pattern mapping
 
 ---
 
-**Last Updated:** 2025-11-20
-**Documentation Version:** 1.0.0
+## Recent Changes
+
+**2025-11-25: Documentation Consolidation**
+- Reduced from ~30 files to 10 active files
+- Archived 17 historical documents
+- Consolidated guides from 4 to 2 files:
+  - CONTRIBUTING.md (merged CONTRIBUTING_NL.md + CLAUDE_PROMPT_GUIDELINES.md)
+  - NATURAL_LANGUAGE_GUIDE.md (merged NATURAL_LANGUAGE_PATTERNS.md + NL_PATTERNS_REFERENCE.md)
+- Consolidated testing docs from 5 to 2 files:
+  - TESTING_GUIDE.md (comprehensive guide)
+  - TEST_QUICK_REFERENCE.md (quick reference)
+- Created comprehensive archive with README and headers
+
+---
+
+**Last Updated:** 2025-11-25
+**Documentation Version:** 2.0.0 (Consolidated)
+**Maintained By:** Development Team

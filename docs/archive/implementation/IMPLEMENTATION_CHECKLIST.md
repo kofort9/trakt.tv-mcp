@@ -1,3 +1,14 @@
+---
+**⚠️ ARCHIVED DOCUMENT**
+
+This document is historical and may contain outdated information.
+
+**Archived:** November 2025
+**Reason:** Implementation phase completed
+**For current information, see:** [docs/TECHNICAL_DEBT.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/TECHNICAL_DEBT.md)
+
+---
+
 # Technical Improvements - Implementation Checklist
 
 **Sprint:** Phase 4 Post-PR#2 Enhancements

@@ -1,3 +1,14 @@
+---
+**⚠️ ARCHIVED DOCUMENT**
+
+This document is historical and may contain outdated information.
+
+**Archived:** November 2025
+**Reason:** Implementation completed; script documented in scripts/README.md
+**For current information, see:** [scripts/README.md](/Users/kofifort/Repos/trakt.tv-mcp/scripts/README.md)
+
+---
+
 # Bulk Import Script - Implementation Summary
 
 ## Overview

@@ -1,3 +1,14 @@
+---
+**⚠️ ARCHIVED DOCUMENT**
+
+This document is historical and may contain outdated information.
+
+**Archived:** November 2025
+**Reason:** Linear integration guide for historical reference
+**For current information, see:** [docs/README.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/README.md)
+
+---
+
 # Linear Issues Import Guide - Trakt.tv MCP Server
 
 **Project:** KHQ/trakttv-mcp

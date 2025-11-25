@@ -1,3 +1,14 @@
+---
+**⚠️ ARCHIVED DOCUMENT**
+
+This document is historical and may contain outdated information.
+
+**Archived:** November 2025
+**Reason:** Phase 3 testing completed; all tools validated and in production
+**For current information, see:** [docs/testing/TESTING_GUIDE.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/testing/TESTING_GUIDE.md)
+
+---
+
 # Phase 3 MCP Tools - Comprehensive Test Report
 
 **Test Date:** 2025-11-19

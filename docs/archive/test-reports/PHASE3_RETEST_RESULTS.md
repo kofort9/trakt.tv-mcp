@@ -1,3 +1,14 @@
+---
+**⚠️ ARCHIVED DOCUMENT**
+
+This document is historical and may contain outdated information.
+
+**Archived:** November 2025
+**Reason:** Phase 3 retest completed; fixes verified and merged
+**For current information, see:** [docs/testing/TESTING_GUIDE.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/testing/TESTING_GUIDE.md)
+
+---
+
 # Phase 3 Fix Retest Results
 
 **Date:** 2025-11-19

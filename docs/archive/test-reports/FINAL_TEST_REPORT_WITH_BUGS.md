@@ -1,3 +1,14 @@
+---
+**⚠️ ARCHIVED DOCUMENT**
+
+This document is historical and may contain outdated information.
+
+**Archived:** November 2025
+**Reason:** Bugs identified and resolved; all issues fixed
+**For current information, see:** [docs/testing/TESTING_GUIDE.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/testing/TESTING_GUIDE.md)
+
+---
+
 # Final Test Report: Critical Bugs Discovered
 
 **Test Date:** November 18-19, 2025

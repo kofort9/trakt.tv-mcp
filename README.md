@@ -28,11 +28,11 @@ MCP server for Trakt.tv API - enables AI assistants to track watched shows, movi
 "Watched Dune 2021 last Friday"
 ```
 
-See [Natural Language Patterns Guide](docs/guides/NATURAL_LANGUAGE_PATTERNS.md) for complete usage documentation.
+See [Natural Language Guide](docs/guides/NATURAL_LANGUAGE_GUIDE.md) for complete usage documentation.
 
 ### For AI Assistants (Claude)
 
-This server is designed for AI assistant integration. See [Claude Prompt Guidelines](docs/guides/CLAUDE_PROMPT_GUIDELINES.md) for:
+This server is designed for AI assistant integration. See [Contributing Guide - AI Assistants Section](docs/guides/CONTRIBUTING.md#for-ai-assistants-integration-guidelines) for:
 - How to interpret user queries
 - Natural language pattern mapping
 - Error handling and disambiguation
@@ -44,10 +44,9 @@ This server is designed for AI assistant integration. See [Claude Prompt Guideli
 
 **Quick Links:**
 - [Setup Instructions](#setup) (below)
-- [Natural Language Patterns](docs/guides/NATURAL_LANGUAGE_PATTERNS.md) - How to use conversational date/time expressions
-- [NL Patterns Quick Reference](docs/guides/NL_PATTERNS_REFERENCE.md) - Cheat sheet
-- [Claude Integration Guide](docs/guides/CLAUDE_PROMPT_GUIDELINES.md) - For AI assistants
-- [Testing Documentation](docs/testing/) - Test reports and quality assurance
+- [Natural Language Guide](docs/guides/NATURAL_LANGUAGE_GUIDE.md) - Complete guide to natural language patterns
+- [Contributing Guide](docs/guides/CONTRIBUTING.md) - For developers and AI assistants
+- [Testing Guide](docs/testing/TESTING_GUIDE.md) - Comprehensive testing documentation
 - [CHANGELOG](CHANGELOG.md) - Version history and release notes
 
 ## Security
@@ -153,8 +152,8 @@ See [Branch Protection Recommendations](.github/BRANCH_PROTECTION.md) for settin
 We welcome contributions! Before submitting changes:
 
 1. Read [CLAUDE.md](CLAUDE.md) for project architecture and guidelines
-2. Review [Natural Language Patterns Guide](docs/guides/NATURAL_LANGUAGE_PATTERNS.md) if adding date/time features
-3. See [Contributing NL Patterns](docs/guides/CONTRIBUTING_NL.md) for extending natural language support
+2. Review [Natural Language Guide](docs/guides/NATURAL_LANGUAGE_GUIDE.md) if adding date/time features
+3. See [Contributing Guide](docs/guides/CONTRIBUTING.md) for extending natural language support
 4. Ensure all tests pass and code quality checks succeed
 
 ## License

@@ -1,3 +1,14 @@
+---
+**⚠️ ARCHIVED DOCUMENT**
+
+This document is historical and may contain outdated information.
+
+**Archived:** November 2025
+**Reason:** Bugs resolved; testing phase completed
+**For current information, see:** [docs/testing/TESTING_GUIDE.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/testing/TESTING_GUIDE.md)
+
+---
+
 # Critical Bug Fix Report: Date Parsing Off-By-One Error
 
 **Date:** November 18, 2025
