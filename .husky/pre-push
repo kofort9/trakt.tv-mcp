@@ -37,7 +37,7 @@ fi
 #   - *.md (Markdown files)
 #   - .claude/agents/* (Agent configuration files)
 #   - docs/* (Documentation directory)
-NON_DOC_CHANGES=$(echo "$CHANGED_FILES" | grep -v -E '\.(md)$' | grep -v -E '^\.claude/agents/' | grep -v -E '^docs/')
+NON_DOC_CHANGES=$(echo "$CHANGED_FILES" | grep -v -E '(\.md$|^\.claude/agents/|^docs/)')
 
 if [ -z "$NON_DOC_CHANGES" ]; then
   echo "📝 Only documentation files changed, skipping tests..."
