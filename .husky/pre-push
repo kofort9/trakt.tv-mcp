@@ -1,12 +1,6 @@
 #!/bin/sh
-
-# Get the files that are being pushed
-# Compare current branch with remote branch
-REMOTE="$1"
-URL="$2"
-
-# Get current branch name
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+# Pre-push hook: Skip tests for documentation-only changes
+# Runs full test suite when code files are modified
 
 # Get the remote tracking branch
 REMOTE_BRANCH=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null)
@@ -27,9 +21,11 @@ if [ -z "$CHANGED_FILES" ]; then
   exit 0
 fi
 
-# Check if only documentation/config files changed
-# Documentation: *.md, .claude/agents/*, docs/*
-# Config: *.json (package.json excluded), *.yaml, *.yml
+# Check if only documentation files changed
+# Documentation patterns:
+#   - *.md (Markdown files)
+#   - .claude/agents/* (Agent configuration files)
+#   - docs/* (Documentation directory)
 NON_DOC_CHANGES=$(echo "$CHANGED_FILES" | grep -v -E '\.(md)$' | grep -v -E '^\.claude/agents/' | grep -v -E '^docs/')
 
 if [ -z "$NON_DOC_CHANGES" ]; then

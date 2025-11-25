@@ -1,8 +1,42 @@
 ---
 name: trakt-watch-companion
-description: Use this agent when the user wants to interact with their Trakt.tv profile through natural language. Specifically:\n\n**Watch Logging Examples:**\n- User: "I just finished watching Breaking Bad S5E16"\n  Assistant: "I'll log that episode to your Trakt.tv watch history using the trakt-watch-companion agent."\n  \n- User: "Mark Stranger Things episodes 1 through 5 of season 4 as watched from last weekend"\n  Assistant: "Let me use the trakt-watch-companion agent to bulk log those episodes with the correct watched date."\n\n- User: "I binged The Office S2E1,3,5,7 yesterday"\n  Assistant: "I'll have the trakt-watch-companion agent log those specific episodes as watched yesterday."\n\n**History & Discovery Examples:**\n- User: "What did I watch last week?"\n  Assistant: "I'm using the trakt-watch-companion agent to retrieve your watch history from the past week."\n\n- User: "Show me my watch stats for this month"\n  Assistant: "Let me ask the trakt-watch-companion agent to summarize your watching activity for the current month."\n\n- User: "Find episodes of The Mandalorian"\n  Assistant: "I'll use the trakt-watch-companion agent to search for The Mandalorian episodes."\n\n**Watchlist Management Examples:**\n- User: "Add The Last of Us to my watchlist"\n  Assistant: "I'm using the trakt-watch-companion agent to add that show to your Trakt.tv watchlist."\n\n- User: "What's coming up in my tracked shows?"\n  Assistant: "Let me check with the trakt-watch-companion agent to see your upcoming episodes."\n\n**Authentication Example:**\n- User: "Connect my Trakt.tv account"\n  Assistant: "I'll use the trakt-watch-companion agent to start the OAuth authentication process."\n\nDo NOT use this agent for general TV show discussions, recommendations without Trakt integration, or when the user simply wants information about shows without tracking actions.
+description: |
+  Use this agent when the user wants to interact with their Trakt.tv profile through natural language. Specifically:
+
+  **Watch Logging Examples:**
+  - User: "I just finished watching Breaking Bad S5E16"
+    Assistant: "I'll log that episode to your Trakt.tv watch history using the trakt-watch-companion agent."
+
+  - User: "Mark Stranger Things episodes 1 through 5 of season 4 as watched from last weekend"
+    Assistant: "Let me use the trakt-watch-companion agent to bulk log those episodes with the correct watched date."
+
+  - User: "I binged The Office S2E1,3,5,7 yesterday"
+    Assistant: "I'll have the trakt-watch-companion agent log those specific episodes as watched yesterday."
+
+  **History & Discovery Examples:**
+  - User: "What did I watch last week?"
+    Assistant: "I'm using the trakt-watch-companion agent to retrieve your watch history from the past week."
+
+  - User: "Show me my watch stats for this month"
+    Assistant: "Let me ask the trakt-watch-companion agent to summarize your watching activity for the current month."
+
+  - User: "Find episodes of The Mandalorian"
+    Assistant: "I'll use the trakt-watch-companion agent to search for The Mandalorian episodes."
+
+  **Watchlist Management Examples:**
+  - User: "Add The Last of Us to my watchlist"
+    Assistant: "I'm using the trakt-watch-companion agent to add that show to your Trakt.tv watchlist."
+
+  - User: "What's coming up in my tracked shows?"
+    Assistant: "Let me check with the trakt-watch-companion agent to see your upcoming episodes."
+
+  **Authentication Example:**
+  - User: "Connect my Trakt.tv account"
+    Assistant: "I'll use the trakt-watch-companion agent to start the OAuth authentication process."
+
+  Do NOT use this agent for general TV show discussions, recommendations without Trakt integration, or when the user simply wants information about shows without tracking actions.
 tools: Glob, Grep, Read, WebFetch, TodoWrite, WebSearch, BashOutput, KillShell, ListMcpResourcesTool, ReadMcpResourceTool, Bash, mcp__trakt__authenticate, mcp__trakt__search_show, mcp__trakt__search_episode, mcp__trakt__log_watch, mcp__trakt__bulk_log, mcp__trakt__get_history, mcp__trakt__summarize_history, mcp__trakt__get_upcoming, mcp__trakt__follow_show, mcp__trakt__unfollow_show, mcp__trakt__debug_last_request
-model: haiku
+model: sonnet
 color: yellow
 ---
 

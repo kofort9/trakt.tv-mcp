@@ -370,12 +370,23 @@ export class Logger {
       }
 
       // Ensure file exists with correct permissions (600)
-      if (!fs.existsSync(this.currentLogFile)) {
+      const fileExists = fs.existsSync(this.currentLogFile);
+      if (!fileExists) {
         const fd = fs.openSync(this.currentLogFile, 'w', 0o600);
         fs.closeSync(fd);
       }
 
       fs.appendFileSync(this.currentLogFile, logLine);
+
+      // Ensure permissions remain 600 after write (some systems may reset them)
+      if (process.platform !== 'win32') {
+        try {
+          fs.chmodSync(this.currentLogFile, 0o600);
+        } catch {
+          // Ignore if we can't change permissions (e.g. not owner)
+        }
+      }
+
       this.currentFileSize += logSize;
     } catch (error) {
       console.error('Failed to write to log file:', error);
