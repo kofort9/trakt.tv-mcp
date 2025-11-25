@@ -58,7 +58,9 @@ describe('Resources', () => {
       const result = await getProfile(mockClient);
       const parsed = JSON.parse(result);
 
-      expect(parsed).toEqual(mockUser);
+      expect(parsed.metadata.type).toBe('profile');
+      expect(parsed.metadata.username).toBe('testuser');
+      expect(parsed.data).toEqual(mockUser);
     });
   });
 
@@ -73,7 +75,9 @@ describe('Resources', () => {
       const result = await getWatchlist(mockClient, 'trakt://watchlist/shows');
       const parsed = JSON.parse(result);
 
-      expect(parsed).toEqual(mockWatchlist);
+      expect(parsed.metadata.type).toBe('shows');
+      expect(parsed.metadata.count).toBe(1);
+      expect(parsed.items).toEqual(mockWatchlist);
       expect(mockClient.getWatchlist).toHaveBeenCalledWith('shows');
     });
 
@@ -87,7 +91,9 @@ describe('Resources', () => {
       const result = await getWatchlist(mockClient, 'trakt://watchlist/movies');
       const parsed = JSON.parse(result);
 
-      expect(parsed).toEqual(mockWatchlist);
+      expect(parsed.metadata.type).toBe('movies');
+      expect(parsed.metadata.count).toBe(1);
+      expect(parsed.items).toEqual(mockWatchlist);
       expect(mockClient.getWatchlist).toHaveBeenCalledWith('movies');
     });
 
@@ -136,5 +142,3 @@ describe('Resources', () => {
     });
   });
 });
-
-
