@@ -15,7 +15,7 @@ const MOCK_API_DELAY = 100; // ms
 class MockTraktClient {
   async search(query: string, type?: string, year?: number): Promise<TraktSearchResult[]> {
     // Simulate API latency
-    await new Promise(resolve => setTimeout(resolve, MOCK_API_DELAY));
+    await new Promise((resolve) => setTimeout(resolve, MOCK_API_DELAY));
 
     return [
       {
@@ -24,7 +24,12 @@ class MockTraktClient {
         movie: {
           title: query,
           year: year || 2020,
-          ids: { trakt: Math.floor(Math.random() * 10000), slug: query.toLowerCase().replace(/ /g, '-'), imdb: 'tt0000000', tmdb: 1 },
+          ids: {
+            trakt: Math.floor(Math.random() * 10000),
+            slug: query.toLowerCase().replace(/ /g, '-'),
+            imdb: 'tt0000000',
+            tmdb: 1,
+          },
         },
       },
     ];
@@ -60,17 +65,50 @@ async function runBenchmark() {
   console.log();
 
   const testCases = [
-    { count: 5, movies: ['The Matrix', 'Inception', 'Interstellar', 'The Dark Knight', 'Fight Club'] },
-    { count: 10, movies: [
-      'The Matrix', 'Inception', 'Interstellar', 'The Dark Knight', 'Fight Club',
-      'The Prestige', 'Shutter Island', 'The Departed', 'The Wolf of Wall Street', 'Django Unchained'
-    ]},
-    { count: 20, movies: [
-      'The Matrix', 'Inception', 'Interstellar', 'The Dark Knight', 'Fight Club',
-      'The Prestige', 'Shutter Island', 'The Departed', 'The Wolf of Wall Street', 'Django Unchained',
-      'Pulp Fiction', 'The Godfather', 'Forrest Gump', 'The Shawshank Redemption', 'Goodfellas',
-      'Se7en', 'Memento', 'The Usual Suspects', 'American Beauty', 'Catch Me If You Can'
-    ]},
+    {
+      count: 5,
+      movies: ['The Matrix', 'Inception', 'Interstellar', 'The Dark Knight', 'Fight Club'],
+    },
+    {
+      count: 10,
+      movies: [
+        'The Matrix',
+        'Inception',
+        'Interstellar',
+        'The Dark Knight',
+        'Fight Club',
+        'The Prestige',
+        'Shutter Island',
+        'The Departed',
+        'The Wolf of Wall Street',
+        'Django Unchained',
+      ],
+    },
+    {
+      count: 20,
+      movies: [
+        'The Matrix',
+        'Inception',
+        'Interstellar',
+        'The Dark Knight',
+        'Fight Club',
+        'The Prestige',
+        'Shutter Island',
+        'The Departed',
+        'The Wolf of Wall Street',
+        'Django Unchained',
+        'Pulp Fiction',
+        'The Godfather',
+        'Forrest Gump',
+        'The Shawshank Redemption',
+        'Goodfellas',
+        'Se7en',
+        'Memento',
+        'The Usual Suspects',
+        'American Beauty',
+        'Catch Me If You Can',
+      ],
+    },
   ];
 
   console.log(`Mock API Latency: ${MOCK_API_DELAY}ms per request`);

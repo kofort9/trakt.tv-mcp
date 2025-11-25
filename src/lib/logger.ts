@@ -306,12 +306,18 @@ export class Logger {
         .filter((file) => file.startsWith('trakt-mcp-') && file.endsWith('.log'))
         .map((file) => {
           const filePath = path.join(this.logDirectory, file);
-          return {
-            name: file,
-            path: filePath,
-            stats: fs.statSync(filePath),
-          };
+          try {
+            return {
+              name: file,
+              path: filePath,
+              stats: fs.statSync(filePath),
+            };
+          } catch {
+            // File may have been deleted between readdir and stat - skip it
+            return null;
+          }
         })
+        .filter((file): file is NonNullable<typeof file> => file !== null)
         .sort((a, b) => b.stats.mtimeMs - a.stats.mtimeMs); // Newest first
 
       const now = Date.now();

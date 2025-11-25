@@ -9,7 +9,15 @@ export const PROFILE_RESOURCE = {
 
 export async function getProfile(client: TraktClient) {
   const settings = await client.getUserSettings();
-  return JSON.stringify(settings.user, null, 2);
+
+  const response = {
+    metadata: {
+      type: 'profile',
+      description: 'Current user profile and settings',
+      username: settings.user.username,
+    },
+    data: settings.user,
+  };
+
+  return JSON.stringify(response, null, 2);
 }
-
-

@@ -16,15 +16,25 @@ export const WATCHLIST_RESOURCES = [
 ];
 
 export async function getWatchlist(client: TraktClient, uri: string) {
+  let type: 'shows' | 'movies';
   if (uri === 'trakt://watchlist/shows') {
-    const items = await client.getWatchlist('shows');
-    return JSON.stringify(items, null, 2);
+    type = 'shows';
+  } else if (uri === 'trakt://watchlist/movies') {
+    type = 'movies';
+  } else {
+    throw new Error(`Unknown watchlist URI: ${uri}`);
   }
-  if (uri === 'trakt://watchlist/movies') {
-    const items = await client.getWatchlist('movies');
-    return JSON.stringify(items, null, 2);
-  }
-  throw new Error(`Unknown watchlist URI: ${uri}`);
+
+  const data = await client.getWatchlist(type);
+
+  const response = {
+    metadata: {
+      type,
+      count: Array.isArray(data) ? data.length : 0,
+      description: `${type} in your watchlist`,
+    },
+    items: data,
+  };
+
+  return JSON.stringify(response, null, 2);
 }
-
-

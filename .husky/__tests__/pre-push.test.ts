@@ -15,21 +15,18 @@ describe('Pre-Push Hook Logic', () => {
       const docPatterns = [/\.md$/, /^\.claude\/agents\//, /^docs\//];
       const files = ['README.md', 'CONTRIBUTING.md', 'docs/guide.md'];
 
-      files.forEach(file => {
-        const isDoc = docPatterns.some(pattern => pattern.test(file));
+      files.forEach((file) => {
+        const isDoc = docPatterns.some((pattern) => pattern.test(file));
         expect(isDoc).toBe(true);
       });
     });
 
     it('should identify agent config files as documentation', () => {
       const docPatterns = [/\.md$/, /^\.claude\/agents\//, /^docs\//];
-      const files = [
-        '.claude/agents/trakt-watch-companion.md',
-        '.claude/agents/backend-agent.md'
-      ];
+      const files = ['.claude/agents/trakt-watch-companion.md', '.claude/agents/backend-agent.md'];
 
-      files.forEach(file => {
-        const isDoc = docPatterns.some(pattern => pattern.test(file));
+      files.forEach((file) => {
+        const isDoc = docPatterns.some((pattern) => pattern.test(file));
         expect(isDoc).toBe(true);
       });
     });
@@ -38,8 +35,8 @@ describe('Pre-Push Hook Logic', () => {
       const docPatterns = [/\.md$/, /^\.claude\/agents\//, /^docs\//];
       const files = ['docs/api.md', 'docs/setup/installation.md'];
 
-      files.forEach(file => {
-        const isDoc = docPatterns.some(pattern => pattern.test(file));
+      files.forEach((file) => {
+        const isDoc = docPatterns.some((pattern) => pattern.test(file));
         expect(isDoc).toBe(true);
       });
     });
@@ -51,11 +48,11 @@ describe('Pre-Push Hook Logic', () => {
         'src/lib/tools.ts',
         'package.json',
         '.husky/pre-push',
-        'tsconfig.json'
+        'tsconfig.json',
       ];
 
-      files.forEach(file => {
-        const isDoc = docPatterns.some(pattern => pattern.test(file));
+      files.forEach((file) => {
+        const isDoc = docPatterns.some((pattern) => pattern.test(file));
         expect(isDoc).toBe(false);
       });
     });
@@ -64,30 +61,20 @@ describe('Pre-Push Hook Logic', () => {
   describe('Change Detection Logic', () => {
     const filterNonDocChanges = (files: string[]): string[] => {
       // Simulates the grep logic from pre-push hook
-      return files.filter(file => {
-        return !file.match(/\.md$/) &&
-               !file.match(/^\.claude\/agents\//) &&
-               !file.match(/^docs\//);
+      return files.filter((file) => {
+        return !file.match(/\.md$/) && !file.match(/^\.claude\/agents\//) && !file.match(/^docs\//);
       });
     };
 
     it('should return empty array for documentation-only changes', () => {
-      const files = [
-        'README.md',
-        '.claude/agents/trakt-watch-companion.md',
-        'docs/api.md'
-      ];
+      const files = ['README.md', '.claude/agents/trakt-watch-companion.md', 'docs/api.md'];
 
       const nonDocChanges = filterNonDocChanges(files);
       expect(nonDocChanges).toHaveLength(0);
     });
 
     it('should detect code changes', () => {
-      const files = [
-        'README.md',
-        'src/index.ts',
-        '.claude/agents/agent.md'
-      ];
+      const files = ['README.md', 'src/index.ts', '.claude/agents/agent.md'];
 
       const nonDocChanges = filterNonDocChanges(files);
       expect(nonDocChanges).toHaveLength(1);
@@ -95,10 +82,7 @@ describe('Pre-Push Hook Logic', () => {
     });
 
     it('should detect package.json changes', () => {
-      const files = [
-        'README.md',
-        'package.json'
-      ];
+      const files = ['README.md', 'package.json'];
 
       const nonDocChanges = filterNonDocChanges(files);
       expect(nonDocChanges).toHaveLength(1);
@@ -106,10 +90,7 @@ describe('Pre-Push Hook Logic', () => {
     });
 
     it('should detect hook file changes', () => {
-      const files = [
-        'README.md',
-        '.husky/pre-push'
-      ];
+      const files = ['README.md', '.husky/pre-push'];
 
       const nonDocChanges = filterNonDocChanges(files);
       expect(nonDocChanges).toHaveLength(1);
@@ -123,7 +104,7 @@ describe('Pre-Push Hook Logic', () => {
         'docs/setup.md',
         '.claude/agents/agent.md',
         'package.json',
-        'CONTRIBUTING.md'
+        'CONTRIBUTING.md',
       ];
 
       const nonDocChanges = filterNonDocChanges(files);
@@ -139,7 +120,7 @@ describe('Pre-Push Hook Logic', () => {
       const expectedPatterns = [
         '*.md (Markdown files)',
         '.claude/agents/* (Agent configuration files)',
-        'docs/* (Documentation directory)'
+        'docs/* (Documentation directory)',
       ];
 
       expect(expectedPatterns).toHaveLength(3);
@@ -150,10 +131,9 @@ describe('Pre-Push Hook Logic', () => {
 
     it('should skip tests for documentation-only changes', () => {
       const files = ['README.md', 'docs/api.md'];
-      const nonDocChanges = files.filter(file =>
-        !file.match(/\.md$/) &&
-        !file.match(/^\.claude\/agents\//) &&
-        !file.match(/^docs\//)
+      const nonDocChanges = files.filter(
+        (file) =>
+          !file.match(/\.md$/) && !file.match(/^\.claude\/agents\//) && !file.match(/^docs\//)
       );
 
       const shouldSkipTests = nonDocChanges.length === 0;
@@ -162,10 +142,9 @@ describe('Pre-Push Hook Logic', () => {
 
     it('should run tests for code changes', () => {
       const files = ['src/index.ts'];
-      const nonDocChanges = files.filter(file =>
-        !file.match(/\.md$/) &&
-        !file.match(/^\.claude\/agents\//) &&
-        !file.match(/^docs\//)
+      const nonDocChanges = files.filter(
+        (file) =>
+          !file.match(/\.md$/) && !file.match(/^\.claude\/agents\//) && !file.match(/^docs\//)
       );
 
       const shouldRunTests = nonDocChanges.length > 0;

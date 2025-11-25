@@ -38,5 +38,3 @@ export async function getHistory(client: TraktClient, uri: string) {
 
   return JSON.stringify(response, null, 2);
 }
-
-

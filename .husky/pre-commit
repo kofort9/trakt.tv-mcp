@@ -1,3 +1,6 @@
+#!/bin/sh
+# Pre-commit hook: Run code style checks before commit
+
 echo "🔍 Running code style checks..."
 echo ""
 

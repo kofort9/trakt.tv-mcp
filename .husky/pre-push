@@ -5,9 +5,20 @@
 # Get the remote tracking branch
 REMOTE_BRANCH=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null)
 
-# If no remote tracking branch, compare with main
+# If no remote tracking branch, try to find a sensible default
 if [ -z "$REMOTE_BRANCH" ]; then
-  REMOTE_BRANCH="origin/main"
+  # Try origin/main, then origin/master, then just run tests
+  if git rev-parse --verify origin/main >/dev/null 2>&1; then
+    REMOTE_BRANCH="origin/main"
+  elif git rev-parse --verify origin/master >/dev/null 2>&1; then
+    REMOTE_BRANCH="origin/master"
+  else
+    # No remote branch found, run tests to be safe
+    echo "⚠️  No remote tracking branch found, running tests to be safe..."
+    npm test || exit 1
+    echo "✅ All tests passed! Proceeding with push..."
+    exit 0
+  fi
 fi
 
 # Get list of changed files between local and remote
