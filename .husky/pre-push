@@ -1,0 +1,58 @@
+#!/bin/sh
+# Pre-push hook: Skip tests for documentation-only changes
+# Runs full test suite when code files are modified
+
+# Get the remote tracking branch
+REMOTE_BRANCH=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null)
+
+# If no remote tracking branch, try to find a sensible default
+if [ -z "$REMOTE_BRANCH" ]; then
+  # Try origin/main, then origin/master, then just run tests
+  if git rev-parse --verify origin/main >/dev/null 2>&1; then
+    REMOTE_BRANCH="origin/main"
+  elif git rev-parse --verify origin/master >/dev/null 2>&1; then
+    REMOTE_BRANCH="origin/master"
+  else
+    # No remote branch found, run tests to be safe
+    echo "⚠️  No remote tracking branch found, running tests to be safe..."
+    npm test || exit 1
+    echo "✅ All tests passed! Proceeding with push..."
+    exit 0
+  fi
+fi
+
+# Get list of changed files between local and remote
+CHANGED_FILES=$(git diff --name-only HEAD "$REMOTE_BRANCH" 2>/dev/null)
+
+# If we can't determine changed files, run tests to be safe
+if [ -z "$CHANGED_FILES" ]; then
+  echo "⚠️  Could not determine changed files, running tests to be safe..."
+  npm test || exit 1
+  echo "✅ All tests passed! Proceeding with push..."
+  exit 0
+fi
+
+# Check if only documentation files changed
+# Documentation patterns:
+#   - *.md (Markdown files)
+#   - .claude/agents/* (Agent configuration files)
+#   - docs/* (Documentation directory)
+NON_DOC_CHANGES=$(echo "$CHANGED_FILES" | grep -v -E '(\.md$|^\.claude/agents/|^docs/)')
+
+if [ -z "$NON_DOC_CHANGES" ]; then
+  echo "📝 Only documentation files changed, skipping tests..."
+  echo ""
+  echo "$CHANGED_FILES" | sed 's/^/  - /'
+  echo ""
+  echo "✅ Documentation-only change, proceeding with push..."
+  exit 0
+fi
+
+# Code files changed, run tests
+echo "🧪 Running tests before push..."
+echo ""
+
+npm test || exit 1
+
+echo ""
+echo "✅ All tests passed! Proceeding with push..."
