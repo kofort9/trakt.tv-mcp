@@ -376,10 +376,18 @@ export class Logger {
       }
 
       // Ensure file exists with correct permissions (600)
-      const fileExists = fs.existsSync(this.currentLogFile);
-      if (!fileExists) {
-        const fd = fs.openSync(this.currentLogFile, 'w', 0o600);
+      // Use 'wx' flag for atomic create-only operation to prevent TOCTOU race condition
+      // This will fail with EEXIST if file already exists, which is expected and safe
+      try {
+        const fd = fs.openSync(this.currentLogFile, 'wx', 0o600);
         fs.closeSync(fd);
+      } catch (err: unknown) {
+        // File already exists - this is fine, continue to append
+        // Re-throw any other errors (ENOENT, EACCES, etc.)
+        const nodeErr = err as { code?: string };
+        if (nodeErr.code !== 'EEXIST') {
+          throw err;
+        }
       }
 
       fs.appendFileSync(this.currentLogFile, logLine);
