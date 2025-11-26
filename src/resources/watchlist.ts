@@ -15,26 +15,34 @@ export const WATCHLIST_RESOURCES = [
   },
 ];
 
-export async function getWatchlist(client: TraktClient, uri: string) {
-  let type: 'shows' | 'movies';
-  if (uri === 'trakt://watchlist/shows') {
-    type = 'shows';
-  } else if (uri === 'trakt://watchlist/movies') {
-    type = 'movies';
-  } else {
-    throw new Error(`Unknown watchlist URI: ${uri}`);
+export async function getWatchlist(client: TraktClient, uri: string): Promise<string> {
+  try {
+    let type: 'shows' | 'movies';
+    if (uri === 'trakt://watchlist/shows') {
+      type = 'shows';
+    } else if (uri === 'trakt://watchlist/movies') {
+      type = 'movies';
+    } else {
+      throw new Error(`Unknown watchlist URI: ${uri}`);
+    }
+
+    const data = await client.getWatchlist(type);
+
+    const response = {
+      metadata: {
+        type,
+        count: Array.isArray(data) ? data.length : 0,
+        description: `${type} in your watchlist`,
+      },
+      items: data,
+    };
+
+    return JSON.stringify(response, null, 2);
+  } catch (error) {
+    throw new Error(
+      `Failed to fetch watchlist from Trakt API: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
   }
-
-  const data = await client.getWatchlist(type);
-
-  const response = {
-    metadata: {
-      type,
-      count: Array.isArray(data) ? data.length : 0,
-      description: `${type} in your watchlist`,
-    },
-    items: data,
-  };
-
-  return JSON.stringify(response, null, 2);
 }
