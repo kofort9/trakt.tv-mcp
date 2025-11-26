@@ -2,23 +2,19 @@
 # Pre-push hook: Skip tests for documentation-only changes
 # Runs full test suite when code files are modified
 
-echo "[DEBUG] Pre-push hook started" >&2
-
 # Consume stdin to prevent interference with git commands
 # Git sends ref information via stdin during push, which we don't need
 # and which can interfere with commands that read stdin
-# Exit code from 'read' is 1 when EOF is reached, so we use || true to prevent script exit
+# The 'read' command returns exit code 1 when EOF is reached
+# We use '|| true' to prevent the script from exiting when using 'sh -e' (Husky's default)
 while read -r local_ref local_sha remote_ref remote_sha; do
-  echo "[DEBUG] Read refs: $local_ref $local_sha $remote_ref $remote_sha" >&2
   : # Do nothing, just consume the input
 done || true
 
-echo "[DEBUG] Stdin consumed" >&2
-
 # Get the remote tracking branch
-# Use || true to prevent exit when no tracking branch is configured (exit code 128)
+# If no tracking branch exists, git rev-parse returns exit code 128
+# We use '|| true' to prevent script exit and handle this case gracefully
 REMOTE_BRANCH=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null </dev/null || true)
-echo "[DEBUG] REMOTE_BRANCH=$REMOTE_BRANCH" >&2
 
 # If no remote tracking branch, try to find a sensible default
 if [ -z "$REMOTE_BRANCH" ]; then
