@@ -69,3 +69,13 @@ npm test || exit 1
 
 echo ""
 echo "✅ All tests passed! Proceeding with push..."
+
+# Run security check for code changes
+if [ -n "$NON_DOC_CHANGES" ]; then
+  echo ""
+  echo "🔒 Running security preflight check..."
+  npm run security:check || {
+    echo "❌ Security check failed! Fix issues or use --no-verify to skip."
+    exit 1
+  }
+fi
