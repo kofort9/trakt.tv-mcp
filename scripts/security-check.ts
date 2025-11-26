@@ -220,8 +220,7 @@ function runSecurityChecks(): void {
   let hasWarnings = false;
 
   checks.forEach((check) => {
-    const icon =
-      check.status === 'pass' ? '✅' : check.status === 'warn' ? '⚠️' : '❌';
+    const icon = check.status === 'pass' ? '✅' : check.status === 'warn' ? '⚠️' : '❌';
     console.log(`${icon} ${check.name}: ${check.message}`);
 
     if (check.details) {
@@ -239,17 +238,13 @@ function runSecurityChecks(): void {
   const warnCount = checks.filter((c) => c.status === 'warn').length;
   const failCount = checks.filter((c) => c.status === 'fail').length;
 
-  console.log(
-    `Summary: ${passCount} passed, ${warnCount} warnings, ${failCount} failed`
-  );
+  console.log(`Summary: ${passCount} passed, ${warnCount} warnings, ${failCount} failed`);
 
   if (hasFailures) {
     console.log('\n❌ Security check FAILED. Fix issues before deployment.');
     process.exit(1);
   } else if (hasWarnings) {
-    console.log(
-      '\n⚠️  Security check passed with warnings. Review before deployment.'
-    );
+    console.log('\n⚠️  Security check passed with warnings. Review before deployment.');
     process.exit(0);
   } else {
     console.log('\n✅ All security checks passed!');
