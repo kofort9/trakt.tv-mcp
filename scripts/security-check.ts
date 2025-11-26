@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 /**
  * Security Preflight Check Script
  * Validates security posture before deployment
@@ -34,8 +34,8 @@ function checkNpmAudit(): CheckResult {
       status: 'pass',
       message: 'No vulnerabilities found',
     };
-  } catch (error) {
-    const output = (error as { stdout?: Buffer }).stdout?.toString() || (error as Error).message;
+  } catch (error: any) {
+    const output = error.stdout?.toString() || error.message;
     const hasVulns = output.includes('vulnerabilities');
 
     return {
@@ -105,12 +105,12 @@ function checkLogPermissions(): CheckResult {
       status: 'pass',
       message: 'Log directory has correct permissions (700)',
     };
-  } catch (error) {
+  } catch (error: any) {
     return {
       name: 'Log Permissions',
       status: 'warn',
       message: 'Unable to check log permissions',
-      details: (error as Error).message,
+      details: error.message,
     };
   }
 }
@@ -145,12 +145,12 @@ function checkTokenPermissions(): CheckResult {
       status: 'pass',
       message: 'Token file has correct permissions (600)',
     };
-  } catch (error) {
+  } catch (error: any) {
     return {
       name: 'Token Permissions',
       status: 'warn',
       message: 'Unable to check token permissions',
-      details: (error as Error).message,
+      details: error.message,
     };
   }
 }
@@ -180,11 +180,11 @@ function checkDependencyFreshness(): CheckResult {
       message: `${count} outdated dependencies found`,
       details: Object.keys(outdated).join(', '),
     };
-  } catch (error) {
+  } catch (error: any) {
     // npm outdated exits with code 1 when outdated packages exist
-    if ((error as { stdout?: Buffer }).stdout) {
+    if (error.stdout) {
       try {
-        const outdated = JSON.parse((error as { stdout: Buffer }).stdout.toString());
+        const outdated = JSON.parse(error.stdout.toString());
         const count = Object.keys(outdated).length;
         return {
           name: 'Dependency Freshness',
@@ -220,7 +220,8 @@ function runSecurityChecks(): void {
   let hasWarnings = false;
 
   checks.forEach((check) => {
-    const icon = check.status === 'pass' ? '✅' : check.status === 'warn' ? '⚠️' : '❌';
+    const icon =
+      check.status === 'pass' ? '✅' : check.status === 'warn' ? '⚠️' : '❌';
     console.log(`${icon} ${check.name}: ${check.message}`);
 
     if (check.details) {
@@ -238,13 +239,17 @@ function runSecurityChecks(): void {
   const warnCount = checks.filter((c) => c.status === 'warn').length;
   const failCount = checks.filter((c) => c.status === 'fail').length;
 
-  console.log(`Summary: ${passCount} passed, ${warnCount} warnings, ${failCount} failed`);
+  console.log(
+    `Summary: ${passCount} passed, ${warnCount} warnings, ${failCount} failed`
+  );
 
   if (hasFailures) {
     console.log('\n❌ Security check FAILED. Fix issues before deployment.');
     process.exit(1);
   } else if (hasWarnings) {
-    console.log('\n⚠️  Security check passed with warnings. Review before deployment.');
+    console.log(
+      '\n⚠️  Security check passed with warnings. Review before deployment.'
+    );
     process.exit(0);
   } else {
     console.log('\n✅ All security checks passed!');
