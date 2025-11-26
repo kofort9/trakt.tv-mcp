@@ -2,15 +2,31 @@
 # Pre-push hook: Skip tests for documentation-only changes
 # Runs full test suite when code files are modified
 
+echo "[DEBUG] Pre-push hook started" >&2
+
+# Consume stdin to prevent interference with git commands
+# Git sends ref information via stdin during push, which we don't need
+# and which can interfere with commands that read stdin
+# Exit code from 'read' is 1 when EOF is reached, so we use || true to prevent script exit
+while read -r local_ref local_sha remote_ref remote_sha; do
+  echo "[DEBUG] Read refs: $local_ref $local_sha $remote_ref $remote_sha" >&2
+  : # Do nothing, just consume the input
+done || true
+
+echo "[DEBUG] Stdin consumed" >&2
+
 # Get the remote tracking branch
-REMOTE_BRANCH=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null)
+# Use || true to prevent exit when no tracking branch is configured (exit code 128)
+REMOTE_BRANCH=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null </dev/null || true)
+echo "[DEBUG] REMOTE_BRANCH=$REMOTE_BRANCH" >&2
 
 # If no remote tracking branch, try to find a sensible default
 if [ -z "$REMOTE_BRANCH" ]; then
   # Try origin/main, then origin/master, then just run tests
-  if git rev-parse --verify origin/main >/dev/null 2>&1; then
+  # Use || true to prevent exit in set -e mode
+  if git rev-parse --verify origin/main >/dev/null 2>&1 </dev/null || false; then
     REMOTE_BRANCH="origin/main"
-  elif git rev-parse --verify origin/master >/dev/null 2>&1; then
+  elif git rev-parse --verify origin/master >/dev/null 2>&1 </dev/null || false; then
     REMOTE_BRANCH="origin/master"
   else
     # No remote branch found, run tests to be safe
@@ -22,7 +38,7 @@ if [ -z "$REMOTE_BRANCH" ]; then
 fi
 
 # Get list of changed files between local and remote
-CHANGED_FILES=$(git diff --name-only HEAD "$REMOTE_BRANCH" 2>/dev/null)
+CHANGED_FILES=$(git diff --name-only HEAD "$REMOTE_BRANCH" 2>/dev/null </dev/null)
 
 # If we can't determine changed files, run tests to be safe
 if [ -z "$CHANGED_FILES" ]; then
@@ -37,7 +53,8 @@ fi
 #   - *.md (Markdown files)
 #   - .claude/agents/* (Agent configuration files)
 #   - docs/* (Documentation directory)
-NON_DOC_CHANGES=$(echo "$CHANGED_FILES" | grep -v -E '(\.md$|^\.claude/agents/|^docs/)')
+# Using POSIX-compliant grep for cross-platform compatibility
+NON_DOC_CHANGES=$(echo "$CHANGED_FILES" | grep -v '\.md$' | grep -v '^\.claude/agents/' | grep -v '^docs/')
 
 if [ -z "$NON_DOC_CHANGES" ]; then
   echo "📝 Only documentation files changed, skipping tests..."
