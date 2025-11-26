@@ -1,3 +1,14 @@
+---
+**⚠️ ARCHIVED DOCUMENT**
+
+This document is historical and may contain outdated information.
+
+**Archived:** November 2025
+**Reason:** Observability implementation review completed; features in production
+**For current information, see:** [docs/DEBUGGING.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/DEBUGGING.md)
+
+---
+
 # Task 1: Observability and Debug Tools Review
 
 **Date:** 2025-11-20

@@ -1,3 +1,14 @@
+---
+**⚠️ ARCHIVED DOCUMENT**
+
+This document is historical and may contain outdated information.
+
+**Archived:** November 2025
+**Reason:** Implementation phase completed
+**For current information, see:** [docs/README.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/README.md)
+
+---
+
 # Phase 2 Implementation Summary
 
 **Date:** 2025-11-20
