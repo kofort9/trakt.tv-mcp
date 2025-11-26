@@ -20,9 +20,9 @@ REMOTE_BRANCH=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null
 if [ -z "$REMOTE_BRANCH" ]; then
   # Try origin/main, then origin/master, then just run tests
   # Use || true to prevent exit in set -e mode
-  if git rev-parse --verify origin/main >/dev/null 2>&1 </dev/null || false; then
+  if git rev-parse --verify origin/main >/dev/null 2>&1 </dev/null || true; then
     REMOTE_BRANCH="origin/main"
-  elif git rev-parse --verify origin/master >/dev/null 2>&1 </dev/null || false; then
+  elif git rev-parse --verify origin/master >/dev/null 2>&1 </dev/null || true; then
     REMOTE_BRANCH="origin/master"
   else
     # No remote branch found, run tests to be safe

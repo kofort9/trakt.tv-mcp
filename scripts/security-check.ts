@@ -8,6 +8,7 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import * as os from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -77,7 +78,7 @@ function checkEnvConfig(): CheckResult {
 
 // Check 3: Log file permissions
 function checkLogPermissions(): CheckResult {
-  const logDir = path.join(rootDir, 'logs');
+  const logDir = path.join(os.homedir(), '.trakt-mcp', 'logs');
 
   if (!fs.existsSync(logDir)) {
     return {
@@ -117,7 +118,7 @@ function checkLogPermissions(): CheckResult {
 
 // Check 4: Token file permissions (if exists)
 function checkTokenPermissions(): CheckResult {
-  const tokenFile = path.join(rootDir, '.trakt-token.json');
+  const tokenFile = path.join(os.homedir(), '.trakt-mcp', '.trakt-token.json');
 
   if (!fs.existsSync(tokenFile)) {
     return {
