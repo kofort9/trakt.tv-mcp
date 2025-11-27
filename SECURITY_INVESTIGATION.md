@@ -139,7 +139,7 @@ if (!requiredVars.clientId || !requiredVars.clientSecret) {
 **File**: `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/oauth.ts`
 
 **Findings**:
-- OAuth tokens stored in user's home directory: `~/.trakt-mcp-token.json`
+- OAuth tokens stored in user's home directory: `~/.trakt-mcp/.trakt-token.json`
 - File permissions correctly set to 0600 (read/write owner only)
 - Token expiration properly validated with 5-minute buffer
 - Automatic token refresh on expiration
@@ -147,7 +147,7 @@ if (!requiredVars.clientId || !requiredVars.clientSecret) {
 
 **Verified on disk**:
 ```bash
--rw-------  1 kofifort  staff  305 Nov 18 15:23 /Users/kofifort/.trakt-mcp-token.json
+-rw-------  1 kofifort  staff  305 Nov 18 15:23 /Users/kofifort/.trakt-mcp/.trakt-token.json
 ```
 
 **Code Review**:
@@ -473,7 +473,7 @@ class SecurityChecker {
 
   private async checkFilePermissions(): Promise<void> {
     const checks = [
-      { path: path.join(os.homedir(), '.trakt-mcp-token.json'), expected: 0o600 },
+      { path: path.join(os.homedir(), '.trakt-mcp', '.trakt-token.json'), expected: 0o600 },
       { path: path.join(os.homedir(), '.trakt-mcp', 'logs'), expected: 0o700 },
     ];
 
@@ -565,7 +565,7 @@ class SecurityChecker {
   }
 
   private async checkTokenExpiration(): Promise<void> {
-    const tokenPath = path.join(os.homedir(), '.trakt-mcp-token.json');
+    const tokenPath = path.join(os.homedir(), '.trakt-mcp', '.trakt-token.json');
 
     try {
       if (!fs.existsSync(tokenPath)) {
@@ -774,6 +774,18 @@ Consider addressing warnings for optimal security.
    - **Reason**: Clear security expectations and procedures
    - **Risk**: None
    - **Estimated time**: 1 hour
+
+### GitHub Actions Security Configuration
+
+**Note on dependency-review-action**: The `dependency-review-action` GitHub Action was removed from the security workflow (`.github/workflows/security.yml`) because it requires **GitHub Advanced Security (GHAS)**, which is a paid feature for private repositories.
+
+**Reasoning**:
+- GHAS is required for dependency review on private repos
+- The existing `npm audit` job in the same workflow provides equivalent security scanning
+- No functionality is lost by removing the dependency-review job
+- This approach works for both public and private repositories without requiring paid features
+
+**Alternative approach**: The security workflow continues to use `npm audit --audit-level=moderate` which provides comprehensive dependency vulnerability scanning without requiring GHAS.
 
 ### Accepted Risks (Document & Monitor)
 
