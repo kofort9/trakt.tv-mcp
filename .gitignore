@@ -41,3 +41,4 @@ logs/
 tokens/
 .tokens
 auth.json
+audit-report.json

@@ -1,10 +1,10 @@
 import axios from 'axios';
-import { readFileSync, writeFileSync, existsSync, chmodSync } from 'fs';
-import { join } from 'path';
+import { readFileSync, writeFileSync, existsSync, chmodSync, mkdirSync } from 'fs';
+import { join, dirname } from 'path';
 import { homedir } from 'os';
 import { DeviceCodeResponse, TokenResponse, StoredToken, TraktConfig } from '../types/trakt.js';
 
-const TOKEN_FILE_PATH = join(homedir(), '.trakt-mcp-token.json');
+const TOKEN_FILE_PATH = join(homedir(), '.trakt-mcp', '.trakt-token.json');
 
 /**
  * OAuth manager for Trakt.tv authentication
@@ -183,6 +183,11 @@ export class TraktOAuth {
    */
   private saveToken(token: StoredToken): void {
     try {
+      const tokenDir = dirname(TOKEN_FILE_PATH);
+      // Ensure directory exists with secure permissions (0700 = user only)
+      if (!existsSync(tokenDir)) {
+        mkdirSync(tokenDir, { recursive: true, mode: 0o700 });
+      }
       writeFileSync(TOKEN_FILE_PATH, JSON.stringify(token, null, 2));
       // Set file permissions to 0600 (user read/write only) for security
       chmodSync(TOKEN_FILE_PATH, 0o600);

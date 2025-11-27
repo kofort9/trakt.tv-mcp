@@ -19,10 +19,9 @@ REMOTE_BRANCH=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null
 # If no remote tracking branch, try to find a sensible default
 if [ -z "$REMOTE_BRANCH" ]; then
   # Try origin/main, then origin/master, then just run tests
-  # Use || true to prevent exit in set -e mode
-  if git rev-parse --verify origin/main >/dev/null 2>&1 </dev/null || false; then
+  if git rev-parse --verify origin/main >/dev/null 2>&1 </dev/null; then
     REMOTE_BRANCH="origin/main"
-  elif git rev-parse --verify origin/master >/dev/null 2>&1 </dev/null || false; then
+  elif git rev-parse --verify origin/master >/dev/null 2>&1 </dev/null; then
     REMOTE_BRANCH="origin/master"
   else
     # No remote branch found, run tests to be safe
@@ -69,3 +68,11 @@ npm test || exit 1
 
 echo ""
 echo "✅ All tests passed! Proceeding with push..."
+
+# Run security check for code changes
+echo ""
+echo "🔒 Running security preflight check..."
+npm run security:check || {
+  echo "❌ Security check failed! Fix issues or use --no-verify to skip."
+  exit 1
+}

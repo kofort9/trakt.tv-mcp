@@ -269,7 +269,7 @@ describe('TraktOAuth', () => {
 
       expect(oauth.isAuthenticated()).toBe(false);
       expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
-        expect.stringContaining('.trakt-mcp-token.json'),
+        expect.stringContaining('.trakt-token.json'),
         JSON.stringify(null)
       );
     });

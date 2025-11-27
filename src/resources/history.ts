@@ -15,26 +15,34 @@ export const HISTORY_RESOURCES = [
   },
 ];
 
-export async function getHistory(client: TraktClient, uri: string) {
-  let type: 'shows' | 'movies';
-  if (uri === 'trakt://history/shows/recent') {
-    type = 'shows';
-  } else if (uri === 'trakt://history/movies/recent') {
-    type = 'movies';
-  } else {
-    throw new Error(`Unknown history URI: ${uri}`);
+export async function getHistory(client: TraktClient, uri: string): Promise<string> {
+  try {
+    let type: 'shows' | 'movies';
+    if (uri === 'trakt://history/shows/recent') {
+      type = 'shows';
+    } else if (uri === 'trakt://history/movies/recent') {
+      type = 'movies';
+    } else {
+      throw new Error(`Unknown history URI: ${uri}`);
+    }
+
+    const data = await client.getHistory(type, undefined, undefined, 1);
+
+    const response = {
+      metadata: {
+        type,
+        count: Array.isArray(data) ? data.length : 0,
+        description: 'Most recent 50 items. Use get_history tool for more.',
+      },
+      items: data,
+    };
+
+    return JSON.stringify(response, null, 2);
+  } catch (error) {
+    throw new Error(
+      `Failed to fetch watch history from Trakt API: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
   }
-
-  const data = await client.getHistory(type, undefined, undefined, 1);
-
-  const response = {
-    metadata: {
-      type,
-      count: Array.isArray(data) ? data.length : 0,
-      description: 'Most recent 50 items. Use get_history tool for more.',
-    },
-    items: data,
-  };
-
-  return JSON.stringify(response, null, 2);
 }
