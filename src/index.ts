@@ -1,11 +1,19 @@
 #!/usr/bin/env node
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
 import { loadConfig } from './lib/config.js';
 import { TraktOAuth } from './lib/oauth.js';
 import { TraktClient } from './lib/trakt-client.js';
 import * as tools from './lib/tools.js';
+import { PROFILE_RESOURCE, getProfile } from './resources/profile.js';
+import { WATCHLIST_RESOURCES, getWatchlist } from './resources/watchlist.js';
+import { HISTORY_RESOURCES, getHistory } from './resources/history.js';
 
 // Server configuration
 const SERVER_NAME = 'trakt-mcp-server';
@@ -25,9 +33,107 @@ const server = new Server(
   {
     capabilities: {
       tools: {},
+      resources: {},
     },
   }
 );
+
+/**
+ * Helper function to handle MCP resource read requests with optimized single-pass lookup.
+ *
+ * This function is exported primarily for testing purposes, allowing integration tests
+ * to verify the single-pass optimization without requiring full server initialization.
+ *
+ * Performance: Uses a single find() call instead of some() + find() to reduce array
+ * iterations. For small resource arrays (5-10 items), this provides negligible but
+ * measurable improvement. Consider Map-based lookup if resources grow beyond 15 items.
+ *
+ * @param resources - Array of resource definitions with uri and mimeType
+ * @param uri - The resource URI to look up (e.g., 'trakt://watchlist/shows')
+ * @param handler - Async function that fetches the resource data from Trakt API
+ * @param client - TraktClient instance for making API requests
+ * @returns MCP resource contents if URI matches, null otherwise
+ *
+ * @example
+ * ```typescript
+ * const result = await handleResourceRead(
+ *   WATCHLIST_RESOURCES,
+ *   'trakt://watchlist/shows',
+ *   getWatchlist,
+ *   traktClient
+ * );
+ * ```
+ */
+export async function handleResourceRead(
+  resources: Array<{ uri: string; mimeType: string }>,
+  uri: string,
+  handler: (client: TraktClient, uri: string) => Promise<string>,
+  client: TraktClient
+): Promise<{ contents: Array<{ uri: string; mimeType: string; text: string }> } | null> {
+  const resource = resources.find((r) => r.uri === uri);
+  if (!resource) {
+    return null;
+  }
+
+  const text = await handler(client, uri);
+  return {
+    contents: [
+      {
+        uri,
+        mimeType: resource.mimeType,
+        text,
+      },
+    ],
+  };
+}
+
+// Handle list_resources request
+server.setRequestHandler(ListResourcesRequestSchema, async () => {
+  return {
+    resources: [PROFILE_RESOURCE, ...WATCHLIST_RESOURCES, ...HISTORY_RESOURCES],
+  };
+});
+
+// Handle read_resource request
+server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+  const { uri } = request.params;
+
+  try {
+    if (uri === PROFILE_RESOURCE.uri) {
+      const text = await getProfile(traktClient);
+      return {
+        contents: [
+          {
+            uri,
+            mimeType: PROFILE_RESOURCE.mimeType,
+            text,
+          },
+        ],
+      };
+    }
+
+    const watchlistResult = await handleResourceRead(
+      WATCHLIST_RESOURCES,
+      uri,
+      getWatchlist,
+      traktClient
+    );
+    if (watchlistResult) {
+      return watchlistResult;
+    }
+
+    const historyResult = await handleResourceRead(HISTORY_RESOURCES, uri, getHistory, traktClient);
+    if (historyResult) {
+      return historyResult;
+    }
+
+    throw new Error(`Resource not found: ${uri}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`Error reading resource ${uri}:`, error);
+    throw new Error(`Failed to read resource: ${errorMessage}`);
+  }
+});
 
 // Handle list_tools request
 server.setRequestHandler(ListToolsRequestSchema, async () => {
