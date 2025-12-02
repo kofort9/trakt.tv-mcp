@@ -15,7 +15,6 @@ import {
   ToolSuccess,
 } from './utils.js';
 import { logger, RequestLog, ToolMetrics } from './logger.js';
-import { CacheMetrics } from './cache.js';
 import { parallelSearchMovies } from './parallel.js';
 import {
   TraktEpisode,
@@ -817,9 +816,6 @@ export async function debugLastRequest(
       cacheMetrics = client.getCacheMetrics();
     }
 
-    // Get cache metrics
-    const cacheMetrics = client.getCacheMetrics();
-
     // Format response with helpful message
     let message: string;
     if (logs.length === 0) {
@@ -838,13 +834,6 @@ export async function debugLastRequest(
     }
 
     // Add cache metrics to message regardless of log count
-    if (cacheMetrics) {
-      message += ` Cache: ${cacheMetrics.size} items, ${cacheMetrics.hitRate.toFixed(
-        2
-      )} hit rate.`;
-    }
-    
-    // Append cache status to message
     if (cacheMetrics) {
       message += ` Cache: ${cacheMetrics.size} items, ${cacheMetrics.hitRate.toFixed(2)} hit rate.`;
     }
