@@ -41,7 +41,23 @@ You can retrieve current memory usage via `getMetrics()` or `getCurrentMemoryUsa
 
 ```typescript
 const metrics = cache.getMetrics();
-console.log(`Memory usage: ${metrics.memoryUsage} bytes`);
+console.log(`Memory usage: ${metrics.memoryBytesUsed} bytes`);
 console.log(`Average entry size: ${metrics.avgEntrySize} bytes`);
 ```
+
+## Limitations
+
+### Size Estimation Accuracy
+
+The cache uses a heuristic-based size estimation function that **does not** reflect exact V8 memory usage:
+
+- **Primitive types**: Sizes are approximated (8 bytes for numbers, UTF-8 byte length for strings).
+- **Objects and arrays**: Sizes are estimated recursively by summing the sizes of keys and values.
+- **V8 overhead not included**: The estimation does not account for V8's internal object overhead, hidden classes, or memory alignment.
+- **Circular references**: Detected and handled (contribute 0 bytes to prevent infinite loops).
+- **Depth limit**: Nested structures beyond 20 levels deep are not fully measured to prevent stack overflow.
+
+**Implication**: The reported `memoryBytesUsed` metric is an approximation suitable for setting soft limits and monitoring trends, but should not be treated as an exact measurement of actual heap memory consumption.
+
+For precise memory profiling, use Node.js heap snapshots or `process.memoryUsage()`.
 
