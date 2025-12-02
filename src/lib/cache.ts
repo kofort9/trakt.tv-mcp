@@ -191,17 +191,16 @@ export class LRUCache<K, V> {
       }
 
       // Evict until we have space
-      // Use iterator to avoid creating new iterators in loop
-      const iterator = this.cache.keys();
       while (
         this.metrics.memoryBytesUsed + valueSize > this.config.maxMemoryBytes &&
         this.cache.size > 0
       ) {
-        const result = iterator.next();
-        if (result.done) break;
-        
-        this.delete(result.value);
-        this.metrics.evictions++;
+        const firstKey = this.cache.keys().next().value;
+        if (firstKey !== undefined) {
+          this.evict(firstKey);
+        } else {
+          break;
+        }
       }
     }
 
@@ -210,8 +209,7 @@ export class LRUCache<K, V> {
       // First key in Map is the oldest (LRU)
       const firstKey = this.cache.keys().next().value;
       if (firstKey !== undefined) {
-        this.delete(firstKey);
-        this.metrics.evictions++;
+        this.evict(firstKey);
       }
     }
 
@@ -311,10 +309,24 @@ export class LRUCache<K, V> {
   }
 
   /**
+   * Evict an entry from cache and track the eviction
+   * Used internally by eviction policies
+   */
+  private evict(key: K): void {
+    this.delete(key);
+    this.metrics.evictions++;
+  }
+
+  /**
    * Get cache metrics
    */
   getMetrics(): CacheMetrics {
-    return { ...this.metrics };
+    const avgEntrySize =
+      this.cache.size > 0 ? this.metrics.memoryBytesUsed / this.cache.size : 0;
+    return {
+      ...this.metrics,
+      avgEntrySize,
+    };
   }
 
   /**
