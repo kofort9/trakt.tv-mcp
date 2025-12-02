@@ -190,9 +190,9 @@ describe('Cache Performance Benchmarks', () => {
         // Note: In practice, each entry is small (~2-5KB), so 500 entries ≈ 1-2.5MB
         expect(memoryUsedMB).toBeLessThan(50);
         expect(metrics.size).toBeLessThanOrEqual(500);
-        
+
         // Verify internal tracking is working
-        expect(metrics.memoryUsage).toBeGreaterThan(0);
+        expect(metrics.memoryBytesUsed).toBeGreaterThan(0);
       });
     });
 
