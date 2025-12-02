@@ -335,7 +335,8 @@ export class LRUCache<K, V> {
    * Get cache metrics
    */
   getMetrics(): CacheMetrics {
-    const avgEntrySize = this.cache.size > 0 ? this.metrics.memoryBytesUsed / this.cache.size : 0;
+    const avgEntrySize =
+      this.cache.size > 0 ? Math.round(this.metrics.memoryBytesUsed / this.cache.size) : 0;
     const avgEstimationTimeMs =
       this.metrics.estimationCount && this.metrics.estimationCount > 0
         ? this.metrics.estimationTimeMs! / this.metrics.estimationCount

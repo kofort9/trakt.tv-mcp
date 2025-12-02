@@ -512,9 +512,9 @@ describe('LRUCache', () => {
 
     it('should track memory usage for object values', () => {
       const cache = new LRUCache<string, object>({ enableMetrics: true });
-      // {a: 1} -> JSON: {"a":1} (7 bytes)
+      // {a: 1} -> key "a" (1 byte UTF-8) + value 1 (8 bytes number) = 9 bytes
       cache.set('key', { a: 1 });
-      expect(cache.getCurrentMemoryUsage()).toBe(7);
+      expect(cache.getCurrentMemoryUsage()).toBe(9);
     });
 
     it('should update memory usage on overwrite', () => {
@@ -600,9 +600,7 @@ describe('LRUCache', () => {
 
       // Add another small item to exceed 50 bytes
       cache.set('k2', '1'); // 1 byte. Total 51 bytes > 50.
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Cache memory usage high')
-      );
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Cache memory usage high'));
 
       consoleSpy.mockRestore();
     });
@@ -632,22 +630,22 @@ describe('LRUCache', () => {
         enableMetrics: true,
       });
 
-      // Fill to warning level
-      cache.set('k1', '1'.repeat(30)); // 60 bytes
+      // Fill to warning level (threshold is 50 bytes)
+      cache.set('k1', '1'.repeat(60)); // 60 bytes > 50 threshold
       expect(consoleSpy).toHaveBeenCalledTimes(1);
 
       // Add more items that keep us in warning zone
-      cache.set('k2', '1'.repeat(5)); // 10 bytes. Total 70.
+      cache.set('k2', '1'.repeat(10)); // 10 bytes. Total 70.
       expect(consoleSpy).toHaveBeenCalledTimes(1); // Should still be 1
 
-      cache.set('k3', '1'.repeat(5)); // 10 bytes. Total 80.
+      cache.set('k3', '1'.repeat(10)); // 10 bytes. Total 80.
       expect(consoleSpy).toHaveBeenCalledTimes(1); // Should still be 1
 
       // Drop below threshold
       cache.delete('k1'); // -60 bytes. Total 20 bytes.
 
       // Go back above
-      cache.set('k1', '1'.repeat(30)); // +60 bytes. Total 80 bytes.
+      cache.set('k1', '1'.repeat(60)); // +60 bytes. Total 80 bytes.
       expect(consoleSpy).toHaveBeenCalledTimes(2); // Should warn again
 
       consoleSpy.mockRestore();
