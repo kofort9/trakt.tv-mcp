@@ -2,6 +2,34 @@
 
 The Trakt.tv MCP server uses an LRU (Least Recently Used) cache to minimize API calls to Trakt.tv and improve performance.
 
+## User Experience Benefits
+
+From a user perspective, the cache provides several benefits:
+
+### Faster Response Times
+
+- **Instant Results**: When you search for a show or movie you've queried before, results appear instantly without waiting for the Trakt API.
+- **Reduced Latency**: Frequently accessed data (like your watch history or watchlist) loads immediately from cache rather than making a network request.
+
+### Reduced API Rate Limiting
+
+- **Fewer API Calls**: The cache prevents redundant API requests, keeping you well below Trakt.tv's rate limits.
+- **Uninterrupted Service**: You're less likely to hit rate limit errors, even when making multiple queries in quick succession.
+
+### Transparent Operation
+
+- **Automatic**: The cache works automatically in the background—no configuration required.
+- **Fresh Data**: Items expire after 1 hour (by default), ensuring you get reasonably up-to-date information.
+- **Invisible to Users**: You don't need to worry about cache invalidation or stale data—it's handled automatically.
+
+### Performance Metrics
+
+When using debugging tools, you can see cache performance:
+
+- **Hit Rate**: Shows what percentage of requests were served from cache (higher is better).
+- **Memory Usage**: Tracks how much memory the cache is using.
+- **Evictions**: Indicates when older items are removed to make room for new ones.
+
 ## Features
 
 - **LRU Eviction**: Automatically removes least recently used items when the cache is full.
