@@ -27,6 +27,9 @@ export interface CacheMetrics {
   memoryBytesUsed: number; // Approximate memory usage in bytes
   avgEntrySize: number; // Average entry size in bytes
   maxMemoryBytes?: number; // Optional memory limit
+  estimationTimeMs?: number; // Total time spent in size estimation (ms)
+  estimationCount?: number; // Number of size estimations performed
+  avgEstimationTimeMs?: number; // Average time per estimation (ms)
 }
 
 /**
@@ -41,11 +44,7 @@ export interface CacheMetrics {
  * - Does not account for V8 internal object overhead
  * - Only measures estimated serialized size
  */
-function estimateSize(
-  value: unknown,
-  seen = new WeakSet<object>(),
-  depth = 0
-): number {
+function estimateSize(value: unknown, seen = new WeakSet<object>(), depth = 0): number {
   // Prevent stack overflow for deeply nested objects
   if (depth > 20) return 0;
 
@@ -62,20 +61,12 @@ function estimateSize(
     seen.add(value as object);
 
     if (Array.isArray(value)) {
-      return value.reduce(
-        (acc, item) => acc + estimateSize(item, seen, depth + 1),
-        0
-      );
+      return value.reduce((acc, item) => acc + estimateSize(item, seen, depth + 1), 0);
     }
 
-    return Object.entries(value as Record<string, unknown>).reduce(
-      (acc, [k, v]) => {
-        return (
-          acc + estimateSize(k, seen, depth + 1) + estimateSize(v, seen, depth + 1)
-        );
-      },
-      0
-    );
+    return Object.entries(value as Record<string, unknown>).reduce((acc, [k, v]) => {
+      return acc + estimateSize(k, seen, depth + 1) + estimateSize(v, seen, depth + 1);
+    }, 0);
   }
   return 0;
 }
@@ -116,6 +107,8 @@ export class LRUCache<K, V> {
       memoryBytesUsed: 0,
       avgEntrySize: 0,
       maxMemoryBytes: this.config.maxMemoryBytes,
+      estimationTimeMs: 0,
+      estimationCount: 0,
     };
   }
 
@@ -159,7 +152,14 @@ export class LRUCache<K, V> {
    * Evicts LRU entry if at capacity
    */
   set(key: K, value: V): void {
+    // Track size estimation performance if metrics enabled
+    const startTime = this.config.enableMetrics ? performance.now() : 0;
     const valueSize = estimateSize(value);
+    if (this.config.enableMetrics) {
+      const estimationTime = performance.now() - startTime;
+      this.metrics.estimationTimeMs = (this.metrics.estimationTimeMs || 0) + estimationTime;
+      this.metrics.estimationCount = (this.metrics.estimationCount || 0) + 1;
+    }
 
     // Remove existing entry if present (will be re-added at end)
     if (this.cache.has(key)) {
@@ -177,8 +177,7 @@ export class LRUCache<K, V> {
       }
 
       // Check warning threshold
-      const threshold =
-        this.config.maxMemoryBytes * (this.config.memoryWarningThreshold || 0.9);
+      const threshold = this.config.maxMemoryBytes * (this.config.memoryWarningThreshold || 0.9);
       if (this.metrics.memoryBytesUsed + valueSize > threshold) {
         if (!this.hasWarnedMemory) {
           console.warn(
@@ -301,8 +300,7 @@ export class LRUCache<K, V> {
   private resetWarningFlag(): void {
     if (!this.config.maxMemoryBytes) return;
 
-    const threshold =
-      this.config.maxMemoryBytes * (this.config.memoryWarningThreshold || 0.9);
+    const threshold = this.config.maxMemoryBytes * (this.config.memoryWarningThreshold || 0.9);
     if (this.metrics.memoryBytesUsed < threshold) {
       this.hasWarnedMemory = false;
     }
@@ -321,11 +319,15 @@ export class LRUCache<K, V> {
    * Get cache metrics
    */
   getMetrics(): CacheMetrics {
-    const avgEntrySize =
-      this.cache.size > 0 ? this.metrics.memoryBytesUsed / this.cache.size : 0;
+    const avgEntrySize = this.cache.size > 0 ? this.metrics.memoryBytesUsed / this.cache.size : 0;
+    const avgEstimationTimeMs =
+      this.metrics.estimationCount && this.metrics.estimationCount > 0
+        ? this.metrics.estimationTimeMs! / this.metrics.estimationCount
+        : 0;
     return {
       ...this.metrics,
       avgEntrySize,
+      avgEstimationTimeMs,
     };
   }
 
@@ -342,6 +344,8 @@ export class LRUCache<K, V> {
       memoryBytesUsed: this.metrics.memoryBytesUsed,
       avgEntrySize: this.metrics.avgEntrySize,
       maxMemoryBytes: this.config.maxMemoryBytes,
+      estimationTimeMs: 0,
+      estimationCount: 0,
     };
   }
 
@@ -385,9 +389,7 @@ export class LRUCache<K, V> {
 
   private updateAvgEntrySize(): void {
     if (this.metrics.size > 0) {
-      this.metrics.avgEntrySize = Math.round(
-        this.metrics.memoryBytesUsed / this.metrics.size
-      );
+      this.metrics.avgEntrySize = Math.round(this.metrics.memoryBytesUsed / this.metrics.size);
     } else {
       this.metrics.avgEntrySize = 0;
     }
