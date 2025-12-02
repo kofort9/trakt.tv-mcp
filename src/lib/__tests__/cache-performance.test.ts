@@ -182,7 +182,7 @@ describe('Cache Performance Benchmarks', () => {
         console.log(`Cache Entries: ${metrics.size}`);
         console.log(`Heap Memory Used (Process): ${memoryUsedMB.toFixed(2)} MB`);
         console.log(
-          `tracked Memory Usage (Internal): ${(metrics.memoryUsage / 1024).toFixed(2)} KB`
+          `tracked Memory Usage (Internal): ${(metrics.memoryBytesUsed / 1024).toFixed(2)} KB`
         );
         console.log(`Target: <50 MB Heap`);
         console.log(`Status: ${memoryUsedMB < 50 ? 'PASS' : 'FAIL'}`);
