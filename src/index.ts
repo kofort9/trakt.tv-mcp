@@ -38,6 +38,30 @@ const server = new Server(
   }
 );
 
+// Helper function to handle resource reads with single-pass lookup
+export async function handleResourceRead(
+  resources: Array<{ uri: string; mimeType: string }>,
+  uri: string,
+  handler: (client: TraktClient, uri: string) => Promise<string>,
+  client: TraktClient
+): Promise<{ contents: Array<{ uri: string; mimeType: string; text: string }> } | null> {
+  const resource = resources.find((r) => r.uri === uri);
+  if (!resource) {
+    return null;
+  }
+
+  const text = await handler(client, uri);
+  return {
+    contents: [
+      {
+        uri,
+        mimeType: resource.mimeType,
+        text,
+      },
+    ],
+  };
+}
+
 // Handle list_resources request
 server.setRequestHandler(ListResourcesRequestSchema, async () => {
   return {
@@ -63,38 +87,24 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
       };
     }
 
-    if (WATCHLIST_RESOURCES.some((r) => r.uri === uri)) {
-      const text = await getWatchlist(traktClient, uri);
-      const resource = WATCHLIST_RESOURCES.find((r) => r.uri === uri);
-      if (!resource) {
-        throw new Error(`Resource not found: ${uri}`);
-      }
-      return {
-        contents: [
-          {
-            uri,
-            mimeType: resource.mimeType,
-            text,
-          },
-        ],
-      };
+    const watchlistResult = await handleResourceRead(
+      WATCHLIST_RESOURCES,
+      uri,
+      getWatchlist,
+      traktClient
+    );
+    if (watchlistResult) {
+      return watchlistResult;
     }
 
-    if (HISTORY_RESOURCES.some((r) => r.uri === uri)) {
-      const text = await getHistory(traktClient, uri);
-      const resource = HISTORY_RESOURCES.find((r) => r.uri === uri);
-      if (!resource) {
-        throw new Error(`Resource not found: ${uri}`);
-      }
-      return {
-        contents: [
-          {
-            uri,
-            mimeType: resource.mimeType,
-            text,
-          },
-        ],
-      };
+    const historyResult = await handleResourceRead(
+      HISTORY_RESOURCES,
+      uri,
+      getHistory,
+      traktClient
+    );
+    if (historyResult) {
+      return historyResult;
     }
 
     throw new Error(`Resource not found: ${uri}`);
