@@ -190,16 +190,32 @@ export class LRUCache<K, V> {
       }
 
       // Evict until we have space
+      // Batch evictions for better performance
+      let evictionCount = 0;
       while (
         this.metrics.memoryBytesUsed + valueSize > this.config.maxMemoryBytes &&
         this.cache.size > 0
       ) {
         const firstKey = this.cache.keys().next().value;
         if (firstKey !== undefined) {
-          this.evict(firstKey);
+          // Delete without updating expensive metrics
+          const entry = this.cache.get(firstKey);
+          if (entry) {
+            this.metrics.memoryBytesUsed -= entry.size;
+          }
+          this.cache.delete(firstKey);
+          evictionCount++;
         } else {
           break;
         }
+      }
+
+      // Update metrics once after all evictions
+      if (evictionCount > 0) {
+        this.metrics.evictions += evictionCount;
+        this.metrics.size = this.cache.size;
+        this.updateAvgEntrySize();
+        this.resetWarningFlag();
       }
     }
 
