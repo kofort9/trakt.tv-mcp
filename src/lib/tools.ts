@@ -775,7 +775,10 @@ export async function debugLastRequest(
     includeMetrics?: boolean;
     errorsOnly?: boolean;
   }
-): Promise<ToolSuccess<{ logs: RequestLog[]; metrics?: ToolMetrics[]; cacheMetrics?: CacheMetrics }> | ToolError> {
+): Promise<
+  | ToolSuccess<{ logs: RequestLog[]; metrics?: ToolMetrics[]; cacheMetrics?: CacheMetrics }>
+  | ToolError
+> {
   try {
     const {
       limit = 10,
@@ -832,11 +835,13 @@ export async function debugLastRequest(
       if (metrics && metrics.length > 0) {
         message += ` Performance metrics included for ${metrics.length} tool${metrics.length === 1 ? '' : 's'}.`;
       }
-      if (cacheMetrics) {
-        message += ` Cache status: ${cacheMetrics.size} items, ${(
-          cacheMetrics.hitRate * 100
-        ).toFixed(1)}% hit rate.`;
-      }
+    }
+
+    // Add cache metrics to message regardless of log count
+    if (cacheMetrics) {
+      message += ` Cache: ${cacheMetrics.size} items, ${cacheMetrics.hitRate.toFixed(
+        2
+      )} hit rate.`;
     }
     
     // Append cache status to message
