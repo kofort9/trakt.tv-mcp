@@ -38,7 +38,32 @@ const server = new Server(
   }
 );
 
-// Helper function to handle resource reads with single-pass lookup
+/**
+ * Helper function to handle MCP resource read requests with optimized single-pass lookup.
+ *
+ * This function is exported primarily for testing purposes, allowing integration tests
+ * to verify the single-pass optimization without requiring full server initialization.
+ *
+ * Performance: Uses a single find() call instead of some() + find() to reduce array
+ * iterations. For small resource arrays (5-10 items), this provides negligible but
+ * measurable improvement. Consider Map-based lookup if resources grow beyond 15 items.
+ *
+ * @param resources - Array of resource definitions with uri and mimeType
+ * @param uri - The resource URI to look up (e.g., 'trakt://watchlist/shows')
+ * @param handler - Async function that fetches the resource data from Trakt API
+ * @param client - TraktClient instance for making API requests
+ * @returns MCP resource contents if URI matches, null otherwise
+ *
+ * @example
+ * ```typescript
+ * const result = await handleResourceRead(
+ *   WATCHLIST_RESOURCES,
+ *   'trakt://watchlist/shows',
+ *   getWatchlist,
+ *   traktClient
+ * );
+ * ```
+ */
 export async function handleResourceRead(
   resources: Array<{ uri: string; mimeType: string }>,
   uri: string,
@@ -97,12 +122,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
       return watchlistResult;
     }
 
-    const historyResult = await handleResourceRead(
-      HISTORY_RESOURCES,
-      uri,
-      getHistory,
-      traktClient
-    );
+    const historyResult = await handleResourceRead(HISTORY_RESOURCES, uri, getHistory, traktClient);
     if (historyResult) {
       return historyResult;
     }

@@ -1,8 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handleResourceRead } from '../index.js';
 import { TraktClient } from '../lib/trakt-client.js';
 import { TraktOAuth } from '../lib/oauth.js';
 import { TraktConfig } from '../types/trakt.js';
+
+// Mock config module before importing index.js to prevent loadConfig() from running
+vi.mock('../lib/config.js', () => ({
+  loadConfig: vi.fn(() => ({
+    clientId: 'test-id',
+    clientSecret: 'test-secret',
+    redirectUri: 'urn:ietf:wg:oauth:2.0:oob',
+    apiVersion: '2',
+    apiBaseUrl: 'https://api.trakt.tv',
+  })),
+}));
+
+// Import after mocking to ensure config is mocked during module initialization
+const { handleResourceRead } = await import('../index.js');
 
 // Create a mock TraktClient
 const createMockClient = (): TraktClient => {
