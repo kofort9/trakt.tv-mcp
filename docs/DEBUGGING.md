@@ -5,6 +5,7 @@ This guide explains how to use the built-in debugging tools and log analysis fea
 ## Overview
 
 The server includes a comprehensive logging and debugging system that tracks:
+
 - API requests and responses (method, URL, headers, body)
 - Performance metrics (duration, success/failure rates)
 - Rate limit status
@@ -17,18 +18,19 @@ The primary tool for troubleshooting is `debug_last_request`. It allows you to i
 
 ### Parameters
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `limit` | number | 10 | Number of recent logs to retrieve (max 100) |
-| `toolName` | string | - | Filter logs by specific tool name |
-| `method` | string | - | Filter by HTTP method (GET, POST, etc.) |
-| `statusCode` | number | - | Filter by specific HTTP status code |
-| `errorsOnly` | boolean | false | Show only requests with status code >= 400 |
-| `includeMetrics` | boolean | true | Include performance metrics in output |
+| Parameter        | Type    | Default | Description                                 |
+| ---------------- | ------- | ------- | ------------------------------------------- |
+| `limit`          | number  | 10      | Number of recent logs to retrieve (max 100) |
+| `toolName`       | string  | -       | Filter logs by specific tool name           |
+| `method`         | string  | -       | Filter by HTTP method (GET, POST, etc.)     |
+| `statusCode`     | number  | -       | Filter by specific HTTP status code         |
+| `errorsOnly`     | boolean | false   | Show only requests with status code >= 400  |
+| `includeMetrics` | boolean | true    | Include performance metrics in output       |
 
 ### Usage Examples
 
 #### 1. Basic Status Check
+
 View the last 5 requests to verify the server is communicating with Trakt.tv:
 
 ```json
@@ -41,6 +43,7 @@ View the last 5 requests to verify the server is communicating with Trakt.tv:
 ```
 
 #### 2. finding Errors
+
 Quickly find recent failed requests:
 
 ```json
@@ -54,6 +57,7 @@ Quickly find recent failed requests:
 ```
 
 #### 3. Troubleshooting a Specific Tool
+
 Isolate issues with the search functionality:
 
 ```json
@@ -67,6 +71,7 @@ Isolate issues with the search functionality:
 ```
 
 #### 4. Analyzing Performance
+
 Check latency and success rates:
 
 ```json
@@ -118,17 +123,21 @@ If you encounter 500, 502, 503, or 504 errors:
 The server writes logs to disk for persistent storage and deep analysis.
 
 ### Location
+
 By default, logs are stored in a secure user-specific directory:
+
 - **Linux/macOS**: `~/.trakt-mcp/logs/`
 - **Windows**: `%USERPROFILE%\.trakt-mcp\logs\`
 
 Files are named with timestamps: `trakt-mcp-YYYY-MM-DDTHH-mm-ss.log`.
 
 ### Security & Retention
+
 - **Permissions**: The log directory is set to `700` (owner only) and log files to `600` (owner read/write).
 - **Retention**: Logs older than 7 days are automatically deleted on server startup.
 
 ### Format
+
 Logs are written in **JSON Lines** format (one JSON object per line). Each entry contains:
 
 ```json
@@ -146,7 +155,9 @@ Logs are written in **JSON Lines** format (one JSON object per line). Each entry
 ```
 
 ### Correlation IDs
+
 Each request is assigned a unique `correlationId` (e.g., `1700000000000-1`). This ID helps you:
+
 - Track retries of the same operation.
 - Correlate requests triggered by a single user action.
 - Reference specific requests when reporting bugs.
@@ -169,7 +180,7 @@ The `metrics` output from `debug_last_request` provides aggregated statistics fo
 ```
 
 **Best Practices:**
+
 - Monitor `avgDurationMs` to identify slow operations.
 - Watch `failedCalls` to detect instability.
 - Compare `minDurationMs` vs `maxDurationMs` to see latency variance.
-

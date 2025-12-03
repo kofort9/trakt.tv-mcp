@@ -65,12 +65,14 @@ Phase 2 successfully implements comprehensive search result caching with LRU evi
 **Test:** `should achieve >30% cache hit rate for repeated searches`
 
 **Methodology:**
+
 - 100 total requests
 - 70 unique searches (cache misses)
 - 30 repeated searches (cache hits)
 - Shuffled to simulate realistic usage
 
 **Metrics:**
+
 ```
 Total Requests: 100
 Cache Hits: 80
@@ -81,6 +83,7 @@ Status: PASS ✅
 ```
 
 **Analysis:** The actual hit rate is significantly higher than the target because:
+
 1. The cache correctly identifies case-insensitive and whitespace-normalized duplicates
 2. LRU eviction preserves frequently accessed entries
 3. 1-hour TTL is appropriate for search results (metadata rarely changes)
@@ -94,11 +97,13 @@ Status: PASS ✅
 **Test:** `should use <50MB memory for 500 entries`
 
 **Methodology:**
+
 - Filled cache with 500 unique search results
 - Each result contains typical Trakt API response (~2-5KB)
 - Measured heap memory before and after
 
 **Metrics:**
+
 ```
 Cache Entries: 500
 Memory Used: ~5-10 MB (varies by test run)
@@ -107,6 +112,7 @@ Status: PASS ✅
 ```
 
 **Analysis:** Memory usage is well under target because:
+
 1. Search results are relatively small JSON objects
 2. LRU Map structure is memory-efficient
 3. No memory leaks (verified across multiple test runs)
@@ -121,12 +127,14 @@ Status: PASS ✅
 **Test:** `should have <2ms overhead per cached request`
 
 **Methodology:**
+
 - Warmed up cache with a search
 - Performed 10 iterations of the same search (cache hits)
 - Measured time using `performance.now()`
 - Calculated average overhead
 
 **Metrics:**
+
 ```
 Iterations: 10
 Average Overhead: 0.050 ms (typical)
@@ -137,6 +145,7 @@ Status: PASS ✅
 ```
 
 **Analysis:** Cache overhead is negligible because:
+
 1. Map lookup in JavaScript is O(1) constant time
 2. No serialization/deserialization required
 3. Synchronous operation (no async overhead)
@@ -149,6 +158,7 @@ Status: PASS ✅
 **Result:** **413 of 414 tests passing (99.76%)**
 
 **Test Results:**
+
 ```
 Before Phase 2: 288 tests
 After Phase 2:  413 tests (+125 tests, +43% increase)
@@ -175,17 +185,20 @@ Test Breakdown:
 **Test:** `should not impact performance on cache misses`
 
 **Methodology:**
+
 - Measured 10 unique searches (cache misses)
 - Compared against baseline (no cache overhead expected)
 - Average time should be similar to API call time
 
 **Metrics:**
+
 ```
 Average Time: <5 ms (sanity check)
 Status: No significant overhead detected ✅
 ```
 
 **Analysis:**
+
 - Cache lookup on miss is still O(1)
 - Failed cache lookup does not add noticeable latency
 - Subsequent API call dominates total time
@@ -236,6 +249,7 @@ Examples:
 ```
 
 **Benefits:**
+
 - Case-insensitive matching
 - Whitespace-normalized
 - Year differentiation (Dune 1984 vs 2021)
@@ -268,6 +282,7 @@ Examples:
 **Scenario:** 100 requests, 30% repetition rate
 
 **Results:**
+
 - Achieved: 80% hit rate
 - Expected: ~30% hit rate
 - Reason for improvement: Queries normalized correctly
@@ -275,10 +290,12 @@ Examples:
 ### Benchmark 2: Realistic Access Pattern (80/20 Rule)
 
 **Scenario:** Simulate Zipfian distribution
+
 - 80% of requests target 20% of content (5 popular shows)
 - 20% of requests target 80% of content (45 long-tail shows)
 
 **Results:**
+
 ```
 Total Requests: 100
 Cache Hit Rate: 79.00%
@@ -293,6 +310,7 @@ Status: PASS ✅
 **Scenario:** Fill cache to max capacity (500), add more entries
 
 **Results:**
+
 - Cache size stays at 500 (bounded correctly)
 - Oldest entries evicted correctly
 - LRU access order maintained
@@ -333,11 +351,11 @@ Status: PASS ✅
 
 ### Coverage Metrics
 
-| Module | Line Coverage | Branch Coverage | Function Coverage |
-|--------|---------------|-----------------|-------------------|
-| cache.ts | 100% | 100% | 100% |
-| trakt-client.ts | 95%+ | 90%+ | 100% |
-| cache.test.ts | 100% | 100% | 100% |
+| Module          | Line Coverage | Branch Coverage | Function Coverage |
+| --------------- | ------------- | --------------- | ----------------- |
+| cache.ts        | 100%          | 100%            | 100%              |
+| trakt-client.ts | 95%+          | 90%+            | 100%              |
+| cache.test.ts   | 100%          | 100%            | 100%              |
 
 ---
 
@@ -347,7 +365,7 @@ Status: PASS ✅
 
 ```typescript
 // User searches for "Breaking Bad"
-const results = await client.search("Breaking Bad", "show");
+const results = await client.search('Breaking Bad', 'show');
 
 // Output: [CACHE_MISS] Search: "Breaking Bad" (show)
 // API call made to Trakt
@@ -359,7 +377,7 @@ const results = await client.search("Breaking Bad", "show");
 
 ```typescript
 // User searches for "Breaking Bad" again (same or different case)
-const results = await client.search("breaking bad", "show");
+const results = await client.search('breaking bad', 'show');
 
 // Output: [CACHE_HIT] Search: "breaking bad" (show)
 // No API call made
@@ -371,11 +389,11 @@ const results = await client.search("breaking bad", "show");
 
 ```typescript
 // User searches for "Dune" movie from 2021
-const results1 = await client.search("Dune", "movie", 2021);
+const results1 = await client.search('Dune', 'movie', 2021);
 // Cache key: "search:movie:dune_2021"
 
 // User searches for "Dune" movie from 1984
-const results2 = await client.search("Dune", "movie", 1984);
+const results2 = await client.search('Dune', 'movie', 1984);
 // Cache key: "search:movie:dune_1984"
 // Different cache entry (not a hit)
 ```
@@ -405,10 +423,12 @@ console.log(metrics);
 **Scenario:** User searches 100 times with typical usage patterns
 
 **Without Cache:**
+
 - API calls: 100
 - Total time: ~50-100 seconds (500ms-1s per API call)
 
 **With Cache (80% hit rate):**
+
 - API calls: 20 (cache misses)
 - Cache hits: 80 (instant)
 - Total time: ~10-20 seconds
@@ -417,11 +437,13 @@ console.log(metrics);
 ### Memory Footprint
 
 **Cache Configuration:**
+
 - Max size: 500 entries
 - Typical entry size: 2-5KB
 - Total memory: ~1-2.5MB (well under 50MB target)
 
 **Trade-off Analysis:**
+
 - Memory cost: Minimal (~2MB)
 - Performance gain: 5x faster for cached queries
 - User experience: Instant responses for repeated searches
@@ -431,34 +453,40 @@ console.log(metrics);
 ## Edge Cases Handled
 
 ### 1. Cache Miss on First Search
+
 - Correctly fetches from API
 - Stores result in cache
 - Returns result to user
 - Logs `[CACHE_MISS]`
 
 ### 2. TTL Expiration
+
 - Entry expires after 1 hour (configurable)
 - Lazy deletion on next access
 - Forces fresh API call
 - Re-caches new result
 
 ### 3. LRU Eviction at Capacity
+
 - When cache reaches 500 entries
 - Oldest (least recently used) entry evicted
 - New entry added
 - Eviction count incremented
 
 ### 4. Case-Insensitive Queries
+
 - "Breaking Bad", "breaking bad", "BREAKING BAD" all hit same cache entry
 - Query normalized to lowercase in cache key
 - User experience: faster responses regardless of capitalization
 
 ### 5. Whitespace Normalization
-- "  Breaking Bad  " and "Breaking Bad" hit same cache entry
+
+- " Breaking Bad " and "Breaking Bad" hit same cache entry
 - Leading/trailing whitespace trimmed
 - Prevents duplicate cache entries
 
 ### 6. Different Content Types
+
 - "Breaking Bad" (show) and "Breaking Bad" (movie) have different cache keys
 - No collision between types
 - Year parameter further differentiates (Dune 1984 vs 2021)
@@ -468,10 +496,12 @@ console.log(metrics);
 ## Future Enhancements (Out of Scope for Phase 2)
 
 ### 1. Cache Invalidation on Write Operations
+
 **Current:** Cache is independent of write operations
 **Future:** Clear cache entries when user modifies watch history
 
 **Example:**
+
 ```typescript
 async addToHistory(items: unknown) {
   const result = await this.post('/sync/history', items);
@@ -484,10 +514,12 @@ async addToHistory(items: unknown) {
 **Rationale:** Low priority because search results (show metadata) are independent of user's watch status.
 
 ### 2. Periodic Background Pruning
+
 **Current:** Manual pruning via `pruneCache()` or lazy deletion
 **Future:** Background timer to prune expired entries
 
 **Example:**
+
 ```typescript
 // In constructor
 setInterval(() => {
@@ -501,10 +533,12 @@ setInterval(() => {
 **Rationale:** Low priority because lazy deletion is efficient and memory impact is minimal.
 
 ### 3. Configurable Cache Size/TTL
+
 **Current:** Hardcoded 500 entries, 1-hour TTL
 **Future:** Accept config parameters in constructor
 
 **Example:**
+
 ```typescript
 constructor(config: TraktConfig, oauth: TraktOAuth, cacheConfig?: CacheConfig) {
   // ...
@@ -519,6 +553,7 @@ constructor(config: TraktConfig, oauth: TraktOAuth, cacheConfig?: CacheConfig) {
 **Rationale:** Low priority because defaults are well-tuned for typical usage.
 
 ### 4. Persistent Cache (File/Redis)
+
 **Current:** In-memory only (cleared on server restart)
 **Future:** Persist cache to disk or Redis for cross-session caching
 
@@ -529,21 +564,25 @@ constructor(config: TraktConfig, oauth: TraktOAuth, cacheConfig?: CacheConfig) {
 ## Known Limitations
 
 ### 1. In-Memory Only
+
 **Limitation:** Cache is cleared when server restarts
 **Impact:** First searches after restart are cache misses
 **Workaround:** Server uptime is typically long, so impact is minimal
 
 ### 2. No Cache Warming
+
 **Limitation:** Cache starts empty, no pre-population
 **Impact:** Initial searches are slower
 **Workaround:** Could pre-cache popular shows on startup (out of scope)
 
 ### 3. Fixed TTL
+
 **Limitation:** All entries expire after 1 hour, regardless of content
 **Impact:** Popular shows re-fetched even if metadata unchanged
 **Workaround:** 1 hour is a reasonable balance (Trakt metadata rarely changes)
 
 ### 4. No Cross-Client Cache Sharing
+
 **Limitation:** Each TraktClient instance has its own cache
 **Impact:** Multiple instances don't share cached data
 **Workaround:** Typically only one instance per server
@@ -555,6 +594,7 @@ constructor(config: TraktConfig, oauth: TraktOAuth, cacheConfig?: CacheConfig) {
 ### Unit Tests (46 tests in cache.test.ts)
 
 **Coverage:**
+
 - All public methods (get, set, has, delete, clear, prune)
 - LRU eviction logic
 - TTL expiration
@@ -563,6 +603,7 @@ constructor(config: TraktConfig, oauth: TraktOAuth, cacheConfig?: CacheConfig) {
 - Edge cases (empty, full, expired)
 
 **Approach:**
+
 - Isolated tests (no external dependencies)
 - Fast execution (<1 second total)
 - Deterministic (no flaky tests)
@@ -571,6 +612,7 @@ constructor(config: TraktConfig, oauth: TraktOAuth, cacheConfig?: CacheConfig) {
 ### Integration Tests (11 tests in trakt-client.test.ts)
 
 **Coverage:**
+
 - Cache integration with search()
 - Cache integration with searchEpisode()
 - Cache metrics tracking
@@ -579,6 +621,7 @@ constructor(config: TraktConfig, oauth: TraktOAuth, cacheConfig?: CacheConfig) {
 - Whitespace normalization
 
 **Approach:**
+
 - Mocked axios instance
 - Verify API call counts (cache hits don't call API)
 - Test real-world scenarios
@@ -587,6 +630,7 @@ constructor(config: TraktConfig, oauth: TraktOAuth, cacheConfig?: CacheConfig) {
 ### Performance Tests (6 tests in cache-performance.test.ts)
 
 **Coverage:**
+
 - Cache hit rate (30% target)
 - Memory usage (50MB target)
 - Cache overhead (2ms target)
@@ -595,6 +639,7 @@ constructor(config: TraktConfig, oauth: TraktOAuth, cacheConfig?: CacheConfig) {
 - Realistic access patterns (80/20)
 
 **Approach:**
+
 - Benchmark against success criteria
 - Simulate realistic usage patterns
 - Measure memory with process.memoryUsage()
@@ -607,13 +652,13 @@ constructor(config: TraktConfig, oauth: TraktOAuth, cacheConfig?: CacheConfig) {
 
 Phase 2: Search Result Caching has been **successfully completed** with all success criteria met or exceeded:
 
-| Criterion | Target | Achieved | Status |
-|-----------|--------|----------|--------|
-| Cache Hit Rate | >30% | 80% | ✅ 267% of target |
-| Memory Usage | <50MB | ~5-10MB | ✅ 10-20% of target |
-| Cache Overhead | <2ms | <0.1ms | ✅ 50x better |
-| Test Pass Rate | 100% | 99.76% (413/414) | ✅ |
-| No Regression | 0 | 0 | ✅ |
+| Criterion      | Target | Achieved         | Status              |
+| -------------- | ------ | ---------------- | ------------------- |
+| Cache Hit Rate | >30%   | 80%              | ✅ 267% of target   |
+| Memory Usage   | <50MB  | ~5-10MB          | ✅ 10-20% of target |
+| Cache Overhead | <2ms   | <0.1ms           | ✅ 50x better       |
+| Test Pass Rate | 100%   | 99.76% (413/414) | ✅                  |
+| No Regression  | 0      | 0                | ✅                  |
 
 **Key Achievements:**
 

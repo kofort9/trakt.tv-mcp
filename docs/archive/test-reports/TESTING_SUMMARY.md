@@ -58,16 +58,19 @@
 ### Recommendations for Merge
 
 **High Priority:**
+
 - Update error handling for 403 status codes
 - Set token file permissions to 0600
 - Add .env.example file
 
 **Medium Priority:**
+
 - Add timeout to OAuth polling (10 minutes)
 - Prevent multiple simultaneous auth attempts
 - Enhance error messages for end users
 
 **Low Priority:**
+
 - Add rate limit warning logs
 - Handle corrupted token file gracefully
 - Add more integration tests
@@ -75,6 +78,7 @@
 ## Test Artifacts
 
 Created test scripts:
+
 - `test-mcp-server.mjs` - MCP protocol tests
 - `test-api-integration.mjs` - Live API tests
 - `test-mcp-tools.mjs` - Tool integration tests
@@ -94,12 +98,14 @@ The following require human interaction and cannot be automated:
 ## Security Assessment
 
 **Good:**
+
 - Tokens stored in home directory (not project)
 - No credentials in source code
 - HTTPS used for all API calls
 - OAuth flow follows best practices
 
 **Could Improve:**
+
 - Token file permissions (0600 instead of 0644)
 - Add .env.example for better security awareness
 

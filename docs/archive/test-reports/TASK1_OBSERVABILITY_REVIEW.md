@@ -29,6 +29,7 @@ Phase 1 (Observability & Debug Tools) has been **successfully implemented** with
 - **Documentation:** 85% (Very Good)
 
 **Key Strengths:**
+
 - Comprehensive request/response logging with circular buffer
 - Excellent correlation tracking with unique IDs
 - Rich performance metrics per tool
@@ -37,6 +38,7 @@ Phase 1 (Observability & Debug Tools) has been **successfully implemented** with
 - MCP tool provides flexible filtering options
 
 **Identified Gaps:**
+
 - P1: Missing natural language support in debug tool
 - P1: Cache metrics not exposed in debug_last_request tool
 - P2: No request replay capability
@@ -52,19 +54,19 @@ Phase 1 (Observability & Debug Tools) has been **successfully implemented** with
 
 #### Features Implemented:
 
-| Feature | Status | Quality | Notes |
-|---------|--------|---------|-------|
-| Request logging | ✅ Complete | Excellent | Full request details captured |
-| Response logging | ✅ Complete | Excellent | Status, body, timing captured |
-| Error logging | ✅ Complete | Excellent | Error details with context |
-| Correlation IDs | ✅ Complete | Excellent | Format: `timestamp-counter` |
-| Circular buffer | ✅ Complete | Excellent | Configurable max size (1000) |
-| File logging | ✅ Complete | Excellent | JSON lines format |
-| File rotation | ✅ Complete | Excellent | 10MB threshold |
-| Performance metrics | ✅ Complete | Excellent | Per-tool aggregation |
-| Rate limit tracking | ✅ Complete | Excellent | Captured from headers |
-| Request truncation | ✅ Complete | Excellent | 5KB limit for large responses |
-| Sensitive data redaction | ✅ Complete | Excellent | Auth tokens redacted |
+| Feature                  | Status      | Quality   | Notes                         |
+| ------------------------ | ----------- | --------- | ----------------------------- |
+| Request logging          | ✅ Complete | Excellent | Full request details captured |
+| Response logging         | ✅ Complete | Excellent | Status, body, timing captured |
+| Error logging            | ✅ Complete | Excellent | Error details with context    |
+| Correlation IDs          | ✅ Complete | Excellent | Format: `timestamp-counter`   |
+| Circular buffer          | ✅ Complete | Excellent | Configurable max size (1000)  |
+| File logging             | ✅ Complete | Excellent | JSON lines format             |
+| File rotation            | ✅ Complete | Excellent | 10MB threshold                |
+| Performance metrics      | ✅ Complete | Excellent | Per-tool aggregation          |
+| Rate limit tracking      | ✅ Complete | Excellent | Captured from headers         |
+| Request truncation       | ✅ Complete | Excellent | 5KB limit for large responses |
+| Sensitive data redaction | ✅ Complete | Excellent | Auth tokens redacted          |
 
 #### Code Quality:
 
@@ -87,6 +89,7 @@ export class Logger {
 ```
 
 **Strengths:**
+
 - TypeScript interfaces provide excellent type safety
 - Configuration is flexible with sensible defaults
 - Circular buffer prevents unbounded memory growth
@@ -94,6 +97,7 @@ export class Logger {
 - Error handling with fallback (fails silently, doesn't break tools)
 
 **Minor Observations:**
+
 - No configurable log levels (always logs everything)
 - No compression for rotated log files
 - No max number of archived logs (could accumulate over time)
@@ -127,16 +131,16 @@ export class Logger {
 
 #### Feature Analysis:
 
-| Feature | Status | Quality | UX Rating |
-|---------|--------|---------|-----------|
-| Recent logs retrieval | ✅ Complete | Excellent | 5/5 |
-| Tool name filtering | ✅ Complete | Excellent | 5/5 |
-| HTTP method filtering | ✅ Complete | Very Good | 4/5 |
-| Status code filtering | ✅ Complete | Excellent | 5/5 |
-| Date range filtering | ✅ Complete | Very Good | 4/5 |
-| Performance metrics | ✅ Complete | Excellent | 5/5 |
-| Parameter validation | ✅ Complete | Excellent | 5/5 |
-| User-friendly messages | ✅ Complete | Excellent | 5/5 |
+| Feature                | Status      | Quality   | UX Rating |
+| ---------------------- | ----------- | --------- | --------- |
+| Recent logs retrieval  | ✅ Complete | Excellent | 5/5       |
+| Tool name filtering    | ✅ Complete | Excellent | 5/5       |
+| HTTP method filtering  | ✅ Complete | Very Good | 4/5       |
+| Status code filtering  | ✅ Complete | Excellent | 5/5       |
+| Date range filtering   | ✅ Complete | Very Good | 4/5       |
+| Performance metrics    | ✅ Complete | Excellent | 5/5       |
+| Parameter validation   | ✅ Complete | Excellent | 5/5       |
+| User-friendly messages | ✅ Complete | Excellent | 5/5       |
 
 #### Implementation Quality:
 
@@ -156,12 +160,10 @@ export async function debugLastRequest(
 
     // Excellent: Parameter validation
     if (limit < 1 || limit > 100) {
-      return createToolError(
-        'VALIDATION_ERROR',
-        'Limit must be between 1 and 100',
-        undefined,
-        ['Use a value between 1 and 100', 'Default is 10']
-      );
+      return createToolError('VALIDATION_ERROR', 'Limit must be between 1 and 100', undefined, [
+        'Use a value between 1 and 100',
+        'Default is 10',
+      ]);
     }
 
     // Get logs with filters
@@ -208,6 +210,7 @@ export async function debugLastRequest(
 ```
 
 **Strengths:**
+
 - Comprehensive filtering options
 - Clear parameter validation with helpful error messages
 - Flexible metrics inclusion
@@ -271,7 +274,9 @@ this.client.interceptors.request.use(
     const startTime = Date.now();
 
     // Store metadata in config for use in response interceptor
-    (config as AxiosRequestConfig & { _correlationId?: string; _startTime?: number })._correlationId = correlationId;
+    (
+      config as AxiosRequestConfig & { _correlationId?: string; _startTime?: number }
+    )._correlationId = correlationId;
     (config as AxiosRequestConfig & { _startTime?: number })._startTime = startTime;
 
     return config;
@@ -283,7 +288,11 @@ this.client.interceptors.request.use(
 this.client.interceptors.response.use(
   (response) => {
     // Log successful response
-    const config = response.config as AxiosRequestConfig & { _correlationId?: string; _startTime?: number; _toolName?: string };
+    const config = response.config as AxiosRequestConfig & {
+      _correlationId?: string;
+      _startTime?: number;
+      _toolName?: string;
+    };
     const correlationId = config._correlationId || logger.generateCorrelationId();
     const startTime = config._startTime || Date.now();
 
@@ -295,7 +304,11 @@ this.client.interceptors.response.use(
   },
   async (error: AxiosError) => {
     // Log error before handling
-    const config = error.config as AxiosRequestConfig & { _retryCount?: number; _correlationId?: string; _startTime?: number };
+    const config = error.config as AxiosRequestConfig & {
+      _retryCount?: number;
+      _correlationId?: string;
+      _startTime?: number;
+    };
 
     if (!config._retryCount || config._retryCount === 0) {
       const correlationId = config._correlationId || logger.generateCorrelationId();
@@ -318,6 +331,7 @@ this.client.interceptors.response.use(
 **Analysis:**
 
 **Strengths:**
+
 - ✅ **Excellent Integration:** Logging is transparent to tool implementations
 - ✅ **Correlation Tracking:** Request/response pairs linked via correlation ID
 - ✅ **Performance Tracking:** Start/end timestamps automatically captured
@@ -326,6 +340,7 @@ this.client.interceptors.response.use(
 - ✅ **Rate Limit Tracking:** Captured from response headers
 
 **Minor Observations:**
+
 - Tool name tracking (`_toolName`) is not consistently populated
 - No easy way to tag requests with user-defined metadata
 - Retry attempts not individually logged (only first attempt)
@@ -396,6 +411,7 @@ private updateMetrics(log: RequestLog): void {
 **Analysis:**
 
 **Strengths:**
+
 - ✅ Per-tool metrics aggregation
 - ✅ Success/failure tracking
 - ✅ Min/max/avg duration tracking
@@ -404,12 +420,14 @@ private updateMetrics(log: RequestLog): void {
 - ✅ Incremental updates (no recalculation)
 
 **Metrics Quality:**
+
 - **Completeness:** 95% - Missing percentile data (p50, p95, p99)
 - **Accuracy:** 100% - Correct incremental calculations
 - **Performance:** 100% - O(1) updates
 - **Usefulness:** 90% - Covers most common debugging needs
 
 **Missing Metrics (P2 - Low Priority):**
+
 - Percentile latencies (p50, p95, p99)
 - Error rate percentage
 - Requests per minute/hour
@@ -428,25 +446,27 @@ private updateMetrics(log: RequestLog): void {
 
 I tested how users might naturally ask for debug information:
 
-| User Query | Current Support | Works? | Recommended Improvement |
-|------------|----------------|---------|-------------------------|
-| "Show me the last failed request" | statusCode=4XX/5XX filter | ❌ No | Add NL interpretation |
-| "What happened with my last search?" | toolName="search_show" | ⚠️ Partial | Requires exact tool name |
-| "Show recent errors" | statusCode filter | ⚠️ Partial | Needs manual status codes |
-| "Why did my bulk log fail?" | toolName="bulk_log" + statusCode | ⚠️ Partial | Requires knowing tool names |
-| "Show performance metrics for search" | toolName="search_show", includeMetrics=true | ⚠️ Partial | Verbose parameter names |
-| "Debug last request" | limit=1 | ✅ Yes | Works well |
-| "Show me today's errors" | startDate filter | ✅ Yes | Works well |
+| User Query                            | Current Support                             | Works?     | Recommended Improvement     |
+| ------------------------------------- | ------------------------------------------- | ---------- | --------------------------- |
+| "Show me the last failed request"     | statusCode=4XX/5XX filter                   | ❌ No      | Add NL interpretation       |
+| "What happened with my last search?"  | toolName="search_show"                      | ⚠️ Partial | Requires exact tool name    |
+| "Show recent errors"                  | statusCode filter                           | ⚠️ Partial | Needs manual status codes   |
+| "Why did my bulk log fail?"           | toolName="bulk_log" + statusCode            | ⚠️ Partial | Requires knowing tool names |
+| "Show performance metrics for search" | toolName="search_show", includeMetrics=true | ⚠️ Partial | Verbose parameter names     |
+| "Debug last request"                  | limit=1                                     | ✅ Yes     | Works well                  |
+| "Show me today's errors"              | startDate filter                            | ✅ Yes     | Works well                  |
 
 **Overall UX Rating: 3.5/5**
 
 **Strengths:**
+
 - Flexible filtering with multiple parameters
 - Clear, actionable error messages
 - User-friendly response formatting
 - Parameter validation with helpful suggestions
 
 **Weaknesses:**
+
 - Requires knowledge of exact tool names
 - No fuzzy matching or aliases
 - No natural language interpretation
@@ -455,6 +475,7 @@ I tested how users might naturally ask for debug information:
 **Recommendations (P1):**
 
 1. **Add Natural Language Support:**
+
    ```typescript
    // Interpret common patterns
    if (query.includes('error') || query.includes('fail')) {
@@ -469,12 +490,13 @@ I tested how users might naturally ask for debug information:
    ```
 
 2. **Add Tool Name Aliases:**
+
    ```typescript
    const TOOL_ALIASES = {
-     'search': ['search_show', 'search_episode'],
-     'log': ['log_watch', 'bulk_log'],
-     'history': ['get_history', 'summarize_history'],
-     'watchlist': ['follow_show', 'unfollow_show']
+     search: ['search_show', 'search_episode'],
+     log: ['log_watch', 'bulk_log'],
+     history: ['get_history', 'summarize_history'],
+     watchlist: ['follow_show', 'unfollow_show'],
    };
    ```
 
@@ -529,6 +551,7 @@ I tested how users might naturally ask for debug information:
 ```
 
 **Quality Assessment:**
+
 - ✅ Clear and actionable
 - ✅ Includes suggestions for fixing errors
 - ✅ Contextual information (what was searched for)
@@ -543,15 +566,16 @@ I tested how users might naturally ask for debug information:
 
 **For User-Reported Issues:**
 
-| Issue Type | Information Available | Rating | Notes |
-|------------|----------------------|---------|-------|
-| "My movie log failed" | Full request/response, error details, status code | 5/5 | Excellent |
-| "Search returned wrong results" | Search query, API response, selected result | 5/5 | Excellent |
-| "Operation was slow" | Request duration, API timing, tool metrics | 5/5 | Excellent |
-| "Got rate limited" | Rate limit headers, retry attempts, timing | 4/5 | Very Good - could show quota remaining |
-| "Disambiguation didn't work" | Search results, selected item | 4/5 | Very Good - could show why disambiguation triggered |
+| Issue Type                      | Information Available                             | Rating | Notes                                               |
+| ------------------------------- | ------------------------------------------------- | ------ | --------------------------------------------------- |
+| "My movie log failed"           | Full request/response, error details, status code | 5/5    | Excellent                                           |
+| "Search returned wrong results" | Search query, API response, selected result       | 5/5    | Excellent                                           |
+| "Operation was slow"            | Request duration, API timing, tool metrics        | 5/5    | Excellent                                           |
+| "Got rate limited"              | Rate limit headers, retry attempts, timing        | 4/5    | Very Good - could show quota remaining              |
+| "Disambiguation didn't work"    | Search results, selected item                     | 4/5    | Very Good - could show why disambiguation triggered |
 
 **Missing Information (P2):**
+
 - User context (which user triggered the request)
 - Session information (related requests in same session)
 - Request payload sanitization settings
@@ -576,12 +600,14 @@ No critical missing features. Core observability is complete and functional.
 **Description:** Users must know exact parameter names and tool names to filter effectively.
 
 **Current State:**
+
 ```bash
 # Requires technical knowledge
 debug_last_request(toolName="search_show", statusCode=404, limit=10)
 ```
 
 **Desired State:**
+
 ```bash
 # Natural language
 "Show me recent search errors"
@@ -590,11 +616,13 @@ debug_last_request(toolName="search_show", statusCode=404, limit=10)
 ```
 
 **Impact:**
+
 - **Severity:** High
 - **User Experience:** Medium
 - **Frequency:** Often (every debug session)
 
 **Recommended Implementation:**
+
 1. Add query pattern matching in debug tool
 2. Map common terms to technical parameters
 3. Support fuzzy tool name matching
@@ -609,15 +637,17 @@ debug_last_request(toolName="search_show", statusCode=404, limit=10)
 **Description:** Cache hit/miss data exists but isn't accessible via debug_last_request.
 
 **Current State:**
+
 ```typescript
 // Cache metrics exist in TraktClient
-client.getCacheMetrics() // { hits: 18, misses: 42, hitRate: 0.30 }
+client.getCacheMetrics(); // { hits: 18, misses: 42, hitRate: 0.30 }
 
 // But not accessible via debug tool
-debug_last_request() // No cache data
+debug_last_request(); // No cache data
 ```
 
 **Desired State:**
+
 ```typescript
 debug_last_request({ includeCache: true })
 // Returns:
@@ -635,11 +665,13 @@ debug_last_request({ includeCache: true })
 ```
 
 **Impact:**
+
 - **Severity:** High
 - **User Experience:** High
 - **Frequency:** Occasional (when diagnosing slow searches)
 
 **Recommended Implementation:**
+
 ```typescript
 export async function debugLastRequest(
   client: TraktClient, // Pass client to access cache
@@ -655,11 +687,14 @@ export async function debugLastRequest(
     cacheMetrics = client.getCacheMetrics();
   }
 
-  return createToolSuccess({
-    logs,
-    ...(metrics && { metrics }),
-    ...(cacheMetrics && { cache: cacheMetrics }),
-  }, message);
+  return createToolSuccess(
+    {
+      logs,
+      ...(metrics && { metrics }),
+      ...(cacheMetrics && { cache: cacheMetrics }),
+    },
+    message
+  );
 }
 ```
 
@@ -674,11 +709,13 @@ export async function debugLastRequest(
 **Description:** When a request fails, there's no way to replay it for debugging.
 
 **Use Case:**
+
 - User reports: "I tried to log Movie X but it failed"
 - Developer wants to reproduce exact conditions
 - Need to replay request with same parameters
 
 **Recommended Implementation:**
+
 ```typescript
 // New tool: replay_request
 {
@@ -718,12 +755,14 @@ export async function replayRequest(
 **Description:** No aggregated view of rate limit usage.
 
 **Missing Features:**
+
 - Current quota remaining
 - Requests per minute trend
 - Projected time until rate limit hit
 - Historical rate limit hits (429 errors)
 
 **Recommended Implementation:**
+
 ```typescript
 {
   name: 'debug_rate_limits',
@@ -759,6 +798,7 @@ export async function replayRequest(
 ### 4.1 Architecture ✅ EXCELLENT
 
 **Logger Class Design:**
+
 - ✅ Single Responsibility: Logging only
 - ✅ Configurable with defaults
 - ✅ Singleton pattern for global access
@@ -766,6 +806,7 @@ export async function replayRequest(
 - ✅ No external dependencies except Axios types
 
 **TraktClient Integration:**
+
 - ✅ Interceptor pattern for transparency
 - ✅ Minimal coupling to logger
 - ✅ Easy to disable logging if needed
@@ -778,6 +819,7 @@ export async function replayRequest(
 ### 4.2 Error Handling ✅ EXCELLENT
 
 **Logger Error Handling:**
+
 ```typescript
 private writeToFile(log: RequestLog): void {
   try {
@@ -790,6 +832,7 @@ private writeToFile(log: RequestLog): void {
 ```
 
 **Debug Tool Error Handling:**
+
 ```typescript
 try {
   // ... main logic
@@ -800,6 +843,7 @@ try {
 ```
 
 **Assessment:**
+
 - ✅ Never throws exceptions
 - ✅ Graceful degradation
 - ✅ Clear error messages
@@ -812,17 +856,20 @@ try {
 ### 4.3 Performance ✅ EXCELLENT
 
 **Memory Management:**
+
 - ✅ Bounded circular buffer (max 1000 entries)
 - ✅ File rotation at 10MB
 - ✅ No memory leaks (Map-based storage)
 - ✅ Efficient metrics updates (O(1))
 
 **Performance Impact:**
+
 - ✅ Logging overhead: <5ms per request
 - ✅ Non-blocking file writes
 - ✅ Minimal memory footprint (~50KB for 1000 logs)
 
 **Measured Performance:**
+
 ```typescript
 // Test: 1000 sequential logs
 // Time: 847ms
@@ -836,6 +883,7 @@ try {
 ### 4.4 Type Safety ✅ EXCELLENT
 
 **Strong TypeScript Typing:**
+
 ```typescript
 export interface RequestLog {
   correlationId: string;
@@ -869,6 +917,7 @@ export interface ToolMetrics {
 ```
 
 **Assessment:**
+
 - ✅ All public methods fully typed
 - ✅ Interfaces exported for external use
 - ✅ No `any` types
@@ -883,6 +932,7 @@ export interface ToolMetrics {
 ### 5.1 Cache Implementation Review ✅ EXCELLENT
 
 **Cache Structure:**
+
 ```typescript
 export class LRUCache<K, V> {
   private cache: Map<K, CacheEntry<V>>;
@@ -892,6 +942,7 @@ export class LRUCache<K, V> {
 ```
 
 **Cache Metrics:**
+
 ```typescript
 export interface CacheMetrics {
   hits: number;
@@ -903,6 +954,7 @@ export interface CacheMetrics {
 ```
 
 **Assessment:**
+
 - ✅ Clean LRU implementation
 - ✅ TTL support (1 hour default)
 - ✅ Metrics tracking built-in
@@ -910,10 +962,12 @@ export interface CacheMetrics {
 - ✅ Proper expiry checking
 
 **Integration with Logger:**
+
 - ⚠️ **GAP IDENTIFIED:** Cache hits/misses are logged to console but not captured in request logs
 - ⚠️ **GAP IDENTIFIED:** Cache metrics not accessible via debug tool
 
 **Recommendation:**
+
 1. Add cache hit/miss status to RequestLog
 2. Expose cache metrics in debug_last_request
 3. Log cache evictions for troubleshooting
@@ -923,6 +977,7 @@ export interface CacheMetrics {
 ### 5.2 TraktClient Cache Integration ✅ VERY GOOD
 
 **Search Method with Caching:**
+
 ```typescript
 async search(query: string, type?: 'show' | 'movie', year?: number) {
   const cacheKey = generateSearchCacheKey(query, type, year);
@@ -951,12 +1006,14 @@ async search(query: string, type?: 'show' | 'movie', year?: number) {
 ```
 
 **Strengths:**
+
 - ✅ Cache checks before API call
 - ✅ Console logging for visibility
 - ✅ Proper cache key generation
 - ✅ Episode search also cached
 
 **Minor Issues:**
+
 - ⚠️ Cache hit/miss only logged to console, not request logs
 - ⚠️ No metrics about which searches benefit most from cache
 
@@ -968,28 +1025,28 @@ async search(query: string, type?: 'show' | 'movie', year?: number) {
 
 ### Priority 1 (High) - Implement Soon
 
-| # | Issue | Effort | Impact |
-|---|-------|--------|--------|
-| P1.1 | Add natural language support to debug tool | 4-6 hours | High UX improvement |
-| P1.2 | Expose cache metrics in debug_last_request | 2 hours | Essential for cache debugging |
+| #    | Issue                                      | Effort    | Impact                        |
+| ---- | ------------------------------------------ | --------- | ----------------------------- |
+| P1.1 | Add natural language support to debug tool | 4-6 hours | High UX improvement           |
+| P1.2 | Expose cache metrics in debug_last_request | 2 hours   | Essential for cache debugging |
 
 ### Priority 2 (Medium) - Consider for Next Sprint
 
-| # | Issue | Effort | Impact |
-|---|-------|--------|--------|
-| P2.1 | Add request replay capability | 8 hours | Helps reproduce issues |
-| P2.2 | Add rate limit monitoring dashboard | 6 hours | Proactive quota management |
-| P2.3 | Add cache hit/miss to request logs | 3 hours | Better cache debugging |
+| #    | Issue                                          | Effort  | Impact                      |
+| ---- | ---------------------------------------------- | ------- | --------------------------- |
+| P2.1 | Add request replay capability                  | 8 hours | Helps reproduce issues      |
+| P2.2 | Add rate limit monitoring dashboard            | 6 hours | Proactive quota management  |
+| P2.3 | Add cache hit/miss to request logs             | 3 hours | Better cache debugging      |
 | P2.4 | Add percentile latency metrics (p50, p95, p99) | 4 hours | Better performance analysis |
 
 ### Priority 3 (Low) - Nice to Have
 
-| # | Issue | Effort | Impact |
-|---|-------|--------|--------|
-| P3.1 | Add log compression for rotated files | 4 hours | Saves disk space |
-| P3.2 | Add max archived logs limit | 2 hours | Prevents log accumulation |
-| P3.3 | Add configurable log levels | 3 hours | Reduce noise in production |
-| P3.4 | Add user/session tracking | 6 hours | Multi-user debugging |
+| #    | Issue                                 | Effort  | Impact                     |
+| ---- | ------------------------------------- | ------- | -------------------------- |
+| P3.1 | Add log compression for rotated files | 4 hours | Saves disk space           |
+| P3.2 | Add max archived logs limit           | 2 hours | Prevents log accumulation  |
+| P3.3 | Add configurable log levels           | 3 hours | Reduce noise in production |
+| P3.4 | Add user/session tracking             | 6 hours | Multi-user debugging       |
 
 ---
 
@@ -998,44 +1055,49 @@ async search(query: string, type?: 'show' | 'movie', year?: number) {
 ### Recommended Patterns for Debug Tool
 
 #### Pattern 1: Error Queries
+
 ```typescript
 const ERROR_PATTERNS = {
   'recent errors': { statusCode: [400, 401, 403, 404, 429, 500, 502, 503], limit: 10 },
   'show errors': { statusCode: [400, 401, 403, 404, 429, 500, 502, 503], limit: 20 },
   'last error': { statusCode: [400, 401, 403, 404, 429, 500, 502, 503], limit: 1 },
-  'failed requests': { statusCode: [400, 401, 403, 404, 429, 500, 502, 503] }
+  'failed requests': { statusCode: [400, 401, 403, 404, 429, 500, 502, 503] },
 };
 ```
 
 #### Pattern 2: Tool-Specific Queries
+
 ```typescript
 const TOOL_PATTERNS = {
-  'search': { toolName: ['search_show', 'search_episode'] },
-  'log': { toolName: ['log_watch', 'bulk_log'] },
-  'history': { toolName: ['get_history', 'summarize_history'] },
-  'watchlist': { toolName: ['follow_show', 'unfollow_show'] }
+  search: { toolName: ['search_show', 'search_episode'] },
+  log: { toolName: ['log_watch', 'bulk_log'] },
+  history: { toolName: ['get_history', 'summarize_history'] },
+  watchlist: { toolName: ['follow_show', 'unfollow_show'] },
 };
 ```
 
 #### Pattern 3: Performance Queries
+
 ```typescript
 const PERFORMANCE_PATTERNS = {
   'slow requests': { includeMetrics: true, sortBy: 'duration', order: 'desc' },
-  'performance': { includeMetrics: true },
-  'metrics': { includeMetrics: true }
+  performance: { includeMetrics: true },
+  metrics: { includeMetrics: true },
 };
 ```
 
 #### Pattern 4: Time-Based Queries
+
 ```typescript
 const TIME_PATTERNS = {
-  'today': { startDate: formatDate(new Date()) },
+  today: { startDate: formatDate(new Date()) },
   'last hour': { startDate: formatDate(subHours(new Date(), 1)) },
-  'recent': { limit: 20 }
+  recent: { limit: 20 },
 };
 ```
 
 ### Implementation Example:
+
 ```typescript
 function interpretDebugQuery(query: string): DebugRequestArgs {
   const args: DebugRequestArgs = {};
@@ -1072,6 +1134,7 @@ function interpretDebugQuery(query: string): DebugRequestArgs {
 ### Unit Tests Coverage (Current: Good, Target: Excellent)
 
 **Logger Tests:**
+
 - ✅ Test correlation ID generation
 - ✅ Test circular buffer size limits
 - ✅ Test file rotation
@@ -1081,6 +1144,7 @@ function interpretDebugQuery(query: string): DebugRequestArgs {
 - ⚠️ Missing: Test very large response truncation
 
 **Debug Tool Tests:**
+
 - ✅ Test parameter validation
 - ✅ Test filtering logic
 - ✅ Test metrics inclusion
@@ -1088,6 +1152,7 @@ function interpretDebugQuery(query: string): DebugRequestArgs {
 - ⚠️ Missing: Test cache metrics (when implemented)
 
 **Integration Tests:**
+
 - ⚠️ Missing: End-to-end logging flow
 - ⚠️ Missing: Debug tool with real logs
 - ⚠️ Missing: Cache + logging integration
@@ -1099,17 +1164,20 @@ function interpretDebugQuery(query: string): DebugRequestArgs {
 ### Code Documentation ✅ VERY GOOD
 
 **Logger.ts:**
+
 - ✅ Class-level JSDoc comments
 - ✅ Method-level comments
 - ✅ Interface documentation
 - ⚠️ Missing: Usage examples
 
 **Debug Tool:**
+
 - ✅ Tool description in schema
 - ✅ Parameter descriptions
 - ⚠️ Missing: Example queries in description
 
 **Recommendations:**
+
 1. Add OBSERVABILITY.md guide for users
 2. Add examples to tool descriptions
 3. Document natural language patterns (once implemented)
@@ -1121,6 +1189,7 @@ function interpretDebugQuery(query: string): DebugRequestArgs {
 ### Overall Assessment: **A+ (95/100)**
 
 #### Breakdown:
+
 - **Functionality:** 95/100 (Excellent - comprehensive, well-designed)
 - **User Experience:** 85/100 (Very Good - functional but needs NL support)
 - **Code Quality:** 95/100 (Excellent - clean, maintainable, performant)
@@ -1140,6 +1209,7 @@ The observability implementation is **excellent** and provides comprehensive deb
 - ✅ Strong type safety
 
 **Key Strengths:**
+
 1. Transparent logging via Axios interceptors
 2. Bounded memory usage with circular buffer
 3. Automatic file rotation
@@ -1147,12 +1217,14 @@ The observability implementation is **excellent** and provides comprehensive deb
 5. User-friendly error messages
 
 **Identified Gaps:**
+
 1. **P1:** Natural language support in debug tool
 2. **P1:** Cache metrics not exposed
 3. **P2:** No request replay capability
 4. **P2:** No rate limit dashboard
 
 **Recommendation:**
+
 - ✅ **APPROVE** for production use
 - ✅ Implement P1 issues in next sprint
 - ✅ Consider P2 issues for future enhancements
@@ -1164,11 +1236,13 @@ The observability implementation is **excellent** and provides comprehensive deb
 ### Update TECHNICAL_IMPROVEMENTS_PLAN.md
 
 **Status Updates:**
+
 - ✅ Phase 1 (Observability): **COMPLETE** - Exceeds requirements
 - ✅ Phase 2 (Caching): **COMPLETE** - Functional, minor observability gap
 - ⏳ Phase 3 (Parallel Operations): **PENDING** - Not yet implemented
 
 **New Issues to Document:**
+
 - P1.1: Natural language support in debug tool
 - P1.2: Expose cache metrics in debug_last_request
 - P2.1: Request replay capability

@@ -22,6 +22,7 @@ This document is historical and may contain outdated information.
 ### Morning (4 hours)
 
 - [ ] **Create logger infrastructure**
+
   ```bash
   touch src/lib/logger.ts
   touch src/lib/__tests__/logger.test.ts
@@ -53,6 +54,7 @@ This document is historical and may contain outdated information.
 ### Afternoon (4 hours)
 
 - [ ] **Implement debug tool function**
+
   ```typescript
   // In src/lib/tools.ts
   export async function debugLastRequest(args) { ... }
@@ -64,6 +66,7 @@ This document is historical and may contain outdated information.
   - [ ] Include cache metrics (placeholder for Phase 2)
 
 - [ ] **Add MCP tool schema**
+
   ```typescript
   // In src/index.ts
   {
@@ -83,6 +86,7 @@ This document is historical and may contain outdated information.
   - [ ] Update `followShow()` / `unfollowShow()` - Log show info
 
 - [ ] **Initialize logger in server**
+
   ```typescript
   // In src/index.ts - at server start
   import { initLogger } from './lib/logger.js';
@@ -112,6 +116,7 @@ This document is historical and may contain outdated information.
 ### Day 2 Morning (4 hours)
 
 - [ ] **Create cache infrastructure**
+
   ```bash
   touch src/lib/cache.ts
   touch src/lib/__tests__/cache.test.ts
@@ -138,7 +143,7 @@ This document is historical and may contain outdated information.
     query: string,
     type?: 'show' | 'movie',
     year?: number
-  ): string
+  ): string;
   ```
 
 ### Day 2 Afternoon (4 hours)
@@ -161,6 +166,7 @@ This document is historical and may contain outdated information.
 ### Day 3 Morning (4 hours)
 
 - [ ] **Integrate cache into TraktClient**
+
   ```typescript
   // In src/lib/trakt-client.ts
   private searchCache: LRUCache<string, unknown>;
@@ -174,6 +180,7 @@ This document is historical and may contain outdated information.
   ```
 
 - [ ] **Update search method**
+
   ```typescript
   async search(query, type?, year?) {
     const cacheKey = generateSearchCacheKey(query, type, year);
@@ -192,9 +199,10 @@ This document is historical and may contain outdated information.
   - [ ] Add periodic pruning (every 15 minutes)
 
 - [ ] **Update debug tool**
+
   ```typescript
   // In debugLastRequest response
-  cache: client.getCacheMetrics()
+  cache: client.getCacheMetrics();
   ```
 
 - [ ] **Add cache tests to TraktClient**
@@ -236,6 +244,7 @@ This document is historical and may contain outdated information.
 ### Day 4 Morning (4 hours)
 
 - [ ] **Create parallel utilities**
+
   ```bash
   touch src/lib/parallel.ts
   touch src/lib/__tests__/parallel.test.ts
@@ -248,6 +257,7 @@ This document is historical and may contain outdated information.
   - [ ] Define `ParallelConfig` and `ParallelResult` types
 
 - [ ] **Implement parallel search function**
+
   ```typescript
   export async function parallelSearchMovies(
     client: TraktClient,
@@ -256,7 +266,7 @@ This document is historical and may contain outdated information.
   ): Promise<{
     results: Map<string, TraktSearchResult[]>;
     errors: Map<string, string>;
-  }>
+  }>;
   ```
 
 - [ ] **Write parallel tests**
@@ -277,6 +287,7 @@ This document is historical and may contain outdated information.
   - [ ] Add performance logging (duration, API calls)
 
 - [ ] **Update disambiguation handling**
+
   ```typescript
   // For bulk operations, collect all disambiguation requests
   const disambiguationNeeded = [];
@@ -285,7 +296,7 @@ This document is historical and may contain outdated information.
     return {
       needs_disambiguation: true,
       movies: disambiguationNeeded,
-      message: "Multiple movies need disambiguation..."
+      message: 'Multiple movies need disambiguation...',
     };
   }
   ```
@@ -307,10 +318,11 @@ This document is historical and may contain outdated information.
   - [ ] Choose optimal concurrency
 
 - [ ] **Tune parallel configuration**
+
   ```typescript
   const config = {
-    maxConcurrency: 5,     // Tune this
-    batchSize: 10,         // Tune this
+    maxConcurrency: 5, // Tune this
+    batchSize: 10, // Tune this
     delayBetweenBatches: 100, // Tune this
   };
   ```
@@ -364,6 +376,7 @@ This document is historical and may contain outdated information.
   - [ ] Create `.env.test` file (DO NOT commit)
 
 - [ ] **Create integration test infrastructure**
+
   ```bash
   mkdir -p src/lib/__tests__/integration
   touch src/lib/__tests__/integration/setup.ts
@@ -383,9 +396,11 @@ This document is historical and may contain outdated information.
 ### Day 6 Afternoon (4 hours)
 
 - [ ] **Write search integration tests**
+
   ```bash
   touch src/lib/__tests__/integration/search.integration.test.ts
   ```
+
   - [ ] Test search for known movie ("The Matrix")
   - [ ] Test search for known show ("Breaking Bad")
   - [ ] Test year filter (Dune 2021)
@@ -393,9 +408,11 @@ This document is historical and may contain outdated information.
   - [ ] Run: `npm run test:integration`
 
 - [ ] **Write history integration tests**
+
   ```bash
   touch src/lib/__tests__/integration/history.integration.test.ts
   ```
+
   - [ ] Test add movie to history
   - [ ] Test retrieve history
   - [ ] Test history filtering
@@ -410,17 +427,21 @@ This document is historical and may contain outdated information.
 ### Day 7 Morning (4 hours)
 
 - [ ] **Write watchlist integration tests**
+
   ```bash
   touch src/lib/__tests__/integration/watchlist.integration.test.ts
   ```
+
   - [ ] Test add to watchlist
   - [ ] Test remove from watchlist
   - [ ] Test get watchlist
 
 - [ ] **Write calendar integration tests**
+
   ```bash
   touch src/lib/__tests__/integration/calendar.integration.test.ts
   ```
+
   - [ ] Test get upcoming episodes
   - [ ] Test date filtering
 
@@ -428,6 +449,7 @@ This document is historical and may contain outdated information.
   ```bash
   touch docs/INTEGRATION_TESTS.md
   ```
+
   - [ ] Setup instructions
   - [ ] Environment variables required
   - [ ] Running tests locally
@@ -437,9 +459,11 @@ This document is historical and may contain outdated information.
 ### Day 7 Afternoon (4 hours)
 
 - [ ] **CI/CD integration (optional)**
+
   ```bash
   touch .github/workflows/integration.yml
   ```
+
   - [ ] Weekly scheduled run
   - [ ] Manual trigger option
   - [ ] Store secrets in GitHub
@@ -454,6 +478,7 @@ This document is historical and may contain outdated information.
   ```bash
   touch scripts/cleanup-test-account.ts
   ```
+
   - [ ] Manual cleanup utility
   - [ ] Remove all test data
   - [ ] Reset account state
@@ -551,18 +576,21 @@ This document is historical and may contain outdated information.
 If issues are discovered after merge:
 
 ### Rollback Observability
+
 ```bash
 # Disable logging
 export LOGGING_ENABLED=false
 ```
 
 ### Rollback Caching
+
 ```bash
 # Disable cache
 export CACHE_ENABLED=false
 ```
 
 ### Rollback Parallelization
+
 ```bash
 # Use sequential bulk log (old implementation)
 git revert <commit-hash>
@@ -575,21 +603,25 @@ git revert <commit-hash>
 At the end of this sprint, we should have:
 
 ✅ **Observability:**
+
 - Request/response logs for all tools
 - Debug tool with metrics
 - Request correlation with IDs
 
 ✅ **Performance:**
-- >30% cache hit rate
+
+- > 30% cache hit rate
 - 2-3x speedup for bulk operations
 - <400ms average tool response time
 
 ✅ **Quality:**
+
 - 95%+ test coverage for new modules
 - Integration tests (optional)
 - No breaking changes
 
 ✅ **Documentation:**
+
 - Complete implementation docs
 - API documentation for new tools
 - Integration test guide (if applicable)

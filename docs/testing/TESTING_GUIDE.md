@@ -21,6 +21,7 @@
 ## Overview
 
 The Trakt.tv MCP server has undergone comprehensive testing across:
+
 - **10 MCP tools** (all Phase 3 tools validated)
 - **Natural language date parsing** (35+ patterns)
 - **Episode range parsing** (simple, complex, non-contiguous)
@@ -38,11 +39,13 @@ The Trakt.tv MCP server has undergone comprehensive testing across:
 **Location:** `/src/lib/__tests__/`
 
 **Files:**
+
 - `utils.test.ts` - Date parsing, validation, utility functions
 - `tools.test.ts` - MCP tool implementations
 - `logger.test.ts` - Logging infrastructure
 
 **Run tests:**
+
 ```bash
 # Run all tests
 npm test
@@ -64,11 +67,13 @@ npm run test:coverage
 **Purpose:** Test tools in a live MCP environment with real Trakt.tv API calls.
 
 **Setup:**
+
 1. Build the project: `npm run build`
 2. Start MCP Inspector (if configured)
 3. Test tools using the web interface
 
 **URL Format:**
+
 ```
 http://localhost:6274/?MCP_PROXY_AUTH_TOKEN=<token>
 ```
@@ -80,6 +85,7 @@ http://localhost:6274/?MCP_PROXY_AUTH_TOKEN=<token>
 **Location:** Root directory
 
 Historical test scripts (archived):
+
 - `test-summarize-history.mjs` - Happy path testing for history queries
 - `test-edge-cases.mjs` - Edge case validation
 - `test-calculations.mjs` - Statistics accuracy verification
@@ -94,13 +100,13 @@ Historical test scripts (archived):
 
 **Overall Status:** ✅ **PRODUCTION READY**
 
-| Component | Tests | Pass Rate | Status |
-|-----------|-------|-----------|--------|
-| Date Parsing | 45+ | 100% | PASS |
-| Episode Parsing | 20+ | 100% | PASS |
-| MCP Tools | 27 | 100% | PASS |
-| Error Handling | 15+ | 100% | PASS |
-| **TOTAL** | **107+** | **100%** | **PASS** |
+| Component       | Tests    | Pass Rate | Status   |
+| --------------- | -------- | --------- | -------- |
+| Date Parsing    | 45+      | 100%      | PASS     |
+| Episode Parsing | 20+      | 100%      | PASS     |
+| MCP Tools       | 27       | 100%      | PASS     |
+| Error Handling  | 15+      | 100%      | PASS     |
+| **TOTAL**       | **107+** | **100%**  | **PASS** |
 
 **Critical Bugs Found:** 2 (both fixed in Phase 3)
 **Minor Issues:** 2 (both addressed)
@@ -109,18 +115,18 @@ Historical test scripts (archived):
 
 ### Tool-by-Tool Status
 
-| Tool | Status | Tests | Issues |
-|------|--------|-------|--------|
-| `log_watch` | EXCELLENT | 10 | 0 |
-| `bulk_log` | EXCELLENT | 6 | 0 |
-| `search_episode` | PASS | 6 | 0 (validation issue fixed) |
-| `get_history` | EXCELLENT | 5 | 0 |
-| `summarize_history` | EXCELLENT | 8 | 0 |
-| `get_upcoming` | PASS | 5 | 0 (days=0 fixed) |
-| `follow_show` | EXCELLENT | 3 | 0 |
-| `unfollow_show` | EXCELLENT | 2 | 0 |
-| `search_show` | EXCELLENT | 4 | 0 |
-| `get_watchlist` | EXCELLENT | 3 | 0 |
+| Tool                | Status    | Tests | Issues                     |
+| ------------------- | --------- | ----- | -------------------------- |
+| `log_watch`         | EXCELLENT | 10    | 0                          |
+| `bulk_log`          | EXCELLENT | 6     | 0                          |
+| `search_episode`    | PASS      | 6     | 0 (validation issue fixed) |
+| `get_history`       | EXCELLENT | 5     | 0                          |
+| `summarize_history` | EXCELLENT | 8     | 0                          |
+| `get_upcoming`      | PASS      | 5     | 0 (days=0 fixed)           |
+| `follow_show`       | EXCELLENT | 3     | 0                          |
+| `unfollow_show`     | EXCELLENT | 2     | 0                          |
+| `search_show`       | EXCELLENT | 4     | 0                          |
+| `get_watchlist`     | EXCELLENT | 3     | 0                          |
 
 **Total:** 10 tools, 52 test scenarios, 100% pass rate
 
@@ -155,17 +161,20 @@ npm run test:ui
 ### Test Output Interpretation
 
 **Successful Test:**
+
 ```
 ✓ parseNaturalDate › yesterday › should return previous day at midnight UTC (3ms)
 ```
 
 **Failed Test:**
+
 ```
 ✗ parseNaturalDate › yesterday › should return previous day at midnight UTC (3ms)
   AssertionError: expected '2025-11-24T12:00:00.000Z' to be '2025-11-24T00:00:00.000Z'
 ```
 
 **Coverage Report:**
+
 ```
 --------------------------|---------|----------|---------|---------|-------------------
 File                      | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
@@ -186,6 +195,7 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 **Test Type:** Automated Integration Testing + Manual Verification
 
 **Key Findings:**
+
 1. **Natural language date parsing:** 100% working
    - All 35+ patterns validated
    - Edge cases handled correctly
@@ -215,6 +225,7 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 **Test:** "I watched Princess Mononoke yesterday"
 
 **Workflow Tested:**
+
 1. Search for "Princess Mononoke" → Found correct movie
 2. Parse "yesterday" → Converted to previous day at UTC midnight
 3. Log watch entry → Successfully added to history
@@ -223,6 +234,7 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 **Result:** ✅ PASS (all 9 test steps)
 
 **Edge Cases Discovered:**
+
 - Multiple content types with same name (movies + TV shows) → Disambiguation works
 - Natural date parsing case-insensitive → Confirmed working
 - UTC timezone handling → Consistent across all tests
@@ -237,6 +249,7 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 **Pass Rate:** 94.7% initially → 100% after fixes
 
 **Validated:**
+
 - Date range filtering (January 2025)
 - Statistics calculations (100% accurate)
 - Natural language dates ("yesterday", "last week")
@@ -245,6 +258,7 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 - Error messages for invalid dates
 
 **Performance:**
+
 - January range query: 261ms (Good)
 - Open-ended range: 966ms (Acceptable)
 - All-time query: 182ms (Excellent)
@@ -258,44 +272,44 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 
 ### Date Edge Cases
 
-| Test Case | Input | Expected Result | Status |
-|-----------|-------|-----------------|--------|
-| Empty string | `""` | Error: "Date parameter cannot be empty" | ✅ PASS |
-| Zero days | `"0 days ago"` | Error: "Ambiguous date" | ✅ PASS |
-| Zero weeks | `"0 weeks ago"` | Error: "Ambiguous date" | ✅ PASS |
-| Max days | `"365 days ago"` | Valid (exactly 1 year) | ✅ PASS |
-| Exceed max days | `"366 days ago"` | Error: "Date too far in past" | ✅ PASS |
-| Max weeks | `"52 weeks ago"` | Valid (exactly 1 year) | ✅ PASS |
-| Exceed max weeks | `"53 weeks ago"` | Error: "Date too far in past" | ✅ PASS |
-| Invalid format | `"tomorow"` | Error: "Unable to parse date" | ✅ PASS |
-| Future date | `"2030-01-01"` | Valid (returns empty results) | ✅ PASS |
+| Test Case        | Input            | Expected Result                         | Status  |
+| ---------------- | ---------------- | --------------------------------------- | ------- |
+| Empty string     | `""`             | Error: "Date parameter cannot be empty" | ✅ PASS |
+| Zero days        | `"0 days ago"`   | Error: "Ambiguous date"                 | ✅ PASS |
+| Zero weeks       | `"0 weeks ago"`  | Error: "Ambiguous date"                 | ✅ PASS |
+| Max days         | `"365 days ago"` | Valid (exactly 1 year)                  | ✅ PASS |
+| Exceed max days  | `"366 days ago"` | Error: "Date too far in past"           | ✅ PASS |
+| Max weeks        | `"52 weeks ago"` | Valid (exactly 1 year)                  | ✅ PASS |
+| Exceed max weeks | `"53 weeks ago"` | Error: "Date too far in past"           | ✅ PASS |
+| Invalid format   | `"tomorow"`      | Error: "Unable to parse date"           | ✅ PASS |
+| Future date      | `"2030-01-01"`   | Valid (returns empty results)           | ✅ PASS |
 
 ---
 
 ### Episode Edge Cases
 
-| Test Case | Input | Expected Result | Status |
-|-----------|-------|-----------------|--------|
-| Zero episode | `0` | Error: "Episode must be positive integer" | ✅ PASS |
-| Negative episode | `-1` | Error: "Episode must be positive integer" | ✅ PASS |
-| Fractional episode | `1.5` | Error: "Episode must be positive integer" | ✅ PASS |
-| Negative season | `-1` | Error: "Season must be non-negative integer" | ✅ PASS |
-| Zero season | `0` | Valid (special episodes) | ✅ PASS |
-| Reversed range | `"5-1"` | Error: "Invalid episode range" | ✅ PASS |
-| Missing range end | `"1-"` | Error: "Invalid episode range" | ✅ PASS |
-| Missing range start | `"-5"` | Error: "Invalid episode range" | ✅ PASS |
-| Non-numeric | `"abc"` | Error: "Invalid episode range" | ✅ PASS |
+| Test Case           | Input   | Expected Result                              | Status  |
+| ------------------- | ------- | -------------------------------------------- | ------- |
+| Zero episode        | `0`     | Error: "Episode must be positive integer"    | ✅ PASS |
+| Negative episode    | `-1`    | Error: "Episode must be positive integer"    | ✅ PASS |
+| Fractional episode  | `1.5`   | Error: "Episode must be positive integer"    | ✅ PASS |
+| Negative season     | `-1`    | Error: "Season must be non-negative integer" | ✅ PASS |
+| Zero season         | `0`     | Valid (special episodes)                     | ✅ PASS |
+| Reversed range      | `"5-1"` | Error: "Invalid episode range"               | ✅ PASS |
+| Missing range end   | `"1-"`  | Error: "Invalid episode range"               | ✅ PASS |
+| Missing range start | `"-5"`  | Error: "Invalid episode range"               | ✅ PASS |
+| Non-numeric         | `"abc"` | Error: "Invalid episode range"               | ✅ PASS |
 
 ---
 
 ### Content Name Edge Cases
 
-| Test Case | Input | Expected Result | Status |
-|-----------|-------|-----------------|--------|
-| Empty string | `""` | Error: "cannot be empty or whitespace" | ✅ PASS |
-| Whitespace only | `"   "` | Error: "cannot be empty or whitespace" | ✅ PASS |
-| Misspelled name | `"Breaking Bed"` | Error: "No show found" + suggestions | ✅ PASS |
-| Ambiguous name | `"Dune"` | Disambiguation response with options | ✅ PASS |
+| Test Case       | Input            | Expected Result                        | Status  |
+| --------------- | ---------------- | -------------------------------------- | ------- |
+| Empty string    | `""`             | Error: "cannot be empty or whitespace" | ✅ PASS |
+| Whitespace only | `"   "`          | Error: "cannot be empty or whitespace" | ✅ PASS |
+| Misspelled name | `"Breaking Bed"` | Error: "No show found" + suggestions   | ✅ PASS |
+| Ambiguous name  | `"Dune"`         | Disambiguation response with options   | ✅ PASS |
 
 ---
 
@@ -304,24 +318,31 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 ### Supported Date Patterns (All Validated)
 
 **Absolute Days (5 patterns):**
+
 - today, yesterday, tonight, last night, last nite
 
 **Time-of-Day (4 patterns):**
+
 - this morning, earlier today, this afternoon, this evening
 
 **Relative Periods (4 patterns):**
+
 - N days ago (1-365), N weeks ago (1-52), last week, last month
 
 **Weekdays (7 patterns):**
+
 - last monday, last tuesday, last wednesday, last thursday, last friday, last saturday, last sunday
 
 **Special (2 patterns):**
+
 - last weekend, this month
 
 **Month Names (12 patterns):**
+
 - January/Jan, February/Feb, March/Mar, April/Apr, May, June/Jun, July/Jul, August/Aug, September/Sep, October/Oct, November/Nov, December/Dec
 
 **ISO Dates:**
+
 - YYYY-MM-DD
 
 **Total:** 35+ patterns all tested and working
@@ -331,15 +352,19 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 ### Episode Range Patterns (All Validated)
 
 **Simple Ranges:**
+
 - `1-5` → Episodes 1, 2, 3, 4, 5
 
 **Non-Contiguous:**
+
 - `1,3,5` → Episodes 1, 3, 5
 
 **Mixed:**
+
 - `1-3,5,7-9` → Episodes 1, 2, 3, 5, 7, 8, 9
 
 **Complex:**
+
 - `1,3-5,8,10-12` → Episodes 1, 3, 4, 5, 8, 10, 11, 12
 
 **All formats tested and working correctly.**
@@ -351,6 +376,7 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 ### Setup Instructions
 
 1. **Build the project:**
+
    ```bash
    npm run build
    ```
@@ -373,6 +399,7 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 #### Test 1: search_episode
 
 **Input:**
+
 ```json
 {
   "showName": "Breaking Bad",
@@ -382,13 +409,14 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 ```
 
 **Expected:**
+
 ```json
 {
   "success": true,
   "episode": {
     "title": "Pilot",
     "season": 1,
-    "number": 1,
+    "number": 1
     // ... other metadata
   }
 }
@@ -399,6 +427,7 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 #### Test 2: bulk_log
 
 **Input:**
+
 ```json
 {
   "type": "episodes",
@@ -410,6 +439,7 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 ```
 
 **Expected:**
+
 ```json
 {
   "success": true,
@@ -426,6 +456,7 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 #### Test 3: summarize_history
 
 **Input:**
+
 ```json
 {
   "startDate": "2025-01-01",
@@ -434,13 +465,14 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 ```
 
 **Expected:**
+
 ```json
 {
   "success": true,
   "data": {
     "total_watched": 12,
     "unique_movies": 12,
-    "unique_shows": 0,
+    "unique_shows": 0
     // ... statistics
   }
 }
@@ -451,6 +483,7 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 #### Test 4: Natural Language Date
 
 **Input:**
+
 ```json
 {
   "tool": "log_watch",
@@ -463,6 +496,7 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 ```
 
 **Expected:**
+
 - "last weekend" parsed to last Saturday at UTC midnight
 - Movie logged successfully
 - Appears in get_history
@@ -505,12 +539,12 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 
 **Overall:** 95.23%
 
-| Module | Coverage | Status |
-|--------|----------|--------|
-| utils.ts | 97.12% | EXCELLENT |
-| tools.ts | 95.87% | EXCELLENT |
-| logger.ts | 98.45% | EXCELLENT |
-| resources/* | 94.21% | GOOD |
+| Module       | Coverage | Status    |
+| ------------ | -------- | --------- |
+| utils.ts     | 97.12%   | EXCELLENT |
+| tools.ts     | 95.87%   | EXCELLENT |
+| logger.ts    | 98.45%   | EXCELLENT |
+| resources/\* | 94.21%   | GOOD      |
 
 **Target:** 95%+ coverage for all modules
 
@@ -519,6 +553,7 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 ### Uncovered Areas
 
 Minor edge cases with low risk:
+
 - Some disambiguation scenarios with rare content types
 - Error paths for network failures (difficult to mock)
 - Certain Trakt API error responses

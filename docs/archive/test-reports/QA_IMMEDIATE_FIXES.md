@@ -18,8 +18,9 @@
 JavaScript's `.sort()` method sorts lexicographically by default, not numerically:
 
 ```javascript
-[10, 2, 4, 6, 8].sort()  // Returns: [10, 2, 4, 6, 8] (wrong)
-[10, 2, 4, 6, 8].sort((a, b) => a - b)  // Returns: [2, 4, 6, 8, 10] (correct)
+[10, 2, 4, 6, 8]
+  .sort() // Returns: [10, 2, 4, 6, 8] (wrong)
+  [(10, 2, 4, 6, 8)].sort((a, b) => a - b); // Returns: [2, 4, 6, 8, 10] (correct)
 ```
 
 ### Failed Tests
@@ -31,13 +32,15 @@ JavaScript's `.sort()` method sorts lexicographically by default, not numericall
 ### Fix
 
 Replace all instances of:
+
 ```typescript
-expect(succeeded.sort()).toEqual([2, 4, 6, 8, 10])
+expect(succeeded.sort()).toEqual([2, 4, 6, 8, 10]);
 ```
 
 With:
+
 ```typescript
-expect(succeeded.sort((a, b) => a - b)).toEqual([2, 4, 6, 8, 10])
+expect(succeeded.sort((a, b) => a - b)).toEqual([2, 4, 6, 8, 10]);
 ```
 
 ### Verification
@@ -71,7 +74,7 @@ export async function debugLastRequest(
     toolName?: string;
     method?: string;
     statusCode?: number;
-    includeMetrics?: boolean;  // ❌ Defaults to undefined (falsy)
+    includeMetrics?: boolean; // ❌ Defaults to undefined (falsy)
   }
 ): Promise<ToolSuccess<{ logs: RequestLog[]; metrics?: ToolMetrics[] }> | ToolError> {
   const { limit = 10, toolName, method, statusCode, includeMetrics = true } = args;
@@ -82,11 +85,13 @@ export async function debugLastRequest(
 ### Fix
 
 **Option 1: Change default in function signature**
+
 ```typescript
 includeMetrics?: boolean = true  // ✅ Default to true
 ```
 
 **Option 2: Change destructuring default**
+
 ```typescript
 const { limit = 10, toolName, method, statusCode, includeMetrics = true } = args;
 // Already correct! ✅
@@ -119,17 +124,19 @@ expect(result.data.metrics).toBeDefined();
 
 **Priority:** P1 (High - UX Improvement)
 **Files:**
+
 - `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/tools.ts`
 - `/Users/kofifort/Repos/trakt.tv-mcp/src/index.ts`
-**Impact:** Users need to know HTTP status codes to filter errors
-**Effort:** 15 minutes
+  **Impact:** Users need to know HTTP status codes to filter errors
+  **Effort:** 15 minutes
 
 ### Problem
 
 To see only errors, users must manually specify `statusCode` parameters like:
+
 ```typescript
-debug_last_request({ statusCode: 404 })  // Only 404s
-debug_last_request({ statusCode: 500 })  // Only 500s
+debug_last_request({ statusCode: 404 }); // Only 404s
+debug_last_request({ statusCode: 500 }); // Only 500s
 ```
 
 There's no easy "show me all errors" filter.
@@ -214,7 +221,7 @@ if (filteredLogs.length === 0) {
   if (toolName) parts.push(`for tool "${toolName}"`);
   if (method) parts.push(`with method ${method}`);
   if (statusCode) parts.push(`with status ${statusCode}`);
-  if (errorsOnly) parts.push(`(errors only)`);  // ✅ NEW
+  if (errorsOnly) parts.push(`(errors only)`); // ✅ NEW
   message = parts.join(' ') + '.';
   // ...
 }
@@ -271,26 +278,24 @@ describe('debugLastRequest', () => {
     expect(result.success).toBe(true);
     const logs = (result as ToolSuccess<{ logs: RequestLog[] }>).data.logs;
 
-    expect(logs).toHaveLength(2);  // Only 404 and 500
-    expect(logs.every(log => log.statusCode && log.statusCode >= 400)).toBe(true);
+    expect(logs).toHaveLength(2); // Only 404 and 500
+    expect(logs.every((log) => log.statusCode && log.statusCode >= 400)).toBe(true);
   });
 
   it('should combine errorsOnly with other filters', async () => {
     // Test that errorsOnly works with toolName filter
     const result = await debugLastRequest(client, {
       toolName: 'log_watch',
-      errorsOnly: true
+      errorsOnly: true,
     });
 
     expect(result.success).toBe(true);
     const logs = (result as ToolSuccess<{ logs: RequestLog[] }>).data.logs;
 
     // All logs should be from log_watch AND have error status codes
-    expect(logs.every(log =>
-      log.toolName === 'log_watch' &&
-      log.statusCode &&
-      log.statusCode >= 400
-    )).toBe(true);
+    expect(
+      logs.every((log) => log.toolName === 'log_watch' && log.statusCode && log.statusCode >= 400)
+    ).toBe(true);
   });
 });
 ```
@@ -302,6 +307,7 @@ npm test -- tools.test.ts
 ```
 
 Manual test:
+
 ```bash
 # Using MCP client
 mcp-client call debug_last_request '{"errorsOnly": true, "limit": 10}'
@@ -495,6 +501,7 @@ npm run test:coverage
 ## Success Criteria
 
 After fixes:
+
 - ✅ 438/438 tests passing (100%)
 - ✅ No warnings in test output
 - ✅ Debug tool includes cache metrics by default

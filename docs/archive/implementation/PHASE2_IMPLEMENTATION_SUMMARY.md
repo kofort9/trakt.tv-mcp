@@ -28,8 +28,10 @@ Phase 2 reorganizes the project documentation from a flat structure with 17 mark
 ### 1. Documentation Files Created (by Claude)
 
 #### ✅ /Users/kofifort/Repos/trakt.tv-mcp/CHANGELOG.md
+
 **Purpose:** Version history and release notes
 **Content:**
+
 - Unreleased changes (Phase 3 natural language features)
 - Version 0.3.0 (bulk logging, history summaries)
 - Version 0.2.0 (disambiguation, transport changes)
@@ -39,7 +41,9 @@ Phase 2 reorganizes the project documentation from a flat structure with 17 mark
 ---
 
 #### ✅ /Users/kofifort/Repos/trakt.tv-mcp/README.md (updated)
+
 **Changes:**
+
 - Added Natural Language Support emphasis in project description
 - Added Quick Start section with example queries
 - Added Documentation section with links to new structure
@@ -48,6 +52,7 @@ Phase 2 reorganizes the project documentation from a flat structure with 17 mark
 - Enhanced Features section with natural language capabilities
 
 **Key Additions:**
+
 - Link to `docs/README.md` for full documentation index
 - Links to pattern guides and Claude integration documentation
 - Natural language examples for users
@@ -56,8 +61,10 @@ Phase 2 reorganizes the project documentation from a flat structure with 17 mark
 ---
 
 #### ✅ /Users/kofifort/Repos/trakt.tv-mcp/docs/README.md
+
 **Purpose:** Central documentation navigation index
 **Content:**
+
 - Quick navigation by audience (Users, AI Assistants, Contributors)
 - Visual directory structure tree
 - Documentation by topic (Authentication, NL Support, Testing, etc.)
@@ -70,8 +77,10 @@ Phase 2 reorganizes the project documentation from a flat structure with 17 mark
 ### 2. Reorganization Script Created
 
 #### ✅ /Users/kofifort/Repos/trakt.tv-mcp/reorganize_docs.sh
+
 **Purpose:** Automated bash script to execute the reorganization
 **Features:**
+
 - Verifies repository root directory
 - Creates directory structure (`docs/guides/`, `docs/testing/`, `docs/archive/`)
 - Moves files using `git mv` to preserve history
@@ -80,6 +89,7 @@ Phase 2 reorganizes the project documentation from a flat structure with 17 mark
 - Includes warning messages for missing files
 
 **Safety Features:**
+
 - `set -e` - exits on error
 - `set -u` - treats unset variables as errors
 - Validates current directory before execution
@@ -90,8 +100,10 @@ Phase 2 reorganizes the project documentation from a flat structure with 17 mark
 ### 3. Cross-Reference Update Guide Created
 
 #### ✅ /Users/kofifort/Repos/trakt.tv-mcp/cross_reference_updates.md
+
 **Purpose:** Documents all cross-references that need updating after reorganization
 **Content:**
+
 - 3 files requiring updates
 - 10 total references to update
 - Line-by-line before/after examples
@@ -99,6 +111,7 @@ Phase 2 reorganizes the project documentation from a flat structure with 17 mark
 - Verification commands to check results
 
 **Files Affected:**
+
 - `docs/guides/CLAUDE_PROMPT_GUIDELINES.md` - 2 references
 - `docs/guides/NL_PATTERNS_REFERENCE.md` - 1 reference
 - `docs/guides/CONTRIBUTING_NL.md` - 7 references
@@ -108,6 +121,7 @@ Phase 2 reorganizes the project documentation from a flat structure with 17 mark
 ## Directory Structure
 
 ### Before (17 files in root)
+
 ```
 /Users/kofifort/Repos/trakt.tv-mcp/
 ├── CLAUDE_PROMPT_GUIDELINES.md
@@ -131,6 +145,7 @@ Phase 2 reorganizes the project documentation from a flat structure with 17 mark
 ```
 
 ### After (organized hierarchy)
+
 ```
 /Users/kofifort/Repos/trakt.tv-mcp/
 ├── CHANGELOG.md                       [NEW]
@@ -165,12 +180,14 @@ Phase 2 reorganizes the project documentation from a flat structure with 17 mark
 ## Files Moved (17 total)
 
 ### To docs/guides/ (4 files)
+
 1. `CLAUDE_PROMPT_GUIDELINES.md` - AI assistant integration guide
 2. `NL_PATTERNS_REFERENCE.md` - Quick reference cheat sheet
 3. `CONTRIBUTING_NL.md` - Guide for extending natural language patterns
 4. `NATURAL_LANGUAGE_PATTERNS.md` - Comprehensive pattern library
 
 ### To docs/testing/ (11 files)
+
 1. `PHASE3_COMPREHENSIVE_TEST_REPORT.md` - Complete Phase 3 test results
 2. `PHASE3_RETEST_EXECUTIVE_SUMMARY.md` - Post-fix verification summary
 3. `PHASE3_RETEST_RESULTS.md` - Detailed retest results
@@ -184,6 +201,7 @@ Phase 2 reorganizes the project documentation from a flat structure with 17 mark
 11. `FINAL_TEST_REPORT_WITH_BUGS.md` - Final test report with bug documentation
 
 ### To docs/archive/ (2 files)
+
 1. `BUG_FIX_REPORT.md` - Historical bug fix documentation
 2. `CRITICAL_BUGS_AND_PLAN.md` - Critical bug tracking and resolution plan
 
@@ -200,6 +218,7 @@ chmod +x reorganize_docs.sh
 ```
 
 **Expected Output:**
+
 ```
 ================================================
 Phase 2: Documentation Reorganization
@@ -238,6 +257,7 @@ Reorganization Complete!
 See `/Users/kofifort/Repos/trakt.tv-mcp/cross_reference_updates.md` for detailed instructions.
 
 **Quick automated update:**
+
 ```bash
 # Update CLAUDE_PROMPT_GUIDELINES.md
 sed -i '' 's|/Users/kofifort/Repos/trakt.tv-mcp/NATURAL_LANGUAGE_PATTERNS.md|/Users/kofifort/Repos/trakt.tv-mcp/docs/guides/NATURAL_LANGUAGE_PATTERNS.md|g' docs/guides/CLAUDE_PROMPT_GUIDELINES.md
@@ -303,26 +323,31 @@ Preserves git history through git mv for all file moves."
 ## Benefits of New Structure
 
 ### 1. Improved Discoverability
+
 - Clear separation by document type (guides, tests, archive)
 - Central navigation index (`docs/README.md`)
 - Topic-based organization in index
 
 ### 2. Cleaner Repository Root
+
 - Only 3 markdown files in root (README, CHANGELOG, CLAUDE.md)
 - All other documentation under `docs/`
 - Easier for new contributors to understand project structure
 
 ### 3. Better Maintainability
+
 - Related documents grouped together
 - Historical/archived content clearly separated
 - Test reports isolated from user-facing guides
 
 ### 4. Preserved Git History
+
 - All moves use `git mv` to maintain file history
 - Blame and log commands still work
 - No loss of authorship or change tracking
 
 ### 5. Scalability
+
 - Easy to add new documentation categories
 - Clear conventions for future documents
 - Structure supports growth without cluttering root
@@ -332,22 +357,26 @@ Preserves git history through git mv for all file moves."
 ## Documentation Standards Established
 
 ### File Naming Conventions
+
 - Use UPPERCASE for documentation files (existing convention)
 - Use underscores for multi-word names
-- Include descriptive suffixes (_REFERENCE, _GUIDE, _REPORT)
+- Include descriptive suffixes (\_REFERENCE, \_GUIDE, \_REPORT)
 
 ### Directory Structure
+
 - `/docs/` - All project documentation
 - `/docs/guides/` - User and developer guides
 - `/docs/testing/` - Test reports and QA documentation
 - `/docs/archive/` - Historical documents and resolved issues
 
 ### Cross-Reference Format
+
 - Use absolute paths for file references: `/Users/kofifort/Repos/trakt.tv-mcp/path/to/file.ts`
 - Use relative paths for markdown links: `[Link](../guides/FILE.md)`
 - Always verify links after restructuring
 
 ### Index File Standards
+
 - Each major directory should have a README.md
 - Index files should provide navigation and context
 - Include "Last Updated" dates
@@ -389,6 +418,7 @@ Preserves git history through git mv for all file moves."
 5. `/Users/kofifort/Repos/trakt.tv-mcp/PHASE2_IMPLEMENTATION_SUMMARY.md` - This file
 
 **Modified:**
+
 - `/Users/kofifort/Repos/trakt.tv-mcp/README.md` - Enhanced with documentation structure
 
 ---

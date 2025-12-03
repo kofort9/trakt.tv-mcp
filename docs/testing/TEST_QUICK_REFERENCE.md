@@ -5,6 +5,7 @@
 ## Overall Status
 
 **PRODUCTION READY**
+
 - Test Success Rate: 100% (all issues fixed)
 - Critical Issues: 0
 - Major Issues: 0
@@ -14,13 +15,13 @@
 
 ## Tool Status at a Glance
 
-| Tool | Status | Tests | Issues |
-|------|--------|-------|--------|
-| search_episode | PASS | 6 | 1 minor |
-| bulk_log | EXCELLENT | 6 | 0 |
-| get_history | EXCELLENT | 5 | 0 |
-| get_upcoming | PASS | 5 | 1 minor |
-| follow_show / unfollow_show | EXCELLENT | 5 | 0 |
+| Tool                        | Status    | Tests | Issues  |
+| --------------------------- | --------- | ----- | ------- |
+| search_episode              | PASS      | 6     | 1 minor |
+| bulk_log                    | EXCELLENT | 6     | 0       |
+| get_history                 | EXCELLENT | 5     | 0       |
+| get_upcoming                | PASS      | 5     | 1 minor |
+| follow_show / unfollow_show | EXCELLENT | 5     | 0       |
 
 ---
 
@@ -38,12 +39,14 @@
 ## Minor Issues (Non-Blocking)
 
 ### Issue 1: Validation Error Code
+
 - **Tool:** search_episode
 - **Input:** Negative season number
 - **Current:** TRAKT_API_ERROR (should be VALIDATION_ERROR)
 - **Impact:** LOW - error message is clear
 
 ### Issue 2: Days=0 Validation
+
 - **Tool:** get_upcoming
 - **Input:** days: 0
 - **Current:** Success with empty array (should be VALIDATION_ERROR)
@@ -73,6 +76,7 @@ node dist/test-runner.js
 ## Example Usage
 
 ### search_episode
+
 ```json
 {
   "showName": "Breaking Bad",
@@ -83,6 +87,7 @@ node dist/test-runner.js
 ```
 
 ### bulk_log
+
 ```json
 {
   "type": "episodes",
@@ -95,6 +100,7 @@ node dist/test-runner.js
 ```
 
 ### get_history
+
 ```json
 {
   "type": "shows",
@@ -105,6 +111,7 @@ node dist/test-runner.js
 ```
 
 ### get_upcoming
+
 ```json
 {
   "days": 7
@@ -113,6 +120,7 @@ node dist/test-runner.js
 ```
 
 ### follow_show
+
 ```json
 {
   "showName": "Stranger Things"
@@ -126,6 +134,7 @@ node dist/test-runner.js
 **Status:** PRODUCTION READY
 
 **For detailed information:**
+
 - Natural language patterns: [NATURAL_LANGUAGE_GUIDE.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/guides/NATURAL_LANGUAGE_GUIDE.md)
 - Full testing guide: [TESTING_GUIDE.md](./TESTING_GUIDE.md)
 - Contributing: [CONTRIBUTING.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/guides/CONTRIBUTING.md)

@@ -22,6 +22,7 @@ This document is historical and may contain outdated information.
 While testing the natural language input **"I watched Princess Mononoke yesterday"**, comprehensive testing revealed **1 CRITICAL bug** that blocks production deployment.
 
 ### Quick Stats
+
 - **Tests Run:** 20
 - **Tests Passed:** 19 (95%)
 - **Critical Bugs:** 1 (date parsing)
@@ -33,6 +34,7 @@ While testing the natural language input **"I watched Princess Mononoke yesterda
 ## Critical Bug Discovered
 
 ### Bug #1: Date Parsing Off By One Day
+
 **Severity:** 🔴 CRITICAL
 **Status:** CONFIRMED
 **Impact:** Wrong dates in watch history
@@ -40,12 +42,14 @@ While testing the natural language input **"I watched Princess Mononoke yesterda
 #### Evidence
 
 **Test Execution:**
+
 - Test run: November 19, 2025 (Tuesday) at 00:26 UTC
 - User input: "yesterday"
 - Expected result: November 18, 2025 (Monday)
 - **Actual result:** November 17, 2025 (Sunday) ❌
 
 **Proof:**
+
 ```
 Current system time: 2025-11-19T00:26:33.524Z
 Today (expected): 2025-11-19 (Tuesday)
@@ -63,6 +67,7 @@ Match: ❌ OFF BY 1 DAY
 **Investigation Findings:**
 
 The code uses `date-fns` library correctly:
+
 ```typescript
 // src/lib/utils.ts line 23-24
 if (lowerInput === 'yesterday') {
@@ -80,10 +85,10 @@ if (lowerInput === 'yesterday') {
 
 ```typescript
 // CURRENT CODE (BUGGY):
-const now = new Date();  // Gets local time
+const now = new Date(); // Gets local time
 return format(
-  startOfDay(subDays(now, 1)),  // startOfDay uses local timezone
-  "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"  // But forces 'Z' suffix (UTC indicator)
+  startOfDay(subDays(now, 1)), // startOfDay uses local timezone
+  "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" // But forces 'Z' suffix (UTC indicator)
 );
 
 // This creates a mismatch:
@@ -95,11 +100,12 @@ return format(
 #### The Fix
 
 **Option A: Use UTC explicitly**
+
 ```typescript
 import { UTCDate } from '@date-fns/utc';
 
 export function parseNaturalDate(input: string): string {
-  const now = new UTCDate();  // Force UTC, not local time
+  const now = new UTCDate(); // Force UTC, not local time
   const lowerInput = input.toLowerCase().trim();
 
   if (lowerInput === 'yesterday') {
@@ -114,29 +120,24 @@ export function parseNaturalDate(input: string): string {
 ```
 
 **Option B: Use native Date methods (simpler)**
+
 ```typescript
 export function parseNaturalDate(input: string): string {
   const lowerInput = input.toLowerCase().trim();
 
   if (lowerInput === 'yesterday') {
     const now = new Date();
-    const yesterday = new Date(Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate() - 1,
-      0, 0, 0, 0
-    ));
+    const yesterday = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1, 0, 0, 0, 0)
+    );
     return yesterday.toISOString();
   }
 
   if (lowerInput === 'today') {
     const now = new Date();
-    const today = new Date(Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      0, 0, 0, 0
-    ));
+    const today = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0)
+    );
     return today.toISOString();
   }
 
@@ -145,12 +146,13 @@ export function parseNaturalDate(input: string): string {
 ```
 
 **Option C: Use `date-fns-tz` for explicit UTC**
+
 ```typescript
 import { utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
 import { subDays, startOfDay } from 'date-fns';
 
 export function parseNaturalDate(input: string): string {
-  const nowUTC = new Date();  // Always work in UTC
+  const nowUTC = new Date(); // Always work in UTC
   const lowerInput = input.toLowerCase().trim();
 
   if (lowerInput === 'yesterday') {
@@ -199,11 +201,13 @@ describe('parseNaturalDate', () => {
 #### Impact
 
 **User Impact:**
+
 - Every watch logged with "yesterday" is off by 1 day
 - Historical data is incorrect
 - Affects statistics and tracking accuracy
 
 **Data Integrity:**
+
 - Existing logs in database have wrong dates
 - May need data migration to fix historical entries
 
@@ -217,7 +221,7 @@ The `logWatch` function uses **first search result** without verification:
 
 ```typescript
 // Line 161 in src/lib/tools.ts
-const movie = searchResults[0].movie;  // Uses first result blindly
+const movie = searchResults[0].movie; // Uses first result blindly
 ```
 
 **Concern:**
@@ -225,6 +229,7 @@ If search returns multiple results in wrong order, could log incorrect content.
 
 **Evidence:**
 User reported seeing "Triangle" in history, but our test shows "Princess Mononoke" was logged correctly. This might have been:
+
 1. From a different test
 2. A search quality issue
 3. User misidentification
@@ -255,8 +260,10 @@ Implement confirmation or exact-match logic as described in CRITICAL_BUGS_AND_PL
 ### Immediate (Before Production)
 
 #### 1. Fix Date Parsing Bug (CRITICAL)
+
 **Effort:** 1-2 hours
 **Implementation:**
+
 ```typescript
 // Replace current date parsing with UTC-explicit version
 export function parseNaturalDate(input: string): string {
@@ -264,11 +271,9 @@ export function parseNaturalDate(input: string): string {
 
   if (lowerInput === 'yesterday') {
     const now = new Date();
-    const yesterday = new Date(Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate() - 1
-    ));
+    const yesterday = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1)
+    );
     return yesterday.toISOString();
   }
 
@@ -277,15 +282,18 @@ export function parseNaturalDate(input: string): string {
 ```
 
 **Testing:**
+
 - Unit tests with mocked dates
 - Integration tests across timezone boundaries
 - Verify with actual Trakt API
 
 #### 2. Add Request/Response Logging (HIGH)
+
 **Effort:** 2-3 hours
 **Reason:** Cannot debug issues without visibility into requests
 
 **Implementation:**
+
 ```typescript
 // Log all MCP requests to file
 import { appendFileSync } from 'fs';
@@ -298,8 +306,8 @@ export function logMCPRequest(tool: string, args: any, response: any) {
     response: {
       success: response.success,
       // Truncate large responses
-      data: JSON.stringify(response).substring(0, 500)
-    }
+      data: JSON.stringify(response).substring(0, 500),
+    },
   };
 
   const logFile = join(os.homedir(), '.trakt-mcp', 'requests.log');
@@ -311,6 +319,7 @@ export function logMCPRequest(tool: string, args: any, response: any) {
 ```
 
 #### 3. Add Dry-Run Mode (MEDIUM)
+
 **Effort:** 1-2 hours
 **Benefit:** Users can preview what will be logged
 
@@ -332,15 +341,19 @@ export function logMCPRequest(tool: string, args: any, response: any) {
 ### Short-term (This Week)
 
 #### 4. Improve Search Result Selection (HIGH)
+
 **Options:**
+
 - Require exact title match
 - Add year parameter for disambiguation
 - Return confirmation for ambiguous searches
 
 #### 5. Add Parameter Aliases (MEDIUM)
+
 **Accept `title` as alias for `movieName`/`showName`**
 
 #### 6. Add Debug Tool (MEDIUM)
+
 **Tool to inspect recent requests for troubleshooting**
 
 ---
@@ -350,6 +363,7 @@ export function logMCPRequest(tool: string, args: any, response: any) {
 ### Before Merging Fix
 
 ✅ **Unit Tests:**
+
 ```typescript
 describe('parseNaturalDate', () => {
   it('parses yesterday correctly', () => {
@@ -361,13 +375,14 @@ describe('parseNaturalDate', () => {
 ```
 
 ✅ **Integration Tests:**
+
 ```typescript
 describe('logWatch with natural dates', () => {
   it('logs movie with yesterday date', async () => {
     const result = await logWatch(client, {
       type: 'movie',
       movieName: 'Princess Mononoke',
-      watchedAt: 'yesterday'
+      watchedAt: 'yesterday',
     });
 
     // Verify correct date in response
@@ -384,6 +399,7 @@ describe('logWatch with natural dates', () => {
 ```
 
 ✅ **Manual Testing:**
+
 - Log movie with "yesterday"
 - Check Trakt.tv web UI to confirm date
 - Test across multiple days to ensure consistency
@@ -393,7 +409,9 @@ describe('logWatch with natural dates', () => {
 ## Observability Improvements Needed
 
 ### 1. Request Logging
+
 Log every MCP tool call with:
+
 - Timestamp
 - Tool name
 - Input parameters
@@ -401,10 +419,13 @@ Log every MCP tool call with:
 - Metadata (what was actually logged)
 
 ### 2. Debug Endpoint
+
 Add `debug_last_request` tool to inspect recent calls
 
 ### 3. Explainability
+
 For each log operation, include metadata:
+
 ```json
 {
   "success": true,
@@ -422,7 +443,9 @@ For each log operation, include metadata:
 ```
 
 ### 4. Audit Trail
+
 Store log of all watch history modifications:
+
 - What was logged
 - When it was logged
 - What parameters were used
@@ -457,11 +480,10 @@ WHERE watched_at BETWEEN '2025-11-10' AND '2025-11-19'
 ### Current Status: 🔴 NOT PRODUCTION READY
 
 **Blocking Issues:**
+
 1. Date parsing bug (CRITICAL)
 
-**High Priority:**
-2. No request logging (cannot debug)
-3. Search result selection (potential wrong content)
+**High Priority:** 2. No request logging (cannot debug) 3. Search result selection (potential wrong content)
 
 ### After Bug Fix: 🟡 CONDITIONAL APPROVAL
 
@@ -480,6 +502,7 @@ WHERE watched_at BETWEEN '2025-11-10' AND '2025-11-19'
 ### Full Production Ready: ✅ APPROVED
 
 **After Implementing:**
+
 1. Date parsing fix ✅
 2. Request logging ✅
 3. Dry-run mode ✅
@@ -487,6 +510,7 @@ WHERE watched_at BETWEEN '2025-11-10' AND '2025-11-19'
 5. Full test coverage ✅
 
 **Estimated Timeline:**
+
 - Critical fix: 1-2 days
 - High priority: 3-4 days
 - Full production ready: 5-7 days
@@ -498,12 +522,14 @@ WHERE watched_at BETWEEN '2025-11-10' AND '2025-11-19'
 The Phase 3 MCP tools have **excellent foundation** but a **critical date bug** blocks production deployment.
 
 **Good News:**
+
 - Bug is well-understood
 - Fix is straightforward
 - Test coverage exists to prevent regression
 - All other functionality works correctly
 
 **Action Required:**
+
 1. Fix UTC date handling (URGENT)
 2. Add logging for debuggability (HIGH)
 3. Implement recommendations (MEDIUM)

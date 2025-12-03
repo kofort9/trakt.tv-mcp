@@ -20,6 +20,7 @@ This document is historical and may contain outdated information.
 ## Critical Bugs Discovered
 
 ### Bug #1: Wrong Content Logged ("Triangle" instead of "Princess Mononoke")
+
 **Severity:** 🔴 CRITICAL
 **Impact:** Data corruption - users get wrong content in watch history
 
@@ -32,15 +33,16 @@ The `logWatch` function blindly takes the **first search result** without verifi
 ```typescript
 // Line 153-164 in src/lib/tools.ts
 const searchResults = await client.search(movieName, 'movie');
-const movie = searchResults[0].movie;  // ❌ BLINDLY TAKES FIRST RESULT
+const movie = searchResults[0].movie; // ❌ BLINDLY TAKES FIRST RESULT
 
 // Then logs it without confirming it's the right one
 const historyData = {
-  movies: [{ watched_at, ids: { trakt: movie.ids.trakt } }]
+  movies: [{ watched_at, ids: { trakt: movie.ids.trakt } }],
 };
 ```
 
 **Why This is Critical:**
+
 - Corrupts user's watch history with wrong content
 - User has no way to know it's wrong (silent failure)
 - Breaks trust in the system
@@ -52,6 +54,7 @@ User reported: "I see that some show called Triangle was added to my history" wh
 ---
 
 ### Bug #2: Date Parsing Issue ("yesterday" → wrong date)
+
 **Severity:** 🔴 CRITICAL
 **Impact:** Wrong dates in watch history
 
@@ -69,18 +72,21 @@ if (lowerInput === 'yesterday') {
 ```
 
 **Possible Causes:**
+
 1. `date-fns` timezone issue (UTC vs local time)
 2. Server running in different timezone
 3. `startOfDay` behavior with timezone
 4. `now` being calculated incorrectly
 
 **Evidence:**
+
 - User expected: November 17, 2025 (yesterday from Nov 18)
 - System logged: Previous Sunday (need exact date to confirm)
 
 ---
 
 ### Bug #3: No Observability/Debugging Capability
+
 **Severity:** 🟡 HIGH
 **Impact:** Cannot debug issues, no audit trail
 
@@ -88,6 +94,7 @@ if (lowerInput === 'yesterday') {
 No logging of MCP requests/responses makes debugging impossible.
 
 **Evidence:**
+
 - Cannot verify what was actually sent to Trakt API
 - Cannot see which search result was selected
 - Cannot trace why "Triangle" was logged instead of "Princess Mononoke"
@@ -100,6 +107,7 @@ No logging of MCP requests/responses makes debugging impossible.
 ### Phase 1: Critical Bug Fixes (URGENT - Today)
 
 #### Fix #1: Add Confirmation for Search Results
+
 **Priority:** 🔴 CRITICAL
 **Effort:** 2-4 hours
 **Owner:** Backend team
@@ -120,8 +128,8 @@ export async function logWatch(client, args) {
 
     // 🔴 CRITICAL FIX: Don't blindly use first result
     // Option A: Require exact match
-    const exactMatch = searchResults.find(r =>
-      r.movie?.title.toLowerCase() === movieName.toLowerCase()
+    const exactMatch = searchResults.find(
+      (r) => r.movie?.title.toLowerCase() === movieName.toLowerCase()
     );
 
     if (!exactMatch) {
@@ -130,11 +138,11 @@ export async function logWatch(client, args) {
         'CONFIRMATION_NEEDED',
         `Found ${searchResults.length} movies. Please specify which one:`,
         {
-          results: searchResults.slice(0, 5).map(r => ({
+          results: searchResults.slice(0, 5).map((r) => ({
             title: r.movie.title,
             year: r.movie.year,
-            trakt_id: r.movie.ids.trakt
-          }))
+            trakt_id: r.movie.ids.trakt,
+          })),
         }
       );
     }
@@ -143,7 +151,9 @@ export async function logWatch(client, args) {
     const movie = exactMatch.movie;
 
     // Add logging for debugging
-    console.error(`[LOG_WATCH] Logging movie: ${movie.title} (${movie.year}) - Trakt ID: ${movie.ids.trakt}`);
+    console.error(
+      `[LOG_WATCH] Logging movie: ${movie.title} (${movie.year}) - Trakt ID: ${movie.ids.trakt}`
+    );
 
     // ... rest of logging ...
   }
@@ -154,13 +164,16 @@ export async function logWatch(client, args) {
 
 ```typescript
 // Option B: Add trakt_id parameter to bypass search
-export async function logWatch(client, args: {
-  type: 'episode' | 'movie';
-  movieName?: string;
-  movieTraktId?: number;  // NEW: Direct ID specification
-  year?: number;          // NEW: Year filter
-  // ... other params
-}) {
+export async function logWatch(
+  client,
+  args: {
+    type: 'episode' | 'movie';
+    movieName?: string;
+    movieTraktId?: number; // NEW: Direct ID specification
+    year?: number; // NEW: Year filter
+    // ... other params
+  }
+) {
   if (type === 'movie') {
     let movie;
 
@@ -173,7 +186,7 @@ export async function logWatch(client, args: {
 
       if (year) {
         // Filter by year
-        const yearMatches = searchResults.filter(r => r.movie?.year === year);
+        const yearMatches = searchResults.filter((r) => r.movie?.year === year);
         if (yearMatches.length === 1) {
           movie = yearMatches[0].movie;
         } else {
@@ -181,8 +194,8 @@ export async function logWatch(client, args: {
         }
       } else {
         // Exact title match required
-        const exactMatches = searchResults.filter(r =>
-          r.movie?.title.toLowerCase() === movieName.toLowerCase()
+        const exactMatches = searchResults.filter(
+          (r) => r.movie?.title.toLowerCase() === movieName.toLowerCase()
         );
 
         if (exactMatches.length === 1) {
@@ -200,6 +213,7 @@ export async function logWatch(client, args: {
 ```
 
 #### Fix #2: Fix Date Parsing
+
 **Priority:** 🔴 CRITICAL
 **Effort:** 1-2 hours
 **Owner:** Backend team
@@ -246,7 +260,7 @@ export function parseNaturalDate(input: string): string {
 import { UTCDate } from '@date-fns/utc';
 
 export function parseNaturalDate(input: string): string {
-  const now = new UTCDate();  // Force UTC
+  const now = new UTCDate(); // Force UTC
   const lowerInput = input.toLowerCase().trim();
 
   if (lowerInput === 'yesterday') {
@@ -261,6 +275,7 @@ export function parseNaturalDate(input: string): string {
 ```
 
 #### Fix #3: Add Request/Response Logging
+
 **Priority:** 🔴 CRITICAL (for debugging)
 **Effort:** 2-3 hours
 **Owner:** Backend team
@@ -298,7 +313,11 @@ export function logMCPRequest(tool: string, args: unknown) {
   console.error(`[MCP_REQUEST] ${tool}`, JSON.stringify(args));
 }
 
-export function logMCPResponse(tool: string, response: unknown, metadata?: Record<string, unknown>) {
+export function logMCPResponse(
+  tool: string,
+  response: unknown,
+  metadata?: Record<string, unknown>
+) {
   const entry: LogEntry = {
     timestamp: new Date().toISOString(),
     type: 'response',
@@ -308,10 +327,13 @@ export function logMCPResponse(tool: string, response: unknown, metadata?: Recor
   };
 
   appendLog(entry);
-  console.error(`[MCP_RESPONSE] ${tool}`, JSON.stringify({
-    success: (response as any).success,
-    metadata
-  }));
+  console.error(
+    `[MCP_RESPONSE] ${tool}`,
+    JSON.stringify({
+      success: (response as any).success,
+      metadata,
+    })
+  );
 }
 
 export function logMCPError(tool: string, error: Error) {
@@ -354,7 +376,7 @@ export function readRecentLogs(count = 100): LogEntry[] {
     const lines = content.trim().split('\n');
     const recent = lines.slice(-count);
 
-    return recent.map(line => JSON.parse(line));
+    return recent.map((line) => JSON.parse(line));
   } catch {
     return [];
   }
@@ -394,6 +416,7 @@ export async function logWatch(client, args) {
 ### Phase 2: Add Explainability & Observability (This Week)
 
 #### Enhancement #1: Add Debug Tool
+
 **Priority:** 🟡 HIGH
 **Effort:** 2-3 hours
 
@@ -435,15 +458,19 @@ export async function debugLastRequest(args: { tool?: string; count?: number }) 
 ```
 
 #### Enhancement #2: Add Dry-Run Mode
+
 **Priority:** 🟡 HIGH
 **Effort:** 1-2 hours
 
 ```typescript
 // Add dryRun parameter to log_watch
-export async function logWatch(client, args: {
-  // ... existing params
-  dryRun?: boolean;  // NEW: Preview what will be logged
-}) {
+export async function logWatch(
+  client,
+  args: {
+    // ... existing params
+    dryRun?: boolean; // NEW: Preview what will be logged
+  }
+) {
   // ... search logic ...
 
   if (args.dryRun) {
@@ -458,7 +485,7 @@ export async function logWatch(client, args: {
           traktId: movie?.ids.trakt || show?.ids.trakt,
           watchedAt: watched_at,
         },
-        searchResults: searchResults.slice(0, 5).map(r => ({
+        searchResults: searchResults.slice(0, 5).map((r) => ({
           title: r.movie?.title || r.show?.title,
           year: r.movie?.year || r.show?.year,
           score: r.score,
@@ -472,6 +499,7 @@ export async function logWatch(client, args: {
 ```
 
 #### Enhancement #3: Add Confirmation Mode
+
 **Priority:** 🟡 HIGH
 **Effort:** 3-4 hours
 
@@ -502,17 +530,21 @@ export async function logWatch(client, args: {
 ### Phase 3: Implement High-Priority Recommendations (Next Sprint)
 
 #### Recommendation #1: Parameter Aliasing
+
 **From Test Report - HIGH Priority**
 
 ```typescript
 // Accept both 'title' and 'movieName'
-export async function logWatch(client, args: {
-  type: 'episode' | 'movie';
-  title?: string;        // NEW: Natural language alias
-  movieName?: string;
-  showName?: string;
-  // ...
-}) {
+export async function logWatch(
+  client,
+  args: {
+    type: 'episode' | 'movie';
+    title?: string; // NEW: Natural language alias
+    movieName?: string;
+    showName?: string;
+    // ...
+  }
+) {
   // Normalize parameters
   if (args.title && !args.movieName && type === 'movie') {
     args.movieName = args.title;
@@ -553,9 +585,9 @@ return createToolError('NOT_FOUND', `No movie found matching "${movieName}"`);
 return createToolError(
   'NOT_FOUND',
   `No movie found matching "${movieName}". Try:\n` +
-  `1. Check spelling\n` +
-  `2. Use search_show to find correct title\n` +
-  `3. Add year (e.g., "Dune 2021")`
+    `1. Check spelling\n` +
+    `2. Use search_show to find correct title\n` +
+    `3. Add year (e.g., "Dune 2021")`
 );
 ```
 
@@ -566,6 +598,7 @@ return createToolError(
 ### Before Merging Fixes
 
 1. **Unit Tests for Date Parsing**
+
    ```typescript
    describe('parseNaturalDate', () => {
      it('should parse "yesterday" as 1 day ago', () => {
@@ -580,6 +613,7 @@ return createToolError(
    ```
 
 2. **Integration Tests for Search Confirmation**
+
    ```typescript
    describe('logWatch', () => {
      it('should not log wrong movie when search returns multiple results', async () => {
@@ -597,6 +631,7 @@ return createToolError(
    ```
 
 3. **Logging Verification**
+
    ```typescript
    describe('logging', () => {
      it('should log all MCP requests', () => {
@@ -614,6 +649,7 @@ return createToolError(
 ## Rollout Plan
 
 ### Week 1 (This Week)
+
 - Day 1: Fix critical bugs (#1, #2, #3)
 - Day 2: Add logging and debug tools
 - Day 3: Test fixes thoroughly
@@ -621,6 +657,7 @@ return createToolError(
 - Day 5: Deploy to staging
 
 ### Week 2 (Next Week)
+
 - Implement parameter aliasing
 - Add year filter support
 - Improve error messages
@@ -632,16 +669,19 @@ return createToolError(
 ## Success Metrics
 
 ### Critical Bug Fixes
+
 - ✅ No wrong content logged (0% error rate)
 - ✅ Date parsing 100% accurate
 - ✅ All requests logged for debugging
 
 ### Observability
+
 - ✅ Can trace every MCP request
 - ✅ Can debug issues from logs
 - ✅ Users can verify what will be logged (dry-run)
 
 ### UX Improvements
+
 - ✅ Parameter naming intuitive
 - ✅ Disambiguation flow prevents errors
 - ✅ Error messages actionable
@@ -651,12 +691,14 @@ return createToolError(
 ## Risk Assessment
 
 ### High Risk (Without Fixes)
+
 - Data corruption (wrong content in history)
 - User trust loss
 - Inability to debug issues
 - Production incidents
 
 ### Low Risk (After Fixes)
+
 - Slightly more complex logging flow
 - Need user confirmation for ambiguous searches
 - More verbose responses
@@ -672,6 +714,7 @@ The discovered bugs are **production-blocking** and must be fixed before any use
 **With Fixes Applied:** ✅ Production Ready
 
 After implementing the critical fixes, the system will be:
+
 - Reliable (no wrong content logged)
 - Debuggable (full request/response logging)
 - Transparent (users see what will be logged)

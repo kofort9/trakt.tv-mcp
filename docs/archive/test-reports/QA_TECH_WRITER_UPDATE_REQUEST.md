@@ -20,6 +20,7 @@ Phase 1, Phase 2, and Phase 3 have been successfully implemented. This document 
 **Status:** ✅ **COMPLETE** (with minor enhancements recommended)
 
 **Implemented Features:**
+
 - ✅ Request/response logging with correlation IDs
 - ✅ In-memory circular buffer (1000 entries)
 - ✅ File-based logging with rotation (10MB limit)
@@ -30,6 +31,7 @@ Phase 1, Phase 2, and Phase 3 have been successfully implemented. This document 
 - ✅ Response body truncation (5KB limit)
 
 **Test Results:**
+
 - 23/23 logger tests passing
 - All debug tool tests passing
 - Comprehensive integration with all tools
@@ -47,11 +49,13 @@ Mark Phase 1 as **COMPLETE** with the following note:
 **Tests:** 23 tests passing, comprehensive coverage
 
 **Post-Implementation Findings:**
+
 - ✅ All success criteria met
 - ⚠️ Minor UX improvements recommended (see QA report)
 - ⚠️ 1 file logging warning in test environment (non-blocking)
 
 **Recommended Follow-Up Enhancements:**
+
 - P1: Add `errorsOnly` filter parameter (15 min)
 - P2: Add time-based filtering (2 hours)
 - P2: Improve file logging robustness (30 min)
@@ -64,6 +68,7 @@ Mark Phase 1 as **COMPLETE** with the following note:
 **Status:** ✅ **COMPLETE** (exceeds all targets)
 
 **Implemented Features:**
+
 - ✅ LRU Cache with TTL (1 hour default)
 - ✅ Case-insensitive query matching
 - ✅ Cache metrics tracking (hits, misses, evictions, hit rate)
@@ -72,12 +77,14 @@ Mark Phase 1 as **COMPLETE** with the following note:
 - ✅ Cache size bounded (500 entries max)
 
 **Test Results:**
+
 - All cache tests passing (15+ tests)
 - Cache hit rate: 30% achieved (meets target)
 - Cache lookup <1ms (negligible overhead)
 - Integration tests passing
 
 **Performance Metrics:**
+
 - Cache hit rate: 30% (exactly meets target)
 - Speedup on cached searches: Instant (vs 200-500ms API call)
 - No stale data issues
@@ -96,6 +103,7 @@ Mark Phase 2 as **COMPLETE** with the following note:
 **Tests:** 15+ tests passing, performance benchmarks met
 
 **Success Metrics Achieved:**
+
 - ✅ Cache hit rate: 30% (target: >30%)
 - ✅ Cache lookup speed: <1ms (target: <1ms)
 - ✅ Stale data prevention: TTL enforced correctly
@@ -103,11 +111,13 @@ Mark Phase 2 as **COMPLETE** with the following note:
 - ✅ Metrics accuracy: 100%
 
 **Performance Impact:**
+
 - Cached searches: Instant (vs 200-500ms API call)
 - Reduced API load by ~30% in typical usage
 - No performance regression (<1ms overhead)
 
 **Post-Implementation Notes:**
+
 - ✅ All success criteria met or exceeded
 - ✅ Transparent UX (users see faster responses automatically)
 - ℹ️ Cache metrics available via debug tool
@@ -120,6 +130,7 @@ Mark Phase 2 as **COMPLETE** with the following note:
 **Status:** ✅ **FUNCTIONALLY COMPLETE** (4 test assertion issues to fix)
 
 **Implemented Features:**
+
 - ✅ Parallel execution with controlled concurrency (max 5)
 - ✅ Batching with delays (batch size 10, 100ms delay)
 - ✅ `parallelSearchMovies` for bulk movie lookups
@@ -129,17 +140,20 @@ Mark Phase 2 as **COMPLETE** with the following note:
 - ✅ Rate limit compliance (conservative concurrency)
 
 **Test Results:**
+
 - 8/12 parallel tests passing
 - 4 test failures due to incorrect assertions (NOT functional bugs)
 - All functional behavior verified correct via code review
 
 **Performance Metrics:**
+
 - Speedup (10 movies): 2.5-5x (target: 2-3x) ✅ EXCEEDS TARGET
 - Theoretical: 5x improvement
 - Actual with caching: 4.7x improvement
 - No rate limit violations (429 errors)
 
 **Issues Found:**
+
 - ⚠️ 4 test failures: JavaScript `.sort()` uses lexicographic ordering, tests use numeric expectations
 - Fix: Change `succeeded.sort()` to `succeeded.sort((a, b) => a - b)`
 - Effort: 5 minutes
@@ -159,6 +173,7 @@ Mark Phase 3 as **COMPLETE WITH MINOR FIXES** with the following note:
 **Tests:** 8/12 passing (4 failures are test issues, not functional bugs)
 
 **Success Metrics Achieved:**
+
 - ✅ Speedup: 2.5-5x (target: 2-3x) - EXCEEDS TARGET
 - ✅ Rate limit compliance: No 429 errors
 - ✅ Partial failure handling: Graceful error tracking
@@ -166,17 +181,20 @@ Mark Phase 3 as **COMPLETE WITH MINOR FIXES** with the following note:
 - ⚠️ Test coverage: 100% written, 4 assertions need fixing
 
 **Performance Impact:**
+
 - 10 movies: ~1-2s parallel vs ~5-10s sequential (2.5-5x speedup)
 - Combined with caching: 4.7x actual improvement
 - Conservative rate limit approach ensures stability
 
 **Post-Implementation Findings:**
+
 - ✅ All functional behavior verified correct
 - ⚠️ BLOCKER: 4 test assertions use lexicographic sort instead of numeric
 - ⚠️ Fix required before production: Update test assertions (5 min)
 
 **Immediate Action Required:**
-Update src/lib/__tests__/parallel.test.ts:
+Update src/lib/**tests**/parallel.test.ts:
+
 - Change: `expect(succeeded.sort()).toEqual([2, 4, 6, 8, 10])`
 - To: `expect(succeeded.sort((a, b) => a - b)).toEqual([2, 4, 6, 8, 10])`
 ```
@@ -200,12 +218,14 @@ Update Phase 4 status:
 **Dependencies:** Test account setup
 
 **Rationale for Deferral:**
+
 - Unit test coverage is comprehensive (434 passing tests)
 - Mock-based tests provide good confidence
 - Integration tests are optional for MVP
 - Can be implemented in future sprint when test account is available
 
 **Future Implementation:**
+
 - Create dedicated Trakt test account
 - Implement setup/teardown helpers
 - Write integration tests for core flows
@@ -226,7 +246,8 @@ Add a new section to TECHNICAL_IMPROVEMENTS_PLAN.md:
 ### P0 Issues (Critical - Must Fix Before Production)
 
 **Issue #1: Parallel Test Assertions**
-- **Component:** src/lib/__tests__/parallel.test.ts
+
+- **Component:** src/lib/**tests**/parallel.test.ts
 - **Impact:** 4 test failures block CI/CD
 - **Root Cause:** Lexicographic sort instead of numeric sort
 - **Fix:** Update assertions to use `sort((a, b) => a - b)`
@@ -236,6 +257,7 @@ Add a new section to TECHNICAL_IMPROVEMENTS_PLAN.md:
 ### P1 Issues (High Priority - UX Improvements)
 
 **Issue #2: Cache Metrics Not Included by Default**
+
 - **Component:** debug_last_request tool
 - **Impact:** Users miss cache performance data
 - **Fix:** Change includeMetrics default to true
@@ -243,6 +265,7 @@ Add a new section to TECHNICAL_IMPROVEMENTS_PLAN.md:
 - **Status:** UX improvement
 
 **Issue #3: No Error-Only Filter**
+
 - **Component:** debug_last_request tool
 - **Impact:** Users need to know HTTP status codes
 - **Fix:** Add `errorsOnly?: boolean` parameter
@@ -252,6 +275,7 @@ Add a new section to TECHNICAL_IMPROVEMENTS_PLAN.md:
 ### P2 Issues (Medium Priority - Nice to Have)
 
 **Issue #4: File Logging Directory Creation**
+
 - **Component:** Logger.writeToFile()
 - **Impact:** Warning in test environment (no data loss)
 - **Fix:** Add robust directory check in write path
@@ -270,29 +294,29 @@ Add actual results to success metrics section:
 
 ### Phase 1: Observability
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| Request traceability | 100% | 100% | ✅ MET |
-| Error debugging | Full logs + stack | Full logs + stack | ✅ MET |
-| Performance visibility | Per-tool metrics | Avg/min/max per tool | ✅ MET |
+| Metric                 | Target            | Actual               | Status |
+| ---------------------- | ----------------- | -------------------- | ------ |
+| Request traceability   | 100%              | 100%                 | ✅ MET |
+| Error debugging        | Full logs + stack | Full logs + stack    | ✅ MET |
+| Performance visibility | Per-tool metrics  | Avg/min/max per tool | ✅ MET |
 
 ### Phase 2: Caching
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| Cache hit rate | >30% | 30% | ✅ MET |
-| Cache lookup speed | <1ms | <1ms | ✅ MET |
+| Metric                | Target       | Actual              | Status |
+| --------------------- | ------------ | ------------------- | ------ |
+| Cache hit rate        | >30%         | 30%                 | ✅ MET |
+| Cache lookup speed    | <1ms         | <1ms                | ✅ MET |
 | Stale data prevention | TTL enforced | 1 hour TTL enforced | ✅ MET |
-| Cache size bounded | Max 500 | Max 500 (LRU) | ✅ MET |
+| Cache size bounded    | Max 500      | Max 500 (LRU)       | ✅ MET |
 
 ### Phase 3: Parallel Operations
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| Speedup (10 movies) | 2-3x | 2.5-5x | ✅ EXCEEDED |
-| Rate limit compliance | No 429s | No 429s | ✅ MET |
-| Partial failures | Graceful | Errors tracked separately | ✅ MET |
-| Test coverage | 95%+ | 100% (with 4 assertion fixes needed) | ⚠️ NEEDS FIX |
+| Metric                | Target   | Actual                               | Status       |
+| --------------------- | -------- | ------------------------------------ | ------------ |
+| Speedup (10 movies)   | 2-3x     | 2.5-5x                               | ✅ EXCEEDED  |
+| Rate limit compliance | No 429s  | No 429s                              | ✅ MET       |
+| Partial failures      | Graceful | Errors tracked separately            | ✅ MET       |
+| Test coverage         | 95%+     | 100% (with 4 assertion fixes needed) | ⚠️ NEEDS FIX |
 ```
 
 ---
@@ -319,10 +343,12 @@ Add to end of TECHNICAL_IMPROVEMENTS_PLAN.md:
 ### Immediate (Before Production)
 
 **BLOCKING:**
+
 1. Fix parallel test assertions (5 min) - See QA_IMMEDIATE_FIXES.md
 2. Verify all 438 tests pass
 
 **HIGH PRIORITY:**
+
 1. Add errorsOnly filter to debug tool (15 min)
 2. Verify cache metrics default (5 min - may already be fixed)
 

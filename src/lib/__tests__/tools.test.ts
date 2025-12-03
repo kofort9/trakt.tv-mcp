@@ -576,9 +576,9 @@ describe('tools', () => {
     it('should return debug info with cache metrics', async () => {
       // Mock logger behavior (since it's imported directly)
       // We can't easily mock the imported logger without vitest mock hoisting
-      // But we can assume it works or is mocked if needed. 
+      // But we can assume it works or is mocked if needed.
       // For now, let's just test that the tool calls getCacheMetrics on the client
-      
+
       const mockMetrics = {
         hits: 5,
         misses: 2,
@@ -588,7 +588,7 @@ describe('tools', () => {
         memoryBytesUsed: 1024,
         avgEntrySize: 100,
       };
-      
+
       vi.spyOn(mockClient, 'getCacheMetrics').mockReturnValue(mockMetrics);
 
       const result = await tools.debugLastRequest(mockClient, {});

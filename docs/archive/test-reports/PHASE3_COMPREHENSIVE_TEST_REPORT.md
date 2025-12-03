@@ -48,7 +48,9 @@ Comprehensive testing of the 5 remaining Phase 3 MCP tools has been completed. O
 ### Test Results
 
 #### Test 1.1: Breaking Bad S1E1 (Happy Path) - PASS
+
 **Input:**
+
 ```json
 {
   "showName": "Breaking Bad",
@@ -58,6 +60,7 @@ Comprehensive testing of the 5 remaining Phase 3 MCP tools has been completed. O
 ```
 
 **Result:**
+
 ```json
 {
   "season": 1,
@@ -78,7 +81,9 @@ Comprehensive testing of the 5 remaining Phase 3 MCP tools has been completed. O
 ---
 
 #### Test 1.2: The Office S2E5 - PASS
+
 **Input:**
+
 ```json
 {
   "showName": "The Office",
@@ -94,7 +99,9 @@ Comprehensive testing of the 5 remaining Phase 3 MCP tools has been completed. O
 ---
 
 #### Test 1.3: Season 0 (Specials) - PASS
+
 **Input:**
+
 ```json
 {
   "showName": "Breaking Bad",
@@ -110,7 +117,9 @@ Comprehensive testing of the 5 remaining Phase 3 MCP tools has been completed. O
 ---
 
 #### Test 1.4: Invalid Show Name - PASS
+
 **Input:**
+
 ```json
 {
   "showName": "ThisShowDoesNotExist12345",
@@ -120,6 +129,7 @@ Comprehensive testing of the 5 remaining Phase 3 MCP tools has been completed. O
 ```
 
 **Result:**
+
 ```json
 {
   "success": false,
@@ -136,7 +146,9 @@ Comprehensive testing of the 5 remaining Phase 3 MCP tools has been completed. O
 ---
 
 #### Test 1.5: Invalid Episode Number - PASS
+
 **Input:**
+
 ```json
 {
   "showName": "Breaking Bad",
@@ -152,7 +164,9 @@ Comprehensive testing of the 5 remaining Phase 3 MCP tools has been completed. O
 ---
 
 #### Test 1.6: Negative Season Number - MINOR ISSUE
+
 **Input:**
+
 ```json
 {
   "showName": "Breaking Bad",
@@ -183,7 +197,9 @@ The validation is working (error is thrown), but the error code is TRAKT_API_ERR
 ### Test Results
 
 #### Test 2.1: Episode Range "1-5" - PASS
+
 **Input:**
+
 ```json
 {
   "type": "episodes",
@@ -201,7 +217,9 @@ The validation is working (error is thrown), but the error code is TRAKT_API_ERR
 ---
 
 #### Test 2.2: Complex Range "1-3,5,7-9" - PASS
+
 **Input:**
+
 ```json
 {
   "type": "episodes",
@@ -218,7 +236,9 @@ The validation is working (error is thrown), but the error code is TRAKT_API_ERR
 ---
 
 #### Test 2.3: Single Episode via Bulk - PASS
+
 **Input:**
+
 ```json
 {
   "type": "episodes",
@@ -235,7 +255,9 @@ The validation is working (error is thrown), but the error code is TRAKT_API_ERR
 ---
 
 #### Test 2.4: Multiple Movies - PASS
+
 **Input:**
+
 ```json
 {
   "type": "movies",
@@ -250,7 +272,9 @@ The validation is working (error is thrown), but the error code is TRAKT_API_ERR
 ---
 
 #### Test 2.5: Invalid Range Format - PASS
+
 **Input:**
+
 ```json
 {
   "type": "episodes",
@@ -261,6 +285,7 @@ The validation is working (error is thrown), but the error code is TRAKT_API_ERR
 ```
 
 **Result:**
+
 ```json
 {
   "success": false,
@@ -277,7 +302,9 @@ The validation is working (error is thrown), but the error code is TRAKT_API_ERR
 ---
 
 #### Test 2.6: Missing Required Fields - PASS
+
 **Input:**
+
 ```json
 {
   "type": "episodes",
@@ -287,6 +314,7 @@ The validation is working (error is thrown), but the error code is TRAKT_API_ERR
 ```
 
 **Result:**
+
 ```json
 {
   "success": false,
@@ -311,7 +339,9 @@ The validation is working (error is thrown), but the error code is TRAKT_API_ERR
 ### Test Results
 
 #### Test 3.1: Last 10 Items - PASS
+
 **Input:**
+
 ```json
 {
   "limit": 10
@@ -325,7 +355,9 @@ The validation is working (error is thrown), but the error code is TRAKT_API_ERR
 ---
 
 #### Test 3.2: Shows Only - PASS
+
 **Input:**
+
 ```json
 {
   "type": "shows",
@@ -340,7 +372,9 @@ The validation is working (error is thrown), but the error code is TRAKT_API_ERR
 ---
 
 #### Test 3.3: Movies Only - PASS
+
 **Input:**
+
 ```json
 {
   "type": "movies",
@@ -355,7 +389,9 @@ The validation is working (error is thrown), but the error code is TRAKT_API_ERR
 ---
 
 #### Test 3.4: Date Range - Last Week - PASS
+
 **Input:**
+
 ```json
 {
   "startDate": "last week",
@@ -370,7 +406,9 @@ The validation is working (error is thrown), but the error code is TRAKT_API_ERR
 ---
 
 #### Test 3.5: Empty Date Range - PASS
+
 **Input:**
+
 ```json
 {
   "startDate": "2020-01-01",
@@ -393,6 +431,7 @@ The validation is working (error is thrown), but the error code is TRAKT_API_ERR
 ### Test Results
 
 #### Test 4.1: Default (7 days) - PASS
+
 **Input:** `{}`
 **Result:** Returned 0 items
 **Status:** PASS
@@ -401,7 +440,9 @@ The validation is working (error is thrown), but the error code is TRAKT_API_ERR
 ---
 
 #### Test 4.2: 30 Days - PASS
+
 **Input:**
+
 ```json
 {
   "days": 30
@@ -415,7 +456,9 @@ The validation is working (error is thrown), but the error code is TRAKT_API_ERR
 ---
 
 #### Test 4.3: 1 Day - PASS
+
 **Input:**
+
 ```json
 {
   "days": 1
@@ -429,7 +472,9 @@ The validation is working (error is thrown), but the error code is TRAKT_API_ERR
 ---
 
 #### Test 4.4: Invalid Days (0) - MINOR ISSUE
+
 **Input:**
+
 ```json
 {
   "days": 0
@@ -450,7 +495,9 @@ The validation check only rejects values `< 1`, so 0 passes through. However, th
 ---
 
 #### Test 4.5: Invalid Days (31) - PASS
+
 **Input:**
+
 ```json
 {
   "days": 31
@@ -458,6 +505,7 @@ The validation check only rejects values `< 1`, so 0 passes through. However, th
 ```
 
 **Result:**
+
 ```json
 {
   "success": false,
@@ -482,7 +530,9 @@ The validation check only rejects values `< 1`, so 0 passes through. However, th
 ### Test Results
 
 #### Test 5.1: Follow Show - PASS
+
 **Input:**
+
 ```json
 {
   "showName": "Stranger Things"
@@ -490,6 +540,7 @@ The validation check only rejects values `< 1`, so 0 passes through. However, th
 ```
 
 **Result:**
+
 ```json
 {
   "success": true,
@@ -511,6 +562,7 @@ The validation check only rejects values `< 1`, so 0 passes through. However, th
 ---
 
 #### Test 5.2: Follow Same Show Again - PASS
+
 **Input:** Follow "Stranger Things" again (duplicate)
 **Result:** `{ "success": true, "added": true }`
 **Status:** PASS
@@ -519,7 +571,9 @@ The validation check only rejects values `< 1`, so 0 passes through. However, th
 ---
 
 #### Test 5.3: Unfollow Show - PASS
+
 **Input:**
+
 ```json
 {
   "showName": "Stranger Things"
@@ -527,6 +581,7 @@ The validation check only rejects values `< 1`, so 0 passes through. However, th
 ```
 
 **Result:**
+
 ```json
 {
   "success": true,
@@ -543,6 +598,7 @@ The validation check only rejects values `< 1`, so 0 passes through. However, th
 ---
 
 #### Test 5.4: Unfollow Again (Already Removed) - PASS
+
 **Input:** Unfollow "Stranger Things" again
 **Result:** `{ "success": true, "removed": true }`
 **Status:** PASS
@@ -551,7 +607,9 @@ The validation check only rejects values `< 1`, so 0 passes through. However, th
 ---
 
 #### Test 5.5: Follow Non-Existent Show - PASS
+
 **Input:**
+
 ```json
 {
   "showName": "ThisShowDoesNotExist12345"
@@ -559,6 +617,7 @@ The validation check only rejects values `< 1`, so 0 passes through. However, th
 ```
 
 **Result:**
+
 ```json
 {
   "success": false,
@@ -592,6 +651,7 @@ The validation check only rejects values `< 1`, so 0 passes through. However, th
 When a negative season number is provided, the error message is correct but the error code is TRAKT_API_ERROR instead of VALIDATION_ERROR.
 
 **Current Behavior:**
+
 ```json
 {
   "success": false,
@@ -603,6 +663,7 @@ When a negative season number is provided, the error message is correct but the 
 ```
 
 **Expected Behavior:**
+
 ```json
 {
   "success": false,
@@ -630,6 +691,7 @@ Update `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/utils.ts` - modify `validateS
 When `days: 0` is provided to get_upcoming, it should return a VALIDATION_ERROR but instead succeeds with empty results.
 
 **Current Behavior:**
+
 ```json
 // Input: { "days": 0 }
 {
@@ -639,6 +701,7 @@ When `days: 0` is provided to get_upcoming, it should return a VALIDATION_ERROR 
 ```
 
 **Expected Behavior:**
+
 ```json
 {
   "success": false,
@@ -651,6 +714,7 @@ When `days: 0` is provided to get_upcoming, it should return a VALIDATION_ERROR 
 
 **Root Cause:**
 In `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/tools.ts` line 442:
+
 ```typescript
 if (days < 1 || days > 30) {
   return createToolError('VALIDATION_ERROR', 'Days must be between 1 and 30');
@@ -661,10 +725,13 @@ The check is `days < 1` which evaluates to false when `days = 0`, since the OR o
 
 **Recommendation:**
 Change line 440 to:
+
 ```typescript
 const days = args.days !== undefined && args.days !== 0 ? args.days : 7;
 ```
+
 OR change line 442 to:
+
 ```typescript
 if (days <= 0 || days > 30) {
 ```
@@ -680,6 +747,7 @@ if (days <= 0 || days > 30) {
 **Current State:** bulk_log successfully logs episodes but response doesn't clearly indicate how many episodes were actually processed.
 
 **Suggestion:** Add a count field to the success response:
+
 ```json
 {
   "success": true,
@@ -702,6 +770,7 @@ if (days <= 0 || days > 30) {
 **Current State:** get_history returns `[]` when no items match filters.
 
 **Suggestion:** Add a message field:
+
 ```json
 {
   "success": true,
@@ -720,6 +789,7 @@ if (days <= 0 || days > 30) {
 **Current State:** Returns `[]` when no upcoming episodes.
 
 **Suggestion:** Add context:
+
 ```json
 {
   "success": true,
@@ -738,6 +808,7 @@ if (days <= 0 || days > 30) {
 **Current State:** search_episode uses the first (highest-scored) search result.
 
 **Suggestion:** For ambiguous queries, consider returning top 3 matches and asking user to specify:
+
 ```json
 {
   "success": false,
@@ -789,6 +860,7 @@ Tested the following range patterns in bulk_log:
 ## Integration Test Results
 
 ### Integration 1: bulk_log then get_history
+
 **Test:** Log Breaking Bad S1E1-5, then verify in history
 **Result:** PASS
 **Notes:** Episodes appear in history immediately after logging.
@@ -796,6 +868,7 @@ Tested the following range patterns in bulk_log:
 ---
 
 ### Integration 2: follow_show then get_upcoming
+
 **Test:** Follow Stranger Things, check if upcoming episodes appear
 **Result:** PASS (no upcoming episodes for this show, but tool works)
 **Notes:** Tool correctly returns empty array when no episodes are scheduled.
@@ -803,6 +876,7 @@ Tested the following range patterns in bulk_log:
 ---
 
 ### Integration 3: search_episode then log_watch
+
 **Test:** Search for Breaking Bad S1E1, then log it
 **Result:** PASS (implicit - search works, logging tested separately)
 **Notes:** These tools integrate seamlessly.
@@ -812,6 +886,7 @@ Tested the following range patterns in bulk_log:
 ## Performance Observations
 
 ### Response Times
+
 - search_episode: < 500ms (fast)
 - bulk_log: 500ms - 1s depending on range size (acceptable)
 - get_history: < 300ms (very fast)
@@ -825,7 +900,9 @@ Tested the following range patterns in bulk_log:
 ## Data Consistency Validation
 
 ### Test: Verify Logged Data Appears in History
+
 **Steps:**
+
 1. Log Breaking Bad S1E7 using bulk_log
 2. Query get_history for recent items
 3. Verify S1E7 appears
@@ -835,7 +912,9 @@ Tested the following range patterns in bulk_log:
 ---
 
 ### Test: Verify Watchlist State
+
 **Steps:**
+
 1. Follow Stranger Things
 2. Unfollow Stranger Things
 3. Unfollow again (should succeed)
@@ -847,6 +926,7 @@ Tested the following range patterns in bulk_log:
 ## Edge Cases Discovered
 
 ### Edge Case 1: Season 0 (Specials) Support
+
 **Status:** Supported!
 **Finding:** Breaking Bad S0E1 returns "Good Cop / Bad Cop" special.
 **Recommendation:** Document this feature for users.
@@ -854,6 +934,7 @@ Tested the following range patterns in bulk_log:
 ---
 
 ### Edge Case 2: Duplicate Follow/Unfollow
+
 **Status:** Handled Gracefully
 **Finding:** Trakt API is idempotent - no errors on duplicate operations.
 **Recommendation:** This is good behavior, keep it.
@@ -861,6 +942,7 @@ Tested the following range patterns in bulk_log:
 ---
 
 ### Edge Case 3: Empty History Results
+
 **Status:** Works Correctly
 **Finding:** Returns empty array instead of error.
 **Recommendation:** Consider adding a message field (see UX recommendations).
@@ -877,6 +959,7 @@ Tested the following range patterns in bulk_log:
 **Minor Issues:** 2
 
 **Test Breakdown by Tool:**
+
 - search_episode: 5 PASS, 1 minor issue
 - bulk_log: 6 PASS
 - get_history: 5 PASS
@@ -890,6 +973,7 @@ Tested the following range patterns in bulk_log:
 ### OVERALL RECOMMENDATION: APPROVED FOR LAUNCH
 
 **Reasoning:**
+
 1. All core functionality working correctly (100% of critical paths pass)
 2. Only 2 minor issues found, neither blocking user workflows
 3. Error handling is robust and user-friendly
@@ -901,6 +985,7 @@ Tested the following range patterns in bulk_log:
 ### Blockers: NONE
 
 ### Nice-to-Have Improvements (Post-Launch):
+
 1. Fix validation error codes for consistency
 2. Add contextual messages for empty results
 3. Implement show disambiguation for ambiguous queries

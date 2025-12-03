@@ -9,12 +9,14 @@ After running the reorganization script, the following cross-references need to 
 **Line 1148-1149:** Update relative paths to sibling files
 
 **Current:**
+
 ```markdown
 - `/Users/kofifort/Repos/trakt.tv-mcp/NATURAL_LANGUAGE_PATTERNS.md` - Pattern library
 - `/Users/kofifort/Repos/trakt.tv-mcp/NL_PATTERNS_REFERENCE.md` - Quick reference card
 ```
 
 **Replace with:**
+
 ```markdown
 - `/Users/kofifort/Repos/trakt.tv-mcp/docs/guides/NATURAL_LANGUAGE_PATTERNS.md` - Pattern library
 - `/Users/kofifort/Repos/trakt.tv-mcp/docs/guides/NL_PATTERNS_REFERENCE.md` - Quick reference card
@@ -27,6 +29,7 @@ After running the reorganization script, the following cross-references need to 
 **Lines 533-536:** Update relative paths to documentation files
 
 **Current:**
+
 ```markdown
 - **[CLAUDE_PROMPT_GUIDELINES.md](./CLAUDE_PROMPT_GUIDELINES.md)** - Comprehensive guide for AI assistants
 - **[CONTRIBUTING_NL.md](./CONTRIBUTING_NL.md)** - Guide for adding new NL patterns
@@ -35,6 +38,7 @@ After running the reorganization script, the following cross-references need to 
 ```
 
 **Replace with:**
+
 ```markdown
 - **[CLAUDE_PROMPT_GUIDELINES.md](./CLAUDE_PROMPT_GUIDELINES.md)** - Comprehensive guide for AI assistants
 - **[CONTRIBUTING_NL.md](./CONTRIBUTING_NL.md)** - Guide for adding new NL patterns
@@ -51,12 +55,14 @@ After running the reorganization script, the following cross-references need to 
 **Lines 308-309:** Update absolute paths in documentation references
 
 **Current:**
+
 ```markdown
 - `/CLAUDE_PROMPT_GUIDELINES.md` - Add to "Parameter Aliases" section
 - `/NL_PATTERNS_REFERENCE.md` - Add to "Parameter Aliases" table
 ```
 
 **Replace with:**
+
 ```markdown
 - `/docs/guides/CLAUDE_PROMPT_GUIDELINES.md` - Add to "Parameter Aliases" section
 - `/docs/guides/NL_PATTERNS_REFERENCE.md` - Add to "Parameter Aliases" table
@@ -67,12 +73,14 @@ After running the reorganization script, the following cross-references need to 
 **Lines 595-596:** Update checklist references
 
 **Current:**
+
 ```markdown
 - [ ] Updated `CLAUDE_PROMPT_GUIDELINES.md` if needed
 - [ ] Updated `NL_PATTERNS_REFERENCE.md` if needed
 ```
 
 **Replace with:**
+
 ```markdown
 - [ ] Updated `docs/guides/CLAUDE_PROMPT_GUIDELINES.md` if needed
 - [ ] Updated `docs/guides/NL_PATTERNS_REFERENCE.md` if needed
@@ -83,12 +91,14 @@ After running the reorganization script, the following cross-references need to 
 **Lines 789-790:** Update completed checklist references
 
 **Current:**
+
 ```markdown
 - [x] Updated CLAUDE_PROMPT_GUIDELINES.md
 - [x] Updated NL_PATTERNS_REFERENCE.md
 ```
 
 **Replace with:**
+
 ```markdown
 - [x] Updated docs/guides/CLAUDE_PROMPT_GUIDELINES.md
 - [x] Updated docs/guides/NL_PATTERNS_REFERENCE.md
@@ -99,11 +109,13 @@ After running the reorganization script, the following cross-references need to 
 **Line 810:** Update reference in context section
 
 **Current:**
+
 ```markdown
 - Read `CLAUDE_PROMPT_GUIDELINES.md` for context
 ```
 
 **Replace with:**
+
 ```markdown
 - Read `docs/guides/CLAUDE_PROMPT_GUIDELINES.md` for context
 ```
@@ -150,6 +162,7 @@ grep -r "\.md" docs/ --include="*.md" | grep -o '[^(]*\.md' | sort | uniq
 ## Summary
 
 **Files requiring updates:** 3
+
 - `docs/guides/CLAUDE_PROMPT_GUIDELINES.md` - 2 references
 - `docs/guides/NL_PATTERNS_REFERENCE.md` - 1 reference
 - `docs/guides/CONTRIBUTING_NL.md` - 7 references

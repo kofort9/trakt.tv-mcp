@@ -33,14 +33,14 @@ All 5 Phase 3 MCP tools have been systematically tested and validated.
 
 ## Test Results by Tool
 
-| Tool | Tests | Passed | Failed | Status |
-|------|-------|--------|--------|--------|
-| search_episode | 6 | 5 | 1 | PASS |
-| bulk_log | 6 | 6 | 0 | EXCELLENT |
-| get_history | 5 | 5 | 0 | EXCELLENT |
-| get_upcoming | 5 | 4 | 1 | PASS |
-| follow_show / unfollow_show | 5 | 5 | 0 | EXCELLENT |
-| **TOTAL** | **27** | **25** | **2** | **92.6%** |
+| Tool                        | Tests  | Passed | Failed | Status    |
+| --------------------------- | ------ | ------ | ------ | --------- |
+| search_episode              | 6      | 5      | 1      | PASS      |
+| bulk_log                    | 6      | 6      | 0      | EXCELLENT |
+| get_history                 | 5      | 5      | 0      | EXCELLENT |
+| get_upcoming                | 5      | 4      | 1      | PASS      |
+| follow_show / unfollow_show | 5      | 5      | 0      | EXCELLENT |
+| **TOTAL**                   | **27** | **25** | **2**  | **92.6%** |
 
 ---
 
@@ -93,6 +93,7 @@ All 5 Phase 3 MCP tools have been systematically tested and validated.
 ## Test Artifacts
 
 ### Test Documents
+
 - **Main Report:** `/Users/kofifort/Repos/trakt.tv-mcp/PHASE3_COMPREHENSIVE_TEST_REPORT.md`
   - Detailed test results for all 27 test cases
   - Issue analysis with recommendations
@@ -108,6 +109,7 @@ All 5 Phase 3 MCP tools have been systematically tested and validated.
   - JSON test inputs for each tool
 
 ### Test Code
+
 - **Automated Test Runner:** `/Users/kofifort/Repos/trakt.tv-mcp/src/test-runner.ts`
   - 27 automated test cases
   - Systematic validation of all 5 tools
@@ -128,6 +130,7 @@ These fixes are recommended but not required for launch:
 **File:** `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/utils.ts`
 
 **Current (line ~138):**
+
 ```typescript
 export function validateSeasonNumber(season: number): void {
   if (!Number.isInteger(season) || season < 0) {
@@ -137,11 +140,14 @@ export function validateSeasonNumber(season: number): void {
 ```
 
 **Suggested:**
+
 ```typescript
 export function validateSeasonNumber(season: number): void {
   if (!Number.isInteger(season) || season < 0) {
-    throw createToolError('VALIDATION_ERROR',
-      `Season number must be a non-negative integer, got: ${season}`);
+    throw createToolError(
+      'VALIDATION_ERROR',
+      `Season number must be a non-negative integer, got: ${season}`
+    );
   }
 }
 ```
@@ -155,6 +161,7 @@ export function validateSeasonNumber(season: number): void {
 **File:** `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/tools.ts`
 
 **Current (line 440-446):**
+
 ```typescript
 const days = args.days || 7;
 
@@ -164,6 +171,7 @@ if (days < 1 || days > 30) {
 ```
 
 **Suggested:**
+
 ```typescript
 const days = args.days !== undefined && args.days !== null ? args.days : 7;
 
@@ -197,6 +205,7 @@ These are nice-to-have improvements that can be added later:
 ## Test Coverage
 
 ### Happy Paths (Core Functionality)
+
 - [x] Search for episodes by show/season/episode
 - [x] Log episode ranges (1-5, 1-3,5,7-9)
 - [x] Log single episodes via bulk_log
@@ -208,6 +217,7 @@ These are nice-to-have improvements that can be added later:
 - [x] Follow and unfollow shows
 
 ### Edge Cases
+
 - [x] Season 0 (specials)
 - [x] Invalid show names
 - [x] Invalid episode numbers
@@ -221,6 +231,7 @@ These are nice-to-have improvements that can be added later:
 - [x] Non-existent shows
 
 ### Natural Language Patterns
+
 - [x] Date: "yesterday"
 - [x] Date: "last week"
 - [x] Date: "today"
@@ -230,6 +241,7 @@ These are nice-to-have improvements that can be added later:
 - [x] Episode range: Single number "7"
 
 ### Integration Tests
+
 - [x] bulk_log then get_history
 - [x] follow_show then get_upcoming
 - [x] search_episode integration with log_watch
@@ -238,13 +250,13 @@ These are nice-to-have improvements that can be added later:
 
 ## Performance Metrics
 
-| Tool | Avg Response Time | Status |
-|------|------------------|--------|
-| search_episode | < 500ms | Fast |
-| bulk_log | 500ms - 1s | Acceptable |
-| get_history | < 300ms | Very Fast |
-| get_upcoming | < 400ms | Fast |
-| follow_show | < 500ms | Fast |
+| Tool           | Avg Response Time | Status     |
+| -------------- | ----------------- | ---------- |
+| search_episode | < 500ms           | Fast       |
+| bulk_log       | 500ms - 1s        | Acceptable |
+| get_history    | < 300ms           | Very Fast  |
+| get_upcoming   | < 400ms           | Fast       |
+| follow_show    | < 500ms           | Fast       |
 
 All tools respond within acceptable limits. No performance issues detected.
 
@@ -253,11 +265,13 @@ All tools respond within acceptable limits. No performance issues detected.
 ## Data Validation Results
 
 ### Data Consistency
+
 - Items logged via bulk_log appear immediately in get_history: PASS
 - Watchlist state persists across follow/unfollow: PASS
 - Episode metadata is complete and accurate: PASS
 
 ### Data Accuracy
+
 - Breaking Bad S1E1 returns "Pilot": PASS
 - The Office correctly disambiguates to US version: PASS
 - Season 0 returns special episodes: PASS
@@ -296,11 +310,13 @@ All tools respond within acceptable limits. No performance issues detected.
 ## Next Steps
 
 ### For Immediate Launch
+
 1. Deploy current version to production
 2. Monitor for any issues in real-world usage
 3. Collect user feedback
 
 ### For Future Updates (Optional)
+
 1. Apply recommended fixes for minor issues
 2. Implement UX enhancements
 3. Add show disambiguation feature
@@ -319,6 +335,7 @@ The natural language support for dates and episode ranges makes the tools intuit
 ---
 
 **Test Summary:**
+
 - Total Tests: 27
 - Passed: 25 (92.6%)
 - Failed: 2 (minor, non-blocking)

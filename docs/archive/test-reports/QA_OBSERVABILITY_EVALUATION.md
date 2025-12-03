@@ -14,6 +14,7 @@ The backend team has successfully implemented comprehensive observability, cachi
 **Overall Status:** PASS WITH MINOR ISSUES
 
 **Key Findings:**
+
 - ✅ **Observability (Phase 1):** Fully functional with comprehensive logging and debug tool
 - ✅ **Caching (Phase 2):** Working correctly with >30% cache hit rate achieved
 - ⚠️ **Parallel Operations (Phase 3):** 4 test failures related to array ordering (MINOR - not functional issues)
@@ -36,15 +37,15 @@ Duration:    4.52s execution time
 
 ### Status by Phase
 
-| Phase | Feature | Tests | Status | Issues Found |
-|-------|---------|-------|--------|--------------|
-| 1 | Logger Infrastructure | 23/23 | ✅ PASS | 1 warning (file logging) |
-| 1 | Debug Tool | Included | ✅ PASS | None |
-| 2 | LRU Cache | 15+ | ✅ PASS | None |
-| 2 | Cache Integration | 10+ | ✅ PASS | None |
-| 2 | Cache Performance | 5/5 | ✅ PASS | None (>30% hit rate achieved) |
-| 3 | Parallel Utilities | 8/12 | ⚠️ MINOR | 4 test failures (array ordering) |
-| 3 | Parallel Movie Search | Included | ✅ PASS | None |
+| Phase | Feature               | Tests    | Status   | Issues Found                     |
+| ----- | --------------------- | -------- | -------- | -------------------------------- |
+| 1     | Logger Infrastructure | 23/23    | ✅ PASS  | 1 warning (file logging)         |
+| 1     | Debug Tool            | Included | ✅ PASS  | None                             |
+| 2     | LRU Cache             | 15+      | ✅ PASS  | None                             |
+| 2     | Cache Integration     | 10+      | ✅ PASS  | None                             |
+| 2     | Cache Performance     | 5/5      | ✅ PASS  | None (>30% hit rate achieved)    |
+| 3     | Parallel Utilities    | 8/12     | ⚠️ MINOR | 4 test failures (array ordering) |
+| 3     | Parallel Movie Search | Included | ✅ PASS  | None                             |
 
 ---
 
@@ -55,6 +56,7 @@ Duration:    4.52s execution time
 #### What's Implemented ✅
 
 **Logger Module (`src/lib/logger.ts`):**
+
 - ✅ In-memory circular buffer (1000 entries max)
 - ✅ File-based logging with rotation (10MB limit)
 - ✅ Request correlation IDs for tracing
@@ -64,6 +66,7 @@ Duration:    4.52s execution time
 - ✅ Response body truncation (5KB limit)
 
 **Debug Tool (`debug_last_request`):**
+
 - ✅ Retrieve recent logs (1-100 entries)
 - ✅ Filter by tool name
 - ✅ Filter by HTTP method
@@ -72,6 +75,7 @@ Duration:    4.52s execution time
 - ✅ Correlation ID support for request tracing
 
 **Integration with Existing Tools:**
+
 - ✅ All tools instrumented with logging
 - ✅ Request/response pairs captured
 - ✅ Error logging with stack traces
@@ -81,6 +85,7 @@ Duration:    4.52s execution time
 #### Coverage Assessment: EXCELLENT (95%)
 
 The implementation covers all essential debugging scenarios:
+
 1. ✅ Request/response details
 2. ✅ Performance metrics (avg, min, max duration)
 3. ✅ Error tracking with full context
@@ -88,6 +93,7 @@ The implementation covers all essential debugging scenarios:
 5. ✅ Filtering capabilities
 
 **Missing (Nice-to-Have):**
+
 - ⬜ Request replay capability
 - ⬜ Cache hit/miss tracking per request (available via separate cache metrics)
 - ⬜ Distributed tracing integration (not needed for current scale)
@@ -100,22 +106,24 @@ The implementation covers all essential debugging scenarios:
 
 **Test Scenarios Executed:**
 
-| User Intent | Natural Language Query | Tool Interpretation | Status |
-|-------------|----------------------|---------------------|--------|
-| Recent errors | "Show me recent errors" | `debug_last_request({ statusCode: >= 400 })` | ⚠️ Requires manual statusCode |
-| Last failed request | "What happened with my last search?" | `debug_last_request({ tool: "search_show" })` | ✅ Works with tool filter |
-| Bulk log debugging | "Why did my bulk log fail?" | `debug_last_request({ tool: "bulk_log" })` | ✅ Works |
-| Performance check | "Show performance metrics for search_show" | `debug_last_request({ tool: "search_show", includeMetrics: true })` | ✅ Works |
+| User Intent         | Natural Language Query                     | Tool Interpretation                                                 | Status                        |
+| ------------------- | ------------------------------------------ | ------------------------------------------------------------------- | ----------------------------- |
+| Recent errors       | "Show me recent errors"                    | `debug_last_request({ statusCode: >= 400 })`                        | ⚠️ Requires manual statusCode |
+| Last failed request | "What happened with my last search?"       | `debug_last_request({ tool: "search_show" })`                       | ✅ Works with tool filter     |
+| Bulk log debugging  | "Why did my bulk log fail?"                | `debug_last_request({ tool: "bulk_log" })`                          | ✅ Works                      |
+| Performance check   | "Show performance metrics for search_show" | `debug_last_request({ tool: "search_show", includeMetrics: true })` | ✅ Works                      |
 
 **UX Observations:**
 
 ✅ **What Works Well:**
+
 1. Tool-based filtering is intuitive and effective
 2. Performance metrics are comprehensive and actionable
 3. Correlation IDs enable full request tracing
 4. Error messages are detailed with stack traces
 
 ⚠️ **UX Friction Points:**
+
 1. **Status code filtering requires numeric codes** - Users must know "404" vs "NOT_FOUND"
 2. **No built-in error shortcut** - Would benefit from a dedicated `{ showErrorsOnly: true }` parameter
 3. **Cache metrics separate from request logs** - Users need to call debug tool twice to see cache performance alongside request logs
@@ -123,10 +131,12 @@ The implementation covers all essential debugging scenarios:
 **Priority Improvements:**
 
 **P1 (High Impact):**
+
 - Add `showErrorsOnly` boolean parameter to debug tool (sugar for statusCode >= 400)
 - Include cache metrics in debug tool response by default when available
 
 **P2 (Medium Impact):**
+
 - Add time-based filtering (e.g., "last 5 minutes", "today")
 - Add correlation ID auto-extraction from error messages
 
@@ -172,6 +182,7 @@ The implementation covers all essential debugging scenarios:
 ### 1.4 Debug Tool Schema UX Review
 
 **Current Schema:**
+
 ```typescript
 {
   limit?: number (1-100, default 10)
@@ -185,11 +196,13 @@ The implementation covers all essential debugging scenarios:
 **UX Assessment:**
 
 ✅ **Strengths:**
+
 - Clear parameter names
 - Sensible defaults (limit=10)
 - Optional filtering allows broad or narrow queries
 
 ⚠️ **Weaknesses:**
+
 - `includeMetrics` defaults to `false` - most users would want metrics
 - No time-based filtering (e.g., "last hour")
 - No error-specific shortcut
@@ -237,6 +250,7 @@ Error: ENOENT: no such file or directory, open '/var/folders/.../trakt-mcp-test-
 **Root Cause:** `ensureLogDirectory()` is called in constructor but directory may not exist when `writeToFile()` is called if filesystem operations are delayed.
 
 **Recommendation:**
+
 - Add additional directory existence check in `writeToFile()` before append
 - Add retry logic for directory creation
 - Priority: P2 (test-only issue, production likely unaffected)
@@ -248,6 +262,7 @@ Error: ENOENT: no such file or directory, open '/var/folders/.../trakt-mcp-test-
 **Impact:** Users must explicitly request cache metrics
 
 **Recommendation:**
+
 - Change `includeMetrics` default to `true`
 - Always include cache metrics when available
 - Priority: P1 (improves debugging experience)
@@ -259,6 +274,7 @@ Error: ENOENT: no such file or directory, open '/var/folders/.../trakt-mcp-test-
 **Impact:** Users need to know HTTP status codes
 
 **Recommendation:**
+
 - Add `errorsOnly?: boolean` parameter
 - Maps to `statusCode >= 400` internally
 - Priority: P1 (improves UX for common debugging scenario)
@@ -357,12 +373,12 @@ All critical functionality is present and working.
 
 **Test Scenario:** User searches for same show multiple times
 
-| Attempt | Query | Expected | Actual | Status |
-|---------|-------|----------|--------|--------|
-| 1st | "Search for Breaking Bad" | Cache MISS, API call | ✅ MISS | PASS |
-| 2nd | "Search for Breaking Bad" | Cache HIT, no API call | ✅ HIT | PASS |
-| 3rd | "Search for breaking bad" (lowercase) | Cache HIT (case-insensitive) | ✅ HIT | PASS |
-| 4th | "Search for Breaking Bad in 2008" | Cache MISS (different params) | ✅ MISS | PASS |
+| Attempt | Query                                 | Expected                      | Actual  | Status |
+| ------- | ------------------------------------- | ----------------------------- | ------- | ------ |
+| 1st     | "Search for Breaking Bad"             | Cache MISS, API call          | ✅ MISS | PASS   |
+| 2nd     | "Search for Breaking Bad"             | Cache HIT, no API call        | ✅ HIT  | PASS   |
+| 3rd     | "Search for breaking bad" (lowercase) | Cache HIT (case-insensitive)  | ✅ HIT  | PASS   |
+| 4th     | "Search for Breaking Bad in 2008"     | Cache MISS (different params) | ✅ MISS | PASS   |
 
 **Cache Hit Rate Analysis:**
 
@@ -419,21 +435,23 @@ All 4 failures are **array ordering issues** in test assertions:
 ```typescript
 // Test expects sorted array [2, 4, 6, 8, 10]
 // Actual result: [10, 2, 4, 6, 8]
-expect(succeeded.sort()).toEqual([2, 4, 6, 8, 10])
+expect(succeeded.sort()).toEqual([2, 4, 6, 8, 10]);
 ```
 
 **Root Cause:** JavaScript's default `.sort()` sorts lexicographically, not numerically.
 
 ```javascript
-[10, 2, 4, 6, 8].sort()  // Returns: [10, 2, 4, 6, 8]
-[10, 2, 4, 6, 8].sort((a, b) => a - b)  // Returns: [2, 4, 6, 8, 10]
+[10, 2, 4, 6, 8]
+  .sort() // Returns: [10, 2, 4, 6, 8]
+  [(10, 2, 4, 6, 8)].sort((a, b) => a - b); // Returns: [2, 4, 6, 8, 10]
 ```
 
 **Impact:** NONE - This is a **test implementation issue**, not a functional bug. Parallel operations work correctly; only the test assertion is wrong.
 
 **Fix Required:** Update test assertions to use numeric sort:
+
 ```typescript
-expect(succeeded.sort((a, b) => a - b)).toEqual([2, 4, 6, 8, 10])
+expect(succeeded.sort((a, b) => a - b)).toEqual([2, 4, 6, 8, 10]);
 ```
 
 **Priority:** P1 (fix test suite)
@@ -472,6 +490,7 @@ Despite test failures, I verified functional behavior through code review:
 ```
 
 **Manual Calculation:**
+
 - 10 movies in parallel: ~1-2 seconds (vs. 5-10 seconds sequential)
 - **Speedup: 2.5-5x** ✅ Meets target of 2-3x
 
@@ -481,11 +500,11 @@ Despite test failures, I verified functional behavior through code review:
 
 **Scenario:** User wants to log multiple movies at once
 
-| Query | Parameters Extracted | Expected Behavior | Actual | Status |
-|-------|---------------------|-------------------|--------|--------|
-| "Log The Matrix, Inception, Interstellar as watched" | `movieNames: ["The Matrix", "Inception", "Interstellar"]` | Parallel search, bulk add | ✅ Parallel | PASS |
-| "Mark Breaking Bad S1E1-E5 as watched" | `episodes: "1-5"` | Parse range, bulk add | ✅ Works | PASS |
-| "I watched Dune and Avatar yesterday" | `movieNames: ["Dune", "Avatar"]`, `watchedAt: "yesterday"` | Parallel search, disambiguation if needed | ✅ Works | PASS |
+| Query                                                | Parameters Extracted                                       | Expected Behavior                         | Actual      | Status |
+| ---------------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------- | ----------- | ------ |
+| "Log The Matrix, Inception, Interstellar as watched" | `movieNames: ["The Matrix", "Inception", "Interstellar"]`  | Parallel search, bulk add                 | ✅ Parallel | PASS   |
+| "Mark Breaking Bad S1E1-E5 as watched"               | `episodes: "1-5"`                                          | Parse range, bulk add                     | ✅ Works    | PASS   |
+| "I watched Dune and Avatar yesterday"                | `movieNames: ["Dune", "Avatar"]`, `watchedAt: "yesterday"` | Parallel search, disambiguation if needed | ✅ Works    | PASS   |
 
 **UX Observation:** Parallel operations are **transparent** - users don't need to know or care that searches happen in parallel. They just experience faster bulk operations.
 
@@ -494,6 +513,7 @@ Despite test failures, I verified functional behavior through code review:
 ### 3.4 Performance Measurement
 
 **Theoretical Performance (10 movies):**
+
 ```
 Sequential:
   10 searches × 500ms avg = 5000ms
@@ -507,6 +527,7 @@ Speedup: 5x theoretical
 ```
 
 **Actual Performance (from cache-performance tests):**
+
 ```
 Cache-enabled parallel search (20 searches with 30% hit rate):
   14 API calls (cache misses)
@@ -619,22 +640,22 @@ Result: MINOR ISSUE - Cache visibility could be improved (already noted in P1 re
 
 ### Debugging Patterns
 
-| User Intent | Recommended Phrasing | Tool Call | Notes |
-|-------------|---------------------|-----------|-------|
-| View recent logs | "Show me the last 20 requests" | `debug_last_request({ limit: 20 })` | Works well |
-| Check specific tool | "Debug search_show calls" | `debug_last_request({ tool: "search_show" })` | Works well |
-| Find errors | "Show me errors" | `debug_last_request({ errorsOnly: true })` | Needs P1 fix |
-| Performance check | "How's log_watch performing?" | `debug_last_request({ tool: "log_watch", includeMetrics: true })` | Works well |
-| Trace request | "Show request {correlationId}" | `debug_last_request({ correlationId: "..." })` | Not implemented (would need schema update) |
+| User Intent         | Recommended Phrasing           | Tool Call                                                         | Notes                                      |
+| ------------------- | ------------------------------ | ----------------------------------------------------------------- | ------------------------------------------ |
+| View recent logs    | "Show me the last 20 requests" | `debug_last_request({ limit: 20 })`                               | Works well                                 |
+| Check specific tool | "Debug search_show calls"      | `debug_last_request({ tool: "search_show" })`                     | Works well                                 |
+| Find errors         | "Show me errors"               | `debug_last_request({ errorsOnly: true })`                        | Needs P1 fix                               |
+| Performance check   | "How's log_watch performing?"  | `debug_last_request({ tool: "log_watch", includeMetrics: true })` | Works well                                 |
+| Trace request       | "Show request {correlationId}" | `debug_last_request({ correlationId: "..." })`                    | Not implemented (would need schema update) |
 
 ### Cache-Aware Patterns
 
-| User Intent | Behavior | Cache Impact |
-|-------------|----------|--------------|
-| "Search for Breaking Bad" | First time: API call | MISS |
-| "Search for Breaking Bad" (again) | Second time: instant from cache | HIT |
-| "Search for breaking bad" | Case-insensitive match | HIT |
-| "Search for Breaking Bad 2008" | Different params: API call | MISS |
+| User Intent                       | Behavior                        | Cache Impact |
+| --------------------------------- | ------------------------------- | ------------ |
+| "Search for Breaking Bad"         | First time: API call            | MISS         |
+| "Search for Breaking Bad" (again) | Second time: instant from cache | HIT          |
+| "Search for breaking bad"         | Case-insensitive match          | HIT          |
+| "Search for Breaking Bad 2008"    | Different params: API call      | MISS         |
 
 ---
 
@@ -642,32 +663,32 @@ Result: MINOR ISSUE - Cache visibility could be improved (already noted in P1 re
 
 ### Phase 1: Observability
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| Request traceability | 100% | 100% | ✅ PASS |
-| Error debugging capability | Full logs + stack traces | Full logs + stack traces | ✅ PASS |
-| Performance visibility | Per-tool metrics | Per-tool metrics (avg, min, max) | ✅ PASS |
-| Filter flexibility | Multiple filters | Tool, method, status code | ✅ PASS |
+| Metric                     | Target                   | Actual                           | Status  |
+| -------------------------- | ------------------------ | -------------------------------- | ------- |
+| Request traceability       | 100%                     | 100%                             | ✅ PASS |
+| Error debugging capability | Full logs + stack traces | Full logs + stack traces         | ✅ PASS |
+| Performance visibility     | Per-tool metrics         | Per-tool metrics (avg, min, max) | ✅ PASS |
+| Filter flexibility         | Multiple filters         | Tool, method, status code        | ✅ PASS |
 
 ### Phase 2: Caching
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| Cache hit rate | >30% | 30% (in realistic workload) | ✅ PASS |
-| Cache lookup speed | <1ms | <1ms (negligible) | ✅ PASS |
-| Stale data prevention | TTL enforced | TTL enforced (1 hour) | ✅ PASS |
-| Cache size bounded | Max 500 | Max 500 (LRU eviction) | ✅ PASS |
-| Metrics accuracy | 100% | 100% | ✅ PASS |
+| Metric                | Target       | Actual                      | Status  |
+| --------------------- | ------------ | --------------------------- | ------- |
+| Cache hit rate        | >30%         | 30% (in realistic workload) | ✅ PASS |
+| Cache lookup speed    | <1ms         | <1ms (negligible)           | ✅ PASS |
+| Stale data prevention | TTL enforced | TTL enforced (1 hour)       | ✅ PASS |
+| Cache size bounded    | Max 500      | Max 500 (LRU eviction)      | ✅ PASS |
+| Metrics accuracy      | 100%         | 100%                        | ✅ PASS |
 
 ### Phase 3: Parallel Operations
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| Speedup (10 movies) | 2-3x | 2.5-5x | ✅ EXCEEDS |
-| Rate limit compliance | No 429 errors | No 429s (conservative concurrency) | ✅ PASS |
-| Partial failure handling | Graceful | Graceful (errors tracked separately) | ✅ PASS |
-| Concurrency limit | Bounded | 5 max (bounded) | ✅ PASS |
-| Test coverage | 95%+ | 100% (with 4 minor test issues) | ⚠️ NEEDS FIX |
+| Metric                   | Target        | Actual                               | Status       |
+| ------------------------ | ------------- | ------------------------------------ | ------------ |
+| Speedup (10 movies)      | 2-3x          | 2.5-5x                               | ✅ EXCEEDS   |
+| Rate limit compliance    | No 429 errors | No 429s (conservative concurrency)   | ✅ PASS      |
+| Partial failure handling | Graceful      | Graceful (errors tracked separately) | ✅ PASS      |
+| Concurrency limit        | Bounded       | 5 max (bounded)                      | ✅ PASS      |
+| Test coverage            | 95%+          | 100% (with 4 minor test issues)      | ⚠️ NEEDS FIX |
 
 ---
 
@@ -719,6 +740,7 @@ Result: MINOR ISSUE - Cache visibility could be improved (already noted in P1 re
 The implementation of Phase 1 (Observability), Phase 2 (Caching), and Phase 3 (Parallel Operations) is **excellent** with only minor issues identified:
 
 **Strengths:**
+
 - ✅ Comprehensive logging with request correlation
 - ✅ Robust caching with LRU eviction and TTL
 - ✅ Significant performance improvements (2.5-5x speedup)
@@ -726,6 +748,7 @@ The implementation of Phase 1 (Observability), Phase 2 (Caching), and Phase 3 (P
 - ✅ Transparent UX (users don't need to understand implementation)
 
 **Issues (All Minor):**
+
 - 4 test failures due to incorrect assertions (NOT functional bugs)
 - File logging directory creation warning in tests
 - Cache metrics not visible in debug tool by default
@@ -733,6 +756,7 @@ The implementation of Phase 1 (Observability), Phase 2 (Caching), and Phase 3 (P
 **Final Verdict:** **APPROVE FOR PRODUCTION** with recommended fixes applied.
 
 The features deliver exceptional value:
+
 - Users can debug issues easily with comprehensive logs
 - Search performance improved with caching
 - Bulk operations 2.5-5x faster with parallelization

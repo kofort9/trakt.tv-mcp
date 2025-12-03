@@ -352,24 +352,28 @@ Coverage (New Modules)  │    N/A  │   95%+  │   N/A
 ## Pre-Implementation Checklist
 
 ### Environment Setup
+
 - [ ] Development environment ready (Node.js 20+)
 - [ ] All dependencies installed (`npm install`)
 - [ ] Tests passing on main branch (`npm test`)
 - [ ] Branch created: `phase-4-technical-improvements`
 
 ### Documentation Review
+
 - [ ] Read TECHNICAL_IMPROVEMENTS_PLAN.md (full design)
 - [ ] Read TECHNICAL_IMPROVEMENTS_SUMMARY.md (overview)
 - [ ] Read IMPLEMENTATION_CHECKLIST.md (step-by-step)
 - [ ] Understand PR #2 review feedback context
 
 ### Tool Familiarization
+
 - [ ] Review existing TraktClient implementation
 - [ ] Review existing tools.ts structure
 - [ ] Review existing test patterns
 - [ ] Review MCP SDK documentation
 
 ### Optional (for Integration Tests)
+
 - [ ] Trakt.tv account created (or plan to create)
 - [ ] API application registered (or plan to register)
 - [ ] Understand OAuth flow
@@ -379,6 +383,7 @@ Coverage (New Modules)  │    N/A  │   95%+  │   N/A
 ## Post-Implementation Checklist
 
 ### Code Quality
+
 - [ ] All tests pass (`npm test`)
 - [ ] Coverage ≥95% for new modules
 - [ ] ESLint checks pass (`npm run lint`)
@@ -387,6 +392,7 @@ Coverage (New Modules)  │    N/A  │   95%+  │   N/A
 - [ ] No console.logs (except in logger module)
 
 ### Functionality
+
 - [ ] Debug tool returns accurate data
 - [ ] Cache reduces API calls
 - [ ] Parallel bulk operations work
@@ -394,18 +400,21 @@ Coverage (New Modules)  │    N/A  │   95%+  │   N/A
 - [ ] Error handling graceful
 
 ### Performance
+
 - [ ] Cache hit rate >30%
 - [ ] Bulk log 10 movies <2s
 - [ ] No memory leaks detected
 - [ ] Logging overhead <5ms
 
 ### Documentation
+
 - [ ] CHANGELOG.md updated
 - [ ] README.md updated if needed
 - [ ] All new functions have JSDoc comments
 - [ ] Integration test docs complete (if applicable)
 
 ### Git Hygiene
+
 - [ ] Clear commit messages
 - [ ] Logical commit grouping
 - [ ] No debug code or TODOs
@@ -446,12 +455,14 @@ npm run test:cleanup           # Clean test account (create this script)
 ## Emergency Contacts
 
 **Escalation Path:**
+
 1. Check TECHNICAL_IMPROVEMENTS_PLAN.md for design details
 2. Review CRITICAL_BUGS_AND_PLAN.md for context
 3. Check PR #2 for review feedback
 4. Consult Engineering Lead if blocked
 
 **Known Good States:**
+
 - Main branch (before Phase 4): `git checkout main`
 - PR #2 merge commit: `6eac0b1`
 - Last stable release: See git tags
@@ -460,4 +471,4 @@ npm run test:cleanup           # Clean test account (create this script)
 
 **Ready to begin Phase 4 implementation!** 🚀
 
-*This roadmap is a living document. Update as needed during implementation.*
+_This roadmap is a living document. Update as needed during implementation._

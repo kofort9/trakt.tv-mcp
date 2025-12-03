@@ -1,4 +1,5 @@
 # Technical Improvements Implementation Plan
+
 **Phase 4: Post-PR#2 Enhancement Roadmap**
 
 **Version:** 1.1
@@ -13,12 +14,14 @@
 This document provided a comprehensive implementation plan for technical improvements recommended in PR #2's review feedback. **Implementation is now complete** with 3 of 4 phases successfully delivered.
 
 **Implementation State (2025-11-20):**
+
 - ✅ **Phase 1: Observability & Debug Tool** - COMPLETE (23 tests passing)
 - ✅ **Phase 2: Search Result Caching** - COMPLETE (30% cache hit rate achieved)
 - ✅ **Phase 3: Parallel Bulk Operations** - FUNCTIONALLY COMPLETE (2.5-5x speedup achieved)
 - ⏸️ **Phase 4: Integration Testing** - DEFERRED (as planned)
 
 **Current State:**
+
 - ✅ 434 passing tests (99% pass rate)
 - ✅ 8 fully functional MCP tools
 - ✅ Robust error handling and disambiguation
@@ -30,6 +33,7 @@ This document provided a comprehensive implementation plan for technical improve
 - ⚠️ 4 test assertions need fixing (5 min effort)
 
 **Performance Achievements:**
+
 - Cache hit rate: 30% (target met)
 - Parallel speedup: 2.5-5x (exceeds 2-3x target)
 - Combined improvement: 4.7x faster for bulk operations
@@ -58,18 +62,19 @@ This document provided a comprehensive implementation plan for technical improve
 
 ### Priority Matrix - Implementation Status
 
-| Enhancement | Priority | Complexity | Impact | Effort | Status |
-|------------|----------|------------|--------|--------|--------|
-| Observability Tool | **P0 (Critical)** | Low | High | 1 day | ✅ COMPLETE |
-| Search Caching | **P1 (High)** | Medium | Medium | 1.5 days | ✅ COMPLETE |
-| Parallel Bulk Ops | **P1 (High)** | Medium | Medium | 2 days | ✅ COMPLETE |
-| Integration Tests | **P2 (Medium)** | Medium | Low | 1.5 days | ⏸️ DEFERRED |
+| Enhancement        | Priority          | Complexity | Impact | Effort   | Status      |
+| ------------------ | ----------------- | ---------- | ------ | -------- | ----------- |
+| Observability Tool | **P0 (Critical)** | Low        | High   | 1 day    | ✅ COMPLETE |
+| Search Caching     | **P1 (High)**     | Medium     | Medium | 1.5 days | ✅ COMPLETE |
+| Parallel Bulk Ops  | **P1 (High)**     | Medium     | Medium | 2 days   | ✅ COMPLETE |
+| Integration Tests  | **P2 (Medium)**   | Medium     | Low    | 1.5 days | ⏸️ DEFERRED |
 
 ### Implementation Timeline (Completed)
 
 **Sprint 1 (4.5 days actual)**
 
 **Week 1:**
+
 - **Day 1:** ✅ Enhancement #1 - Observability Tool (addressed Bug #3)
 - **Day 2:** ✅ Enhancement #2 - Search Caching (Part 1: Infrastructure)
 - **Day 3:** ✅ Enhancement #2 - Search Caching (Part 2: Integration & Testing)
@@ -77,9 +82,11 @@ This document provided a comprehensive implementation plan for technical improve
 - **Day 5 (half-day):** ✅ Enhancement #3 - Parallel Bulk Operations (Part 2: Testing & Optimization)
 
 **Week 2 (Deferred to future sprint):**
+
 - ⏸️ Enhancement #4 - Integration Testing Framework
 
 **Implementation Notes:**
+
 1. **Observability** - Delivered on schedule, all success criteria met
 2. **Caching** - Delivered on schedule, exceeded hit rate target
 3. **Parallelization** - Delivered ahead of schedule, exceeded speedup target
@@ -100,6 +107,7 @@ This document provided a comprehensive implementation plan for technical improve
 ### Problem Statement
 
 Currently, there is no mechanism to:
+
 - View what parameters were sent to MCP tools
 - See which search results were selected during disambiguation
 - Audit API requests sent to Trakt
@@ -111,6 +119,7 @@ This was identified as Bug #3 in the critical bugs document.
 ### Post-Implementation Findings
 
 **Success Criteria:**
+
 - ✅ All success criteria met
 - ✅ Request/response logging with correlation IDs
 - ✅ In-memory circular buffer (1000 entries)
@@ -121,10 +130,12 @@ This was identified as Bug #3 in the critical bugs document.
 - ✅ Response body truncation (5KB limit)
 
 **Known Issues:**
+
 - ⚠️ Minor UX improvements recommended (see QA report)
 - ⚠️ 1 file logging warning in test environment (non-blocking)
 
 **Recommended Follow-Up Enhancements:**
+
 - P1: Add `errorsOnly` filter parameter (15 min)
 - P2: Add time-based filtering (2 hours)
 - P2: Improve file logging robustness (30 min)
@@ -132,6 +143,7 @@ This was identified as Bug #3 in the critical bugs document.
 ### Solution Design
 
 Implement a structured logging system with:
+
 1. **Request/Response Logger** - Captures all MCP tool invocations
 2. **Debug Tool** - MCP tool to retrieve recent request logs
 3. **Performance Metrics** - Track timing and API usage
@@ -205,11 +217,7 @@ export function generateRequestId(): string {
 /**
  * Log an MCP request
  */
-export function logMCPRequest(
-  tool: string,
-  args: unknown,
-  requestId: string
-): void {
+export function logMCPRequest(tool: string, args: unknown, requestId: string): void {
   const entry: LogEntry = {
     timestamp: new Date().toISOString(),
     requestId,
@@ -255,11 +263,7 @@ export function logMCPResponse(
 /**
  * Log an MCP error
  */
-export function logMCPError(
-  tool: string,
-  error: Error,
-  requestId: string
-): void {
+export function logMCPError(tool: string, error: Error, requestId: string): void {
   const entry: LogEntry = {
     timestamp: new Date().toISOString(),
     requestId,
@@ -328,38 +332,34 @@ export function readRecentLogs(count = 100): LogEntry[] {
  * Read logs for a specific request ID (correlation)
  */
 export function readRequestLogs(requestId: string): LogEntry[] {
-  return logBuffer.filter(entry => entry.requestId === requestId);
+  return logBuffer.filter((entry) => entry.requestId === requestId);
 }
 
 /**
  * Read logs for a specific tool
  */
 export function readToolLogs(toolName: string, count = 50): LogEntry[] {
-  return logBuffer
-    .filter(entry => entry.tool === toolName)
-    .slice(-count);
+  return logBuffer.filter((entry) => entry.tool === toolName).slice(-count);
 }
 
 /**
  * Calculate performance metrics for a tool
  */
 export function getToolMetrics(toolName: string): PerformanceMetrics | null {
-  const logs = logBuffer.filter(
-    entry => entry.tool === toolName && entry.type === 'response'
-  );
+  const logs = logBuffer.filter((entry) => entry.tool === toolName && entry.type === 'response');
 
   if (logs.length === 0) return null;
 
   const durations = logs
-    .map(l => l.metadata?.duration)
+    .map((l) => l.metadata?.duration)
     .filter((d): d is number => d !== undefined);
 
   const apiCalls = logs
-    .map(l => l.metadata?.apiCalls)
+    .map((l) => l.metadata?.apiCalls)
     .filter((a): a is number => a !== undefined);
 
   const errors = logBuffer.filter(
-    entry => entry.tool === toolName && entry.type === 'error'
+    (entry) => entry.tool === toolName && entry.type === 'error'
   ).length;
 
   return {
@@ -377,9 +377,9 @@ export function getToolMetrics(toolName: string): PerformanceMetrics | null {
  * Get all available metrics
  */
 export function getAllMetrics(): PerformanceMetrics[] {
-  const tools = new Set(logBuffer.map(entry => entry.tool));
+  const tools = new Set(logBuffer.map((entry) => entry.tool));
   return Array.from(tools)
-    .map(tool => getToolMetrics(tool))
+    .map((tool) => getToolMetrics(tool))
     .filter((m): m is PerformanceMetrics => m !== null);
 }
 
@@ -407,23 +407,18 @@ export function clearLogs(): void {
  * Get debug information about recent MCP requests
  * Useful for troubleshooting issues and auditing API usage
  */
-export async function debugLastRequest(
-  args: {
-    tool?: string;
-    count?: number;
-    requestId?: string;
-    includeMetrics?: boolean;
-  }
-): Promise<ToolSuccess<unknown> | ToolError> {
+export async function debugLastRequest(args: {
+  tool?: string;
+  count?: number;
+  requestId?: string;
+  includeMetrics?: boolean;
+}): Promise<ToolSuccess<unknown> | ToolError> {
   try {
     const { tool, count = 20, requestId, includeMetrics = false } = args;
 
     // Validate count
     if (count < 1 || count > 500) {
-      return createToolError(
-        'VALIDATION_ERROR',
-        'Count must be between 1 and 500'
-      );
+      return createToolError('VALIDATION_ERROR', 'Count must be between 1 and 500');
     }
 
     let logs: LogEntry[];
@@ -434,10 +429,7 @@ export async function debugLastRequest(
       logs = readRequestLogs(requestId);
 
       if (logs.length === 0) {
-        return createToolError(
-          'NOT_FOUND',
-          `No logs found for request ID: ${requestId}`
-        );
+        return createToolError('NOT_FOUND', `No logs found for request ID: ${requestId}`);
       }
     } else if (tool) {
       // Get logs for specific tool
@@ -478,9 +470,9 @@ export async function debugLastRequest(
 
     // Add summary if multiple logs
     if (logs.length > 1) {
-      const requests = logs.filter(l => l.type === 'request');
-      const errors = logs.filter(l => l.type === 'error');
-      const tools = new Set(logs.map(l => l.tool));
+      const requests = logs.filter((l) => l.type === 'request');
+      const errors = logs.filter((l) => l.type === 'error');
+      const tools = new Set(logs.map((l) => l.tool));
 
       response.summary = {
         totalRequests: requests.length,
@@ -508,7 +500,9 @@ export async function debugLastRequest(
 
 export async function logWatch(
   client: TraktClient,
-  args: { /* ... */ }
+  args: {
+    /* ... */
+  }
 ): Promise<ToolSuccess<TraktHistoryAddResponse> | ToolError | DisambiguationResponse> {
   const requestId = generateRequestId();
   const startTime = Date.now();
@@ -536,7 +530,7 @@ export async function logWatch(
       duration,
       apiCalls: apiCallCount,
       searchQuery: movieName,
-      selectedFromResults: searchResults.findIndex(r => r.movie?.ids.trakt === movie.ids.trakt),
+      selectedFromResults: searchResults.findIndex((r) => r.movie?.ids.trakt === movie.ids.trakt),
     });
 
     return result;
@@ -687,7 +681,7 @@ describe('debugLastRequest', () => {
 
     expect(result.success).toBe(true);
     const logs = (result as ToolSuccess<{ logs: LogEntry[] }>).data.logs;
-    expect(logs.every(l => l.tool === 'log_watch')).toBe(true);
+    expect(logs.every((l) => l.tool === 'log_watch')).toBe(true);
   });
 
   it('should include metrics when requested', async () => {
@@ -736,11 +730,13 @@ describe('debugLastRequest', () => {
 ### Problem Statement
 
 Currently, every search for shows/movies hits the Trakt API, even for frequent searches like:
+
 - Popular shows: "Breaking Bad", "Game of Thrones"
 - Recently searched content (user searches same title multiple times)
 - Disambiguation flows (same search repeated during confirmation)
 
 This leads to:
+
 - Unnecessary API calls (reduces available rate limit budget)
 - Slower response times for repeat searches
 - Higher latency for users
@@ -748,6 +744,7 @@ This leads to:
 ### Post-Implementation Findings
 
 **Success Metrics Achieved:**
+
 - ✅ Cache hit rate: 30% (target: >30%)
 - ✅ Cache lookup speed: <1ms (target: <1ms)
 - ✅ Stale data prevention: TTL enforced correctly
@@ -755,11 +752,13 @@ This leads to:
 - ✅ Metrics accuracy: 100%
 
 **Performance Impact:**
+
 - Cached searches: Instant (vs 200-500ms API call)
 - Reduced API load by ~30% in typical usage
 - No performance regression (<1ms overhead)
 
 **Implementation Notes:**
+
 - ✅ All success criteria met or exceeded
 - ✅ Transparent UX (users see faster responses automatically)
 - ℹ️ Cache metrics available via debug tool
@@ -1063,16 +1062,19 @@ export class TraktClient {
 #### Cache Invalidation Strategy
 
 **When to invalidate:**
+
 1. **Time-based (TTL):** Automatic expiry after 1 hour
 2. **Manual refresh:** User can clear cache via debug tool
 3. **Server restart:** Cache is in-memory, cleared on restart
 
 **What NOT to cache:**
+
 - User-specific data (watch history, watchlist)
 - Write operations (addToHistory, addToWatchlist)
 - Real-time data (calendar, upcoming episodes)
 
 **TTL Configuration:**
+
 - **Search results:** 1 hour (shows/movies metadata rarely changes)
 - **Show metadata:** 24 hours (could be added in future enhancement)
 - **User data:** Never cached (always fresh)
@@ -1080,6 +1082,7 @@ export class TraktClient {
 ### Implementation Steps
 
 **Day 2 (8 hours):**
+
 1. **Part 1 (4 hours):**
    - Create `src/lib/cache.ts` with LRUCache implementation
    - Add comprehensive unit tests for cache behavior
@@ -1092,10 +1095,11 @@ export class TraktClient {
    - Add integration tests with real API calls
 
 **Day 3 (4 hours):**
-   - Performance testing (measure cache hit rates)
-   - Tune cache size and TTL based on usage patterns
-   - Add cache metrics to observability dashboard
-   - Documentation and code review
+
+- Performance testing (measure cache hit rates)
+- Tune cache size and TTL based on usage patterns
+- Add cache metrics to observability dashboard
+- Documentation and code review
 
 ### Testing Strategy
 
@@ -1152,7 +1156,7 @@ describe('LRUCache', () => {
     expect(cache.get('key1')).toBe('value1');
 
     // Wait for TTL to expire
-    await new Promise(resolve => setTimeout(resolve, 1100));
+    await new Promise((resolve) => setTimeout(resolve, 1100));
 
     expect(cache.get('key1')).toBeUndefined();
   });
@@ -1172,7 +1176,7 @@ describe('LRUCache', () => {
     cache.set('key1', 'value1');
     cache.set('key2', 'value2');
 
-    await new Promise(resolve => setTimeout(resolve, 1100));
+    await new Promise((resolve) => setTimeout(resolve, 1100));
 
     const pruned = cache.prune();
     expect(pruned).toBe(2);
@@ -1252,6 +1256,7 @@ for (const movieName of movieNames) {
 ```
 
 **Impact:**
+
 - Logging 10 movies = 10 sequential API calls
 - Each call takes ~200-500ms → Total: 2-5 seconds
 - Poor user experience for bulk operations
@@ -1262,6 +1267,7 @@ for (const movieName of movieNames) {
 ### Post-Implementation Findings
 
 **Success Metrics Achieved:**
+
 - ✅ Speedup: 2.5-5x (target: 2-3x) - **EXCEEDS TARGET**
 - ✅ Rate limit compliance: No 429 errors
 - ✅ Partial failure handling: Graceful error tracking
@@ -1269,23 +1275,27 @@ for (const movieName of movieNames) {
 - ⚠️ Test coverage: 100% written, 4 assertions need fixing
 
 **Performance Impact:**
+
 - 10 movies: ~1-2s parallel vs ~5-10s sequential (2.5-5x speedup)
 - Combined with caching: 4.7x actual improvement
 - Conservative rate limit approach ensures stability
 
 **Implementation Notes:**
+
 - ✅ All functional behavior verified correct
 - ⚠️ BLOCKER: 4 test assertions use lexicographic sort instead of numeric
 - ⚠️ Fix required before production: Update test assertions (5 min)
 
 **Immediate Action Required:**
-Update src/lib/__tests__/parallel.test.ts:
+Update src/lib/**tests**/parallel.test.ts:
+
 - Change: `expect(succeeded.sort()).toEqual([2, 4, 6, 8, 10])`
 - To: `expect(succeeded.sort((a, b) => a - b)).toEqual([2, 4, 6, 8, 10])`
 
 ### Solution Design
 
 Parallelize movie searches while respecting:
+
 1. **Rate limiting** - Don't exceed Trakt's limits
 2. **Error handling** - Handle partial failures gracefully
 3. **Disambiguation** - Return clear errors for ambiguous results
@@ -1322,11 +1332,7 @@ export async function parallelMap<T, R>(
   operation: (item: T) => Promise<R>,
   config: Partial<ParallelConfig> = {}
 ): Promise<ParallelResult<R>> {
-  const {
-    maxConcurrency = 5,
-    batchSize = 10,
-    delayBetweenBatches = 0,
-  } = config;
+  const { maxConcurrency = 5, batchSize = 10, delayBetweenBatches = 0 } = config;
 
   const succeeded: R[] = [];
   const failed: Array<{ item: T; error: string }> = [];
@@ -1339,9 +1345,7 @@ export async function parallelMap<T, R>(
     const chunks = chunkArray(batch, maxConcurrency);
 
     for (const chunk of chunks) {
-      const results = await Promise.allSettled(
-        chunk.map(item => operation(item))
-      );
+      const results = await Promise.allSettled(chunk.map((item) => operation(item)));
 
       // Process results
       results.forEach((result, index) => {
@@ -1380,7 +1384,7 @@ function chunkArray<T>(array: T[], size: number): T[][] {
  * Promise-based delay
  */
 function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -1396,9 +1400,7 @@ export async function parallelSearchMovies(
   errors: Map<string, string>;
 }> {
   // Deduplicate movie names (case-insensitive)
-  const uniqueMovies = Array.from(
-    new Set(movieNames.map(name => name.toLowerCase().trim()))
-  );
+  const uniqueMovies = Array.from(new Set(movieNames.map((name) => name.toLowerCase().trim())));
 
   const results = new Map<string, TraktSearchResult[]>();
   const errors = new Map<string, string>();
@@ -1506,16 +1508,11 @@ export async function bulkLog(
         const results = searchResults.get(normalizedName);
 
         if (!results || results.length === 0) {
-          return createToolError(
-            'NOT_FOUND',
-            `No movie found matching "${movieName}"`,
-            undefined,
-            [
-              'Check the spelling of the movie name',
-              'Try using search_show with type filter to browse available movies',
-              'Include the release year if known',
-            ]
-          );
+          return createToolError('NOT_FOUND', `No movie found matching "${movieName}"`, undefined, [
+            'Check the spelling of the movie name',
+            'Try using search_show with type filter to browse available movies',
+            'Include the release year if known',
+          ]);
         }
 
         // Handle disambiguation
@@ -1552,7 +1549,7 @@ export async function bulkLog(
         return {
           success: false,
           needs_disambiguation: true,
-          message: `Multiple movies require disambiguation. Please provide year or traktId for: ${disambiguationNeeded.map(d => d.movie).join(', ')}`,
+          message: `Multiple movies require disambiguation. Please provide year or traktId for: ${disambiguationNeeded.map((d) => d.movie).join(', ')}`,
           movies: disambiguationNeeded,
         } as DisambiguationResponse;
       }
@@ -1588,11 +1585,13 @@ export async function bulkLog(
 **Current Rate Limit:** 1000 requests per 5 minutes
 
 **Parallel Configuration:**
+
 - **Max Concurrency:** 5 (conservative, can be tuned)
 - **Batch Size:** 10 movies per batch
 - **Delay Between Batches:** 100ms
 
 **Example Scenario:**
+
 - User logs 20 movies
 - Batch 1: 10 movies → 5 parallel + 5 sequential = ~1 second
 - 100ms delay
@@ -1600,6 +1599,7 @@ export async function bulkLog(
 - **Total:** ~2.1 seconds (vs. ~4-10 seconds sequential)
 
 **Worst Case (100 movies):**
+
 - 10 batches of 10 movies
 - Each batch: ~1 second
 - Delays: 9 × 100ms = 900ms
@@ -1608,6 +1608,7 @@ export async function bulkLog(
 ### Implementation Steps
 
 **Day 4 (8 hours):**
+
 1. **Part 1 (4 hours):**
    - Create `src/lib/parallel.ts` with parallel utilities
    - Implement `parallelMap` and `parallelSearchMovies`
@@ -1619,6 +1620,7 @@ export async function bulkLog(
    - Add integration tests with mock API
 
 **Day 5 (8 hours):**
+
 1. **Part 1 (4 hours):**
    - Performance testing (measure speedup)
    - Tune concurrency parameters
@@ -1678,15 +1680,12 @@ describe('parallelMap', () => {
   it('should handle partial failures', async () => {
     const items = [1, 2, 3, 4, 5];
 
-    const { succeeded, failed } = await parallelMap(
-      items,
-      async (item) => {
-        if (item === 3) {
-          throw new Error('Failure');
-        }
-        return item * 2;
+    const { succeeded, failed } = await parallelMap(items, async (item) => {
+      if (item === 3) {
+        throw new Error('Failure');
       }
-    );
+      return item * 2;
+    });
 
     expect(succeeded).toEqual([2, 4, 8, 10]);
     expect(failed).toHaveLength(1);
@@ -1698,15 +1697,11 @@ describe('parallelMap', () => {
     const items = Array.from({ length: 25 }, (_, i) => i);
     const startTime = Date.now();
 
-    await parallelMap(
-      items,
-      async (item) => item,
-      {
-        batchSize: 10,
-        delayBetweenBatches: 100,
-        maxConcurrency: 10,
-      }
-    );
+    await parallelMap(items, async (item) => item, {
+      batchSize: 10,
+      delayBetweenBatches: 100,
+      maxConcurrency: 10,
+    });
 
     const duration = Date.now() - startTime;
     // Should have 2 delays (3 batches) = ~200ms minimum
@@ -1718,13 +1713,7 @@ describe('parallelMap', () => {
 
 describe('bulkLog - Parallel Operations', () => {
   it('should search movies in parallel', async () => {
-    const movieNames = [
-      'The Matrix',
-      'Inception',
-      'Interstellar',
-      'The Dark Knight',
-      'Fight Club',
-    ];
+    const movieNames = ['The Matrix', 'Inception', 'Interstellar', 'The Dark Knight', 'Fight Club'];
 
     const startTime = Date.now();
     const result = await bulkLog(mockClient, {
@@ -1786,6 +1775,7 @@ describe('bulkLog - Parallel Operations', () => {
 ### Problem Statement
 
 Current test suite uses **mocked Trakt API** exclusively:
+
 - ✅ Fast and deterministic
 - ✅ No external dependencies
 - ❌ Doesn't validate real API behavior
@@ -1802,6 +1792,7 @@ Current test suite uses **mocked Trakt API** exclusively:
 ### Future Implementation
 
 When implementing this enhancement:
+
 - Create dedicated Trakt test account
 - Implement setup/teardown helpers
 - Write integration tests for core flows
@@ -1812,6 +1803,7 @@ When implementing this enhancement:
 Add **integration tests** that run against real Trakt API with a dedicated test account.
 
 **Approach:**
+
 - Separate test suite (not run in CI by default)
 - Manual execution for pre-release validation
 - Test account with known data state
@@ -1855,7 +1847,7 @@ export async function setupIntegrationTests(): Promise<IntegrationTestContext> {
   if (!shouldRunIntegrationTests()) {
     throw new Error(
       'Integration tests require TRAKT_TEST_* environment variables. ' +
-      'See docs/INTEGRATION_TESTS.md for setup instructions.'
+        'See docs/INTEGRATION_TESTS.md for setup instructions.'
     );
   }
 
@@ -1897,13 +1889,11 @@ export async function cleanupTestData(client: TraktClient): Promise<void> {
   const history = await client.getHistory('movies');
 
   if (Array.isArray(history) && history.length > 0) {
-    const testMovies = history.filter(item =>
-      item.movie?.title.startsWith('[TEST]')
-    );
+    const testMovies = history.filter((item) => item.movie?.title.startsWith('[TEST]'));
 
     if (testMovies.length > 0) {
       await client.removeFromHistory({
-        movies: testMovies.map(item => ({
+        movies: testMovies.map((item) => ({
           ids: { trakt: item.movie!.ids.trakt },
         })),
       });
@@ -1916,11 +1906,11 @@ export async function cleanupTestData(client: TraktClient): Promise<void> {
   if (Array.isArray(watchlist) && watchlist.length > 0) {
     await client.removeFromWatchlist({
       movies: watchlist
-        .filter(item => item.type === 'movie')
-        .map(item => ({ ids: { trakt: item.movie!.ids.trakt } })),
+        .filter((item) => item.type === 'movie')
+        .map((item) => ({ ids: { trakt: item.movie!.ids.trakt } })),
       shows: watchlist
-        .filter(item => item.type === 'show')
-        .map(item => ({ ids: { trakt: item.show!.ids.trakt } })),
+        .filter((item) => item.type === 'show')
+        .map((item) => ({ ids: { trakt: item.show!.ids.trakt } })),
     });
     console.log(`[INTEGRATION_CLEANUP] Cleared watchlist`);
   }
@@ -1984,7 +1974,7 @@ describe.skipIf(!shouldRunIntegrationTests())('Integration: Search', () => {
     const results = await context.client.search('Dune', 'movie', 2021);
 
     expect(Array.isArray(results)).toBe(true);
-    const dune2021 = results.find(r => r.movie?.year === 2021);
+    const dune2021 = results.find((r) => r.movie?.year === 2021);
     expect(dune2021).toBeDefined();
     expect(dune2021?.movie?.title).toContain('Dune');
   });
@@ -2010,10 +2000,12 @@ describe.skipIf(!shouldRunIntegrationTests())('Integration: Watch History', () =
 
     // Add to history
     const addResponse = await context.client.addToHistory({
-      movies: [{
-        watched_at: new Date().toISOString(),
-        ids: { trakt: movie.ids.trakt },
-      }],
+      movies: [
+        {
+          watched_at: new Date().toISOString(),
+          ids: { trakt: movie.ids.trakt },
+        },
+      ],
     });
 
     expect(addResponse.added.movies).toBe(1);
@@ -2024,9 +2016,7 @@ describe.skipIf(!shouldRunIntegrationTests())('Integration: Watch History', () =
     expect(Array.isArray(history)).toBe(true);
     expect(history.length).toBeGreaterThan(0);
 
-    const addedMovie = history.find(
-      item => item.movie?.ids.trakt === movie.ids.trakt
-    );
+    const addedMovie = history.find((item) => item.movie?.ids.trakt === movie.ids.trakt);
     expect(addedMovie).toBeDefined();
     expect(addedMovie?.movie?.title).toBe('The Matrix');
   });
@@ -2037,17 +2027,21 @@ describe.skipIf(!shouldRunIntegrationTests())('Integration: Watch History', () =
 
     // Add twice
     await context.client.addToHistory({
-      movies: [{
-        watched_at: new Date().toISOString(),
-        ids: { trakt: movie.ids.trakt },
-      }],
+      movies: [
+        {
+          watched_at: new Date().toISOString(),
+          ids: { trakt: movie.ids.trakt },
+        },
+      ],
     });
 
     const response2 = await context.client.addToHistory({
-      movies: [{
-        watched_at: new Date().toISOString(),
-        ids: { trakt: movie.ids.trakt },
-      }],
+      movies: [
+        {
+          watched_at: new Date().toISOString(),
+          ids: { trakt: movie.ids.trakt },
+        },
+      ],
     });
 
     // Should still succeed (Trakt allows duplicate watch entries)
@@ -2058,7 +2052,7 @@ describe.skipIf(!shouldRunIntegrationTests())('Integration: Watch History', () =
 
 #### Test Account Setup Documentation
 
-```markdown
+````markdown
 // New file: docs/INTEGRATION_TESTS.md
 
 # Integration Testing Guide
@@ -2097,6 +2091,7 @@ TRAKT_TEST_ACCESS_TOKEN=your_test_access_token
 TRAKT_TEST_REFRESH_TOKEN=your_test_refresh_token
 TRAKT_TEST_USER_ID=trakt-mcp-test-username
 ```
+````
 
 ## Running Integration Tests
 
@@ -2117,15 +2112,18 @@ npm run test:integration -- --coverage
 ## Test Data Management
 
 **Before Tests:**
+
 - Tests assume a clean account state
 - Run `npm run test:cleanup` to reset test account
 
 **After Tests:**
+
 - Cleanup is automatic via `afterAll()` hooks
 - Removes all test movies (prefixed with `[TEST]`)
 - Clears watchlist
 
 **Manual Cleanup:**
+
 ```bash
 npm run test:cleanup
 ```
@@ -2177,19 +2175,23 @@ jobs:
 
 ## Troubleshooting
 
-**"Integration tests require TRAKT_TEST_* environment variables"**
+**"Integration tests require TRAKT*TEST*\* environment variables"**
+
 - Ensure `.env.test` exists and is loaded
 - Check variable names match exactly
 
 **429 Rate Limit Errors**
+
 - Wait 5 minutes before retrying
 - Reduce test concurrency
 - Check if other processes are using test account
 
 **Authentication Errors**
+
 - Token may have expired (refresh needed)
 - Re-run OAuth flow to get new token
 - Check client ID/secret are correct
+
 ```
 
 ### Implementation Steps
@@ -2243,30 +2245,32 @@ jobs:
 ### File Structure
 
 ```
+
 src/
 ├── lib/
-│   ├── cache.ts                 # NEW: LRU cache implementation
-│   ├── logger.ts                # NEW: Request/response logging
-│   ├── parallel.ts              # NEW: Parallel operation utilities
-│   ├── trakt-client.ts          # UPDATED: Add cache integration
-│   ├── tools.ts                 # UPDATED: Add logging, parallel bulk
-│   ├── utils.ts                 # Existing
-│   ├── oauth.ts                 # Existing
-│   └── __tests__/
-│       ├── cache.test.ts        # NEW
-│       ├── logger.test.ts       # NEW
-│       ├── parallel.test.ts     # NEW
-│       ├── integration/         # NEW: Integration test suite
-│       │   ├── setup.ts
-│       │   ├── search.integration.test.ts
-│       │   ├── history.integration.test.ts
-│       │   └── watchlist.integration.test.ts
-│       ├── trakt-client.test.ts # UPDATED
-│       └── tools.test.ts        # UPDATED
+│ ├── cache.ts # NEW: LRU cache implementation
+│ ├── logger.ts # NEW: Request/response logging
+│ ├── parallel.ts # NEW: Parallel operation utilities
+│ ├── trakt-client.ts # UPDATED: Add cache integration
+│ ├── tools.ts # UPDATED: Add logging, parallel bulk
+│ ├── utils.ts # Existing
+│ ├── oauth.ts # Existing
+│ └── **tests**/
+│ ├── cache.test.ts # NEW
+│ ├── logger.test.ts # NEW
+│ ├── parallel.test.ts # NEW
+│ ├── integration/ # NEW: Integration test suite
+│ │ ├── setup.ts
+│ │ ├── search.integration.test.ts
+│ │ ├── history.integration.test.ts
+│ │ └── watchlist.integration.test.ts
+│ ├── trakt-client.test.ts # UPDATED
+│ └── tools.test.ts # UPDATED
 ├── types/
-│   └── trakt.ts                 # UPDATED: Add cache/logger types
-└── index.ts                     # UPDATED: Add debug tool, init logger
-```
+│ └── trakt.ts # UPDATED: Add cache/logger types
+└── index.ts # UPDATED: Add debug tool, init logger
+
+````
 
 ### Type Definitions
 
@@ -2310,7 +2314,7 @@ export interface ParallelResult<T> {
     error: string;
   }>;
 }
-```
+````
 
 ### Configuration
 
@@ -2366,14 +2370,14 @@ export const DEFAULT_PERFORMANCE_CONFIG: PerformanceConfig = {
 
 ### Unit Test Coverage Goals
 
-| Module | Current Coverage | Target Coverage |
-|--------|-----------------|-----------------|
-| trakt-client.ts | ~85% | 90%+ |
-| tools.ts | ~90% | 95%+ |
-| utils.ts | ~95% | 95%+ |
-| **cache.ts** | **NEW** | **95%+** |
-| **logger.ts** | **NEW** | **95%+** |
-| **parallel.ts** | **NEW** | **95%+** |
+| Module          | Current Coverage | Target Coverage |
+| --------------- | ---------------- | --------------- |
+| trakt-client.ts | ~85%             | 90%+            |
+| tools.ts        | ~90%             | 95%+            |
+| utils.ts        | ~95%             | 95%+            |
+| **cache.ts**    | **NEW**          | **95%+**        |
+| **logger.ts**   | **NEW**          | **95%+**        |
+| **parallel.ts** | **NEW**          | **95%+**        |
 
 ### Test Categories
 
@@ -2418,13 +2422,13 @@ export const DEFAULT_PERFORMANCE_CONFIG: PerformanceConfig = {
 
 ### Risk Matrix
 
-| Risk | Severity | Likelihood | Mitigation |
-|------|----------|------------|------------|
-| **Cache Stale Data** | Medium | Low | TTL enforcement, manual clear option |
-| **Rate Limit Exceeded** | High | Low | Conservative concurrency, backoff retry |
-| **Memory Leak (Cache)** | Medium | Low | Bounded cache size, periodic pruning |
-| **Integration Test Flakiness** | Low | Medium | Cleanup hooks, isolated test data |
-| **Breaking API Changes** | High | Very Low | Integration tests catch contract changes |
+| Risk                           | Severity | Likelihood | Mitigation                               |
+| ------------------------------ | -------- | ---------- | ---------------------------------------- |
+| **Cache Stale Data**           | Medium   | Low        | TTL enforcement, manual clear option     |
+| **Rate Limit Exceeded**        | High     | Low        | Conservative concurrency, backoff retry  |
+| **Memory Leak (Cache)**        | Medium   | Low        | Bounded cache size, periodic pruning     |
+| **Integration Test Flakiness** | Low      | Medium     | Cleanup hooks, isolated test data        |
+| **Breaking API Changes**       | High     | Very Low   | Integration tests catch contract changes |
 
 ### Detailed Risk Analysis
 
@@ -2435,6 +2439,7 @@ export const DEFAULT_PERFORMANCE_CONFIG: PerformanceConfig = {
 **Impact:** User sees outdated information (e.g., wrong episode count, old description)
 
 **Mitigation:**
+
 - ✅ **TTL:** 1 hour expiry for search results
 - ✅ **Manual Clear:** Debug tool provides cache clear option
 - ✅ **Selective Caching:** Only cache search results, not user data
@@ -2449,6 +2454,7 @@ export const DEFAULT_PERFORMANCE_CONFIG: PerformanceConfig = {
 **Impact:** 429 errors, failed user requests
 
 **Mitigation:**
+
 - ✅ **Conservative Concurrency:** Max 5 parallel (vs. theoretical 16+)
 - ✅ **Batching:** Process in batches with delays
 - ✅ **Existing Rate Limiter:** TraktClient already has rate limiting
@@ -2464,6 +2470,7 @@ export const DEFAULT_PERFORMANCE_CONFIG: PerformanceConfig = {
 **Impact:** Out of memory error, server crash
 
 **Mitigation:**
+
 - ✅ **Bounded Buffer:** Max 1000 entries in memory
 - ✅ **File Rotation:** Rotate when log file exceeds 10MB
 - ✅ **Periodic Pruning:** Remove expired cache entries
@@ -2478,6 +2485,7 @@ export const DEFAULT_PERFORMANCE_CONFIG: PerformanceConfig = {
 **Impact:** False negative test results
 
 **Mitigation:**
+
 - ✅ **Optional in CI:** Integration tests not required for PRs
 - ✅ **Cleanup Hooks:** Automatic test data removal
 - ✅ **Retry Logic:** Tests retry on transient failures
@@ -2492,7 +2500,8 @@ export const DEFAULT_PERFORMANCE_CONFIG: PerformanceConfig = {
 ### P0 Issues (Critical - Must Fix Before Production)
 
 **Issue #1: Parallel Test Assertions**
-- **Component:** src/lib/__tests__/parallel.test.ts
+
+- **Component:** src/lib/**tests**/parallel.test.ts
 - **Impact:** 4 test failures block CI/CD
 - **Root Cause:** Lexicographic sort instead of numeric sort
 - **Fix:** Update assertions to use `sort((a, b) => a - b)`
@@ -2503,6 +2512,7 @@ export const DEFAULT_PERFORMANCE_CONFIG: PerformanceConfig = {
 ### P1 Issues (High Priority - UX Improvements)
 
 **Issue #2: Cache Metrics Not Included by Default**
+
 - **Component:** debug_last_request tool
 - **Impact:** Users miss cache performance data
 - **Fix:** Change includeMetrics default to true
@@ -2510,6 +2520,7 @@ export const DEFAULT_PERFORMANCE_CONFIG: PerformanceConfig = {
 - **Status:** UX improvement
 
 **Issue #3: No Error-Only Filter**
+
 - **Component:** debug_last_request tool
 - **Impact:** Users need to know HTTP status codes to filter errors
 - **Fix:** Add `errorsOnly?: boolean` parameter
@@ -2519,6 +2530,7 @@ export const DEFAULT_PERFORMANCE_CONFIG: PerformanceConfig = {
 ### P2 Issues (Medium Priority - Nice to Have)
 
 **Issue #4: File Logging Directory Creation**
+
 - **Component:** Logger.writeToFile()
 - **Impact:** Warning in test environment (no data loss)
 - **Fix:** Add robust directory check in write path
@@ -2531,29 +2543,29 @@ export const DEFAULT_PERFORMANCE_CONFIG: PerformanceConfig = {
 
 ### Performance Metrics - Actual Results
 
-| Metric | Baseline | Target | Actual | Status |
-|--------|----------|--------|--------|--------|
-| **Cache Hit Rate** | 0% (no cache) | >30% | 30% | ✅ MET |
-| **Bulk Log Speed (10 movies)** | ~5s (sequential) | <2s | ~1-2s | ✅ MET |
-| **Speedup (Parallel)** | 1x | 2-3x | 2.5-5x | ✅ EXCEEDED |
-| **API Calls per Bulk Log** | N searches + 1 | Same (cached) | Reduced by ~30% | ✅ MET |
-| **Cache Lookup Speed** | N/A | <1ms | <1ms | ✅ MET |
+| Metric                         | Baseline         | Target        | Actual          | Status      |
+| ------------------------------ | ---------------- | ------------- | --------------- | ----------- |
+| **Cache Hit Rate**             | 0% (no cache)    | >30%          | 30%             | ✅ MET      |
+| **Bulk Log Speed (10 movies)** | ~5s (sequential) | <2s           | ~1-2s           | ✅ MET      |
+| **Speedup (Parallel)**         | 1x               | 2-3x          | 2.5-5x          | ✅ EXCEEDED |
+| **API Calls per Bulk Log**     | N searches + 1   | Same (cached) | Reduced by ~30% | ✅ MET      |
+| **Cache Lookup Speed**         | N/A              | <1ms          | <1ms            | ✅ MET      |
 
 ### Observability Metrics - Actual Results
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| **Request Traceability** | 100% | 100% | ✅ MET |
-| **Error Debugging** | Full logs + stack | Full logs + stack | ✅ MET |
-| **Performance Visibility** | Per-tool metrics | Avg/min/max per tool | ✅ MET |
+| Metric                     | Target            | Actual               | Status |
+| -------------------------- | ----------------- | -------------------- | ------ |
+| **Request Traceability**   | 100%              | 100%                 | ✅ MET |
+| **Error Debugging**        | Full logs + stack | Full logs + stack    | ✅ MET |
+| **Performance Visibility** | Per-tool metrics  | Avg/min/max per tool | ✅ MET |
 
 ### Quality Metrics - Actual Results
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| **Unit Test Coverage** | 95%+ | 100% (with fixes) | ⚠️ NEEDS FIX |
-| **Integration Test Coverage** | Core flows covered | Deferred | ⏸️ DEFERRED |
-| **Test Passing Rate** | 100% | 434/438 (99%) | ⚠️ 4 FIXES NEEDED |
+| Metric                        | Target             | Actual            | Status            |
+| ----------------------------- | ------------------ | ----------------- | ----------------- |
+| **Unit Test Coverage**        | 95%+               | 100% (with fixes) | ⚠️ NEEDS FIX      |
+| **Integration Test Coverage** | Core flows covered | Deferred          | ⏸️ DEFERRED       |
+| **Test Passing Rate**         | 100%               | 434/438 (99%)     | ⚠️ 4 FIXES NEEDED |
 
 ---
 
@@ -2733,11 +2745,17 @@ const startTime = Date.now();
 await bulkLog(client, {
   type: 'movies',
   movieNames: [
-    'The Matrix', 'Inception', 'Interstellar',
-    'The Dark Knight', 'Fight Club', 'The Prestige',
-    'Shutter Island', 'The Departed', 'The Wolf of Wall Street',
-    'Django Unchained'
-  ]
+    'The Matrix',
+    'Inception',
+    'Interstellar',
+    'The Dark Knight',
+    'Fight Club',
+    'The Prestige',
+    'Shutter Island',
+    'The Departed',
+    'The Wolf of Wall Street',
+    'Django Unchained',
+  ],
 });
 console.log(`Sequential: ${Date.now() - startTime}ms`);
 // Output: Sequential: 4872ms
@@ -2747,11 +2765,17 @@ const startTime = Date.now();
 await bulkLog(client, {
   type: 'movies',
   movieNames: [
-    'The Matrix', 'Inception', 'Interstellar',
-    'The Dark Knight', 'Fight Club', 'The Prestige',
-    'Shutter Island', 'The Departed', 'The Wolf of Wall Street',
-    'Django Unchained'
-  ]
+    'The Matrix',
+    'Inception',
+    'Interstellar',
+    'The Dark Knight',
+    'Fight Club',
+    'The Prestige',
+    'Shutter Island',
+    'The Departed',
+    'The Wolf of Wall Street',
+    'Django Unchained',
+  ],
 });
 console.log(`Parallel: ${Date.now() - startTime}ms`);
 // Output: Parallel: 1543ms (3.2x speedup)
@@ -2770,12 +2794,14 @@ This implementation plan provides a comprehensive roadmap for enhancing the Trak
 **Total Estimated Effort:** 5-7 days (1 sprint)
 
 **Recommended Approach:**
+
 - Implement in order: Observability → Caching → Parallelization → Integration Tests
 - Each enhancement is independently valuable
 - Low risk (all additive, no breaking changes)
 - High impact (better debugging, faster operations, validated behavior)
 
 **Next Steps:**
+
 1. Review and approve this plan
 2. Create GitHub issues for each enhancement
 3. Assign to sprint/milestone
@@ -2788,10 +2814,12 @@ This implementation plan provides a comprehensive roadmap for enhancing the Trak
 ### Immediate (Before Production)
 
 **BLOCKING:**
+
 1. Fix parallel test assertions (5 min) - See QA_IMMEDIATE_FIXES.md
 2. Verify all 438 tests pass
 
 **HIGH PRIORITY:**
+
 1. Add errorsOnly filter to debug tool (15 min)
 2. Verify cache metrics default (5 min - may already be fixed)
 

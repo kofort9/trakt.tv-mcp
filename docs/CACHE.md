@@ -50,7 +50,7 @@ const cache = new LRUCache({
   maxSize: 500, // Maximum number of items
   ttlMs: 3600000, // TTL in milliseconds
   maxMemoryBytes: 10 * 1024 * 1024, // Max memory (e.g., 10MB)
-  memoryWarningThreshold: 0.9 // Warn when usage exceeds 90%
+  memoryWarningThreshold: 0.9, // Warn when usage exceeds 90%
 });
 ```
 
@@ -61,7 +61,7 @@ const cache = new LRUCache({
    - If adding an item would exceed `maxMemoryBytes`, the cache evicts the least recently used items until there is space.
    - If a single item is larger than `maxMemoryBytes`, it is not cached, and a warning is logged.
    - Eviction also occurs if `maxSize` (item count) is exceeded.
-3. **Warnings**: A warning is logged to the console if memory usage exceeds `memoryWarningThreshold` * `maxMemoryBytes`.
+3. **Warnings**: A warning is logged to the console if memory usage exceeds `memoryWarningThreshold` \* `maxMemoryBytes`.
 
 ### Metrics
 
@@ -88,4 +88,3 @@ The cache uses a heuristic-based size estimation function that **does not** refl
 **Implication**: The reported `memoryBytesUsed` metric is an approximation suitable for setting soft limits and monitoring trends, but should not be treated as an exact measurement of actual heap memory consumption.
 
 For precise memory profiling, use Node.js heap snapshots or `process.memoryUsage()`.
-

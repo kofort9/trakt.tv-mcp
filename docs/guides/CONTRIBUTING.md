@@ -20,6 +20,7 @@
 ## Overview
 
 This guide covers:
+
 - How to add new MCP tools and features
 - How AI assistants (like Claude) should interpret user queries
 - How to extend natural language support
@@ -41,12 +42,12 @@ For natural language pattern details, see [NATURAL_LANGUAGE_GUIDE.md](./NATURAL_
 
 ### Key Files
 
-| File | Purpose | Key Functions |
-|------|---------|---------------|
-| `/src/lib/utils.ts` | Date parsing, validation, error formatting | `parseNaturalDate()`, `parseEpisodeRange()`, `createToolError()` |
-| `/src/lib/tools.ts` | Tool implementations with parameter normalization | `logWatch()`, `bulkLog()`, `searchEpisode()` |
-| `/src/lib/__tests__/utils.test.ts` | Unit tests for utilities | Test suites for date parsing, validation |
-| `/src/lib/__tests__/tools.test.ts` | Integration tests for tools | End-to-end tool behavior tests |
+| File                               | Purpose                                           | Key Functions                                                    |
+| ---------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------- |
+| `/src/lib/utils.ts`                | Date parsing, validation, error formatting        | `parseNaturalDate()`, `parseEpisodeRange()`, `createToolError()` |
+| `/src/lib/tools.ts`                | Tool implementations with parameter normalization | `logWatch()`, `bulkLog()`, `searchEpisode()`                     |
+| `/src/lib/__tests__/utils.test.ts` | Unit tests for utilities                          | Test suites for date parsing, validation                         |
+| `/src/lib/__tests__/tools.test.ts` | Integration tests for tools                       | End-to-end tool behavior tests                                   |
 
 ---
 
@@ -73,6 +74,7 @@ The Trakt.tv MCP server is designed for AI assistant integration. This section e
 When multiple interpretations are possible, ask for clarification rather than guessing.
 
 **Example:**
+
 - **User:** "Watched some episodes of Breaking Bad"
 - **Bad:** Logging all 62 episodes
 - **Good:** "Which episodes? You can say 'S1E1' or 'episodes 1-5' or 'episodes 1, 3, and 5'"
@@ -84,6 +86,7 @@ When multiple interpretations are possible, ask for clarification rather than gu
 Prompt for missing details without restarting the conversation.
 
 **Example:**
+
 - **User:** "Log Breaking Bad as watched"
 - **Claude:** "Which season and episode? (e.g., 'S1E1') And when? (e.g., 'yesterday', 'today')"
 
@@ -95,6 +98,7 @@ Prompt for missing details without restarting the conversation.
 - **Do NOT default:** Episode/season numbers (always require explicit specification)
 
 **Example:**
+
 ```json
 // User: "Watched Breaking Bad S1E1"
 {
@@ -102,7 +106,7 @@ Prompt for missing details without restarting the conversation.
   "showName": "Breaking Bad",
   "season": 1,
   "episode": 1,
-  "watchedAt": "today"  // Default applied
+  "watchedAt": "today" // Default applied
 }
 ```
 
@@ -113,10 +117,12 @@ Prompt for missing details without restarting the conversation.
 Before logging large ranges, confirm with the user.
 
 **Example:**
+
 - **User:** "Binged all of Breaking Bad season 1"
 - **Claude:** "That's 7 episodes. Should I log all episodes of Breaking Bad season 1 (S1E1-E7) as watched today?"
 
 **Threshold Recommendation:**
+
 - 1-3 episodes: Proceed without confirmation
 - 4-10 episodes: Confirm with count
 - 11+ episodes: Confirm and suggest date range option
@@ -128,13 +134,15 @@ Before logging large ranges, confirm with the user.
 Don't convert natural language dates to ISO before calling tools. Let the tool handle parsing.
 
 **Good:**
+
 ```json
 { "watchedAt": "last night" }
 ```
 
 **Less Good:**
+
 ```json
-{ "watchedAt": "2025-11-18" }  // Loses semantic meaning
+{ "watchedAt": "2025-11-18" } // Loses semantic meaning
 ```
 
 **Why:** The natural language parser maintains consistency and may handle time-of-day differently in future enhancements.
@@ -146,6 +154,7 @@ Don't convert natural language dates to ISO before calling tools. Let the tool h
 When errors include suggestions, present them to users.
 
 **Error Response:**
+
 ```json
 {
   "success": false,
@@ -161,6 +170,7 @@ When errors include suggestions, present them to users.
 ```
 
 **Claude Presentation:**
+
 ```
 I couldn't find "Breaking Bed" on Trakt.tv. Here are some suggestions:
 • Check the spelling - did you mean "Breaking Bad"?
@@ -176,6 +186,7 @@ Would you like me to search for "Breaking Bad" instead?
 When the server returns a disambiguation response:
 
 **Response Format:**
+
 ```json
 {
   "success": false,
@@ -189,6 +200,7 @@ When the server returns a disambiguation response:
 ```
 
 **Present Options to User:**
+
 ```
 I found multiple matches for "Dune":
 
@@ -199,11 +211,12 @@ Which one did you watch? You can tell me by year (e.g., "the 2021 movie").
 ```
 
 **Retry with Disambiguation Parameter:**
+
 ```json
 {
   "type": "movie",
   "movieName": "Dune",
-  "year": 2021,  // Add year to resolve
+  "year": 2021, // Add year to resolve
   "watchedAt": "yesterday"
 }
 ```
@@ -216,14 +229,14 @@ See [NATURAL_LANGUAGE_GUIDE.md](./NATURAL_LANGUAGE_GUIDE.md) for comprehensive p
 
 **Quick Reference:**
 
-| User Intent | Tool | Key Parameters |
-|-------------|------|----------------|
-| Log single episode | `log_watch` | `type: "episode"`, `showName`, `season`, `episode`, `watchedAt` |
-| Log single movie | `log_watch` | `type: "movie"`, `movieName`, `watchedAt` |
-| Log episode range | `bulk_log` | `type: "episodes"`, `showName`, `season`, `episodes`, `watchedAt` |
-| Log multiple movies | `bulk_log` | `type: "movies"`, `movieNames`, `watchedAt` |
-| Query history | `summarize_history` | `startDate`, `endDate` (both optional) |
-| Search content | `search_show` | `query`, `type` (optional) |
+| User Intent         | Tool                | Key Parameters                                                    |
+| ------------------- | ------------------- | ----------------------------------------------------------------- |
+| Log single episode  | `log_watch`         | `type: "episode"`, `showName`, `season`, `episode`, `watchedAt`   |
+| Log single movie    | `log_watch`         | `type: "movie"`, `movieName`, `watchedAt`                         |
+| Log episode range   | `bulk_log`          | `type: "episodes"`, `showName`, `season`, `episodes`, `watchedAt` |
+| Log multiple movies | `bulk_log`          | `type: "movies"`, `movieNames`, `watchedAt`                       |
+| Query history       | `summarize_history` | `startDate`, `endDate` (both optional)                            |
+| Search content      | `search_show`       | `query`, `type` (optional)                                        |
 
 ---
 
@@ -232,12 +245,14 @@ See [NATURAL_LANGUAGE_GUIDE.md](./NATURAL_LANGUAGE_GUIDE.md) for comprehensive p
 ### Step 1: Identify the Pattern
 
 Before implementing, document:
+
 - **User Input:** What will users type? (e.g., "this weekend")
 - **Expected Output:** What date should this map to?
 - **Edge Cases:** What happens on boundary days?
 - **Ambiguity:** Is the meaning clear and unambiguous?
 
 **Example:**
+
 ```
 Pattern: "this weekend"
 Output: Next Saturday (or today if today is Saturday/Sunday)
@@ -270,12 +285,15 @@ if (lowerInput === 'this weekend') {
     daysToNextSaturday = 6 - dayOfWeek;
   }
 
-  const targetDate = new Date(Date.UTC(currentYear, currentMonth, currentDate + daysToNextSaturday));
+  const targetDate = new Date(
+    Date.UTC(currentYear, currentMonth, currentDate + daysToNextSaturday)
+  );
   return targetDate.toISOString();
 }
 ```
 
 **Key Requirements:**
+
 - Use `Date.UTC()` for all date construction (never local time)
 - Return ISO string: `targetDate.toISOString()`
 - Place new patterns **before** the ISO date parsing fallback
@@ -292,9 +310,9 @@ Add the new pattern to error messages so users know it's supported:
 ```typescript
 throw new Error(
   `Unable to parse date: "${input}". Use ISO format (YYYY-MM-DD) or natural language ` +
-  `(today, tonight, yesterday, last night, this morning, earlier today, this afternoon, ` +
-  `this evening, N days ago, N weeks ago, last week, last weekend, this weekend, ` + // Added "this weekend"
-  `last monday, last month)`
+    `(today, tonight, yesterday, last night, this morning, earlier today, this afternoon, ` +
+    `this evening, N days ago, N weeks ago, last week, last weekend, this weekend, ` + // Added "this weekend"
+    `last monday, last month)`
 );
 ```
 
@@ -336,6 +354,7 @@ describe('parseNaturalDate', () => {
 ```
 
 **Testing Requirements:**
+
 - Test happy path (typical usage)
 - Test edge cases (boundary days)
 - Verify UTC midnight (hours/minutes/seconds all 0)
@@ -398,6 +417,7 @@ describe('parseNaturalDate', () => {
 ```
 
 **Required Coverage:**
+
 - Happy path
 - Edge cases (boundary values)
 - Error cases
@@ -431,6 +451,7 @@ describe('logWatch integration', () => {
 ### Manual Testing (Recommended)
 
 1. **Build the project:**
+
    ```bash
    npm run build
    ```
@@ -453,6 +474,7 @@ describe('logWatch integration', () => {
 ### Pre-Submission Checklist
 
 **Code Quality:**
+
 - [ ] TypeScript strict mode passes (no `any` types)
 - [ ] All new code has JSDoc comments
 - [ ] Function names are clear and descriptive
@@ -461,6 +483,7 @@ describe('logWatch integration', () => {
 - [ ] UTC dates used consistently
 
 **Testing:**
+
 - [ ] Unit tests written and passing
 - [ ] Integration tests written and passing
 - [ ] Edge cases tested
@@ -469,12 +492,14 @@ describe('logWatch integration', () => {
 - [ ] No regressions in existing tests
 
 **Documentation:**
+
 - [ ] Updated [NATURAL_LANGUAGE_GUIDE.md](./NATURAL_LANGUAGE_GUIDE.md) if needed
 - [ ] Updated error messages to include new patterns
 - [ ] Added JSDoc comments to new functions
 - [ ] Created or updated test scripts if applicable
 
 **UX:**
+
 - [ ] Error messages are clear and actionable
 - [ ] Suggestions provided for common errors
 - [ ] Ambiguous inputs handled gracefully
@@ -510,13 +535,15 @@ All must pass before submitting PR.
 **Always use UTC for date operations:**
 
 ✅ **Good:**
+
 ```typescript
 const today = new Date(Date.UTC(currentYear, currentMonth, currentDate));
 ```
 
 ❌ **Bad:**
+
 ```typescript
-const today = new Date(currentYear, currentMonth, currentDate);  // Uses local time!
+const today = new Date(currentYear, currentMonth, currentDate); // Uses local time!
 ```
 
 **Why:** Local time creates timezone bugs.
@@ -528,6 +555,7 @@ const today = new Date(currentYear, currentMonth, currentDate);  // Uses local t
 **Validate early, fail immediately:**
 
 ✅ **Good:**
+
 ```typescript
 if (!lowerInput || lowerInput === '') {
   throw new Error('Date parameter cannot be empty. Supported formats: ...');
@@ -535,9 +563,10 @@ if (!lowerInput || lowerInput === '') {
 ```
 
 ❌ **Bad:**
+
 ```typescript
 // Proceed without validation, fail later with cryptic error
-const parsed = new Date(lowerInput);  // Might be Invalid Date
+const parsed = new Date(lowerInput); // Might be Invalid Date
 ```
 
 ---
@@ -547,12 +576,14 @@ const parsed = new Date(lowerInput);  // Might be Invalid Date
 **Don't reinvent the wheel:**
 
 ✅ **Good:**
+
 ```typescript
 validateNonEmptyString(showName, 'showName');
 validateEpisodeNumber(episode);
 ```
 
 ❌ **Bad:**
+
 ```typescript
 if (!showName || showName.trim() === '') {
   throw new Error('showName cannot be empty');
@@ -566,12 +597,14 @@ if (!showName || showName.trim() === '') {
 **Use descriptive variable names:**
 
 ✅ **Good:**
+
 ```typescript
 const daysToLastSaturday = calculateDaysToLastSaturday(currentDayOfWeek);
 const targetDate = new Date(Date.UTC(year, month, date - daysToLastSaturday));
 ```
 
 ❌ **Bad:**
+
 ```typescript
 const d = calc(dow);
 const t = new Date(Date.UTC(y, m, dt - d));
@@ -584,14 +617,16 @@ const t = new Date(Date.UTC(y, m, dt - d));
 **Write for humans, not machines:**
 
 ✅ **Good:**
+
 ```typescript
 throw new Error(
   `Date too far in past: ${days} days ago. Please use an ISO date (YYYY-MM-DD) ` +
-  `for dates more than a year ago. Maximum: "365 days ago"`
+    `for dates more than a year ago. Maximum: "365 days ago"`
 );
 ```
 
 ❌ **Bad:**
+
 ```typescript
 throw new Error(`ERR_DATE_RANGE: ${days} > MAX_DAYS`);
 ```
@@ -603,6 +638,7 @@ throw new Error(`ERR_DATE_RANGE: ${days} > MAX_DAYS`);
 **Add comments for "why", not "what":**
 
 ✅ **Good:**
+
 ```typescript
 // If today is the target weekday, go back a full week to avoid ambiguity
 // (e.g., "last Monday" when today is Monday should mean the previous Monday)
@@ -612,6 +648,7 @@ if (currentDay === targetDay) {
 ```
 
 ❌ **Bad:**
+
 ```typescript
 // Set daysBack to 7
 if (currentDay === targetDay) {
@@ -625,9 +662,11 @@ if (currentDay === targetDay) {
 
 ```markdown
 ## Description
+
 Add support for "this weekend" date pattern
 
 ## Changes
+
 - Added "this weekend" parsing to `parseNaturalDate()`
 - Returns next Saturday (or today if today is Saturday)
 - Updated error messages to include new pattern
@@ -635,6 +674,7 @@ Add support for "this weekend" date pattern
 - Added integration tests for `logWatch` with new pattern
 
 ## Testing
+
 - [x] Unit tests pass (12 new tests added)
 - [x] Integration tests pass (3 new tests added)
 - [x] Manual testing with MCP Inspector completed
@@ -642,11 +682,13 @@ Add support for "this weekend" date pattern
 - [x] No regressions in existing functionality
 
 ## Documentation
+
 - [x] Updated docs/guides/NATURAL_LANGUAGE_GUIDE.md
 - [x] Added JSDoc comments
 - [x] Updated error message strings
 
 ## QA Checklist
+
 - [x] TypeScript strict mode passes
 - [x] All tests pass (`npm test`)
 - [x] Build succeeds (`npm run build`)
@@ -660,21 +702,25 @@ Add support for "this weekend" date pattern
 ## Getting Help
 
 **Questions about implementation?**
+
 - Review existing patterns in `/src/lib/utils.ts`
 - Check test files for examples: `/src/lib/__tests__/utils.test.ts`
 - Read [NATURAL_LANGUAGE_GUIDE.md](./NATURAL_LANGUAGE_GUIDE.md) for context
 
 **Found a bug?**
+
 - Open an issue with reproduction steps
 - Include relevant code snippets
 - Provide test case that demonstrates the bug
 
 **Want to propose a new pattern?**
+
 - Open an issue for discussion first
 - Explain the use case and expected behavior
 - Consider edge cases and ambiguity
 
 **Ready to contribute?**
+
 - Fork the repository
 - Create a feature branch
 - Follow this guide
