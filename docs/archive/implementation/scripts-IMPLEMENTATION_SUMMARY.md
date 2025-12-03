@@ -189,36 +189,47 @@ Successfully implemented a comprehensive TypeScript bulk import script for Trakt
 ## Testing Performed
 
 ### 1. Help Command Test
+
 ```bash
 npm run bulk-import -- --help
 ```
+
 Result: ✓ Displays complete help information
 
 ### 2. Sample Movies Dry-Run Test
+
 ```bash
 npm run bulk-import -- --movies scripts/sample-movies.csv --dry-run
 ```
+
 Result: ✓ All 10 movies matched correctly
+
 - The Matrix (1999) [Trakt ID: 481]
 - Inception (2010) [Trakt ID: 16662]
 - Dune (2021) [Trakt ID: 287071]
 - All other movies matched
 
 ### 3. Sample Episodes Dry-Run Test
+
 ```bash
 npm run bulk-import -- --episodes scripts/sample-episodes.csv --dry-run
 ```
+
 Result: ✓ All 15 episodes matched correctly
+
 - Breaking Bad episodes (S1E1-3)
 - Stranger Things episodes (S4E1-2)
 - Multiple other shows
 - Cache reuse demonstrated (Friends S1E1, S1E2)
 
 ### 4. Validation Test (Invalid Data)
+
 ```bash
 npm run bulk-import -- --movies test-invalid.csv --dry-run
 ```
+
 Result: ✓ Properly caught and reported validation errors
+
 - Missing watched_date detected (Row 3)
 - Invalid date format detected (Row 4: "2024-13-99")
 - Script exited before making API calls
@@ -244,6 +255,7 @@ npm run bulk-import -- --movies movies.csv --episodes episodes.csv
 ### CSV Format
 
 **Movies:**
+
 ```csv
 title,year,watched_date
 The Matrix,1999,2024-01-15
@@ -251,6 +263,7 @@ Inception,2010,2024-01-20
 ```
 
 **Episodes:**
+
 ```csv
 show_name,season,episode,watched_date
 Breaking Bad,1,1,2024-01-10
@@ -275,6 +288,7 @@ Stranger Things,4,1,2024-01-15
 ### 1. Prepare Your Data
 
 Create CSV files with your historical watch data:
+
 - Use exact movie/show titles as they appear on Trakt.tv
 - Include year for movies to avoid ambiguity
 - Use YYYY-MM-DD format for dates
@@ -291,6 +305,7 @@ npm run bulk-import -- --episodes scripts/sample-episodes.csv --dry-run
 ### 3. Start Small
 
 Begin with a small subset of your data (5-10 entries):
+
 ```bash
 npm run bulk-import -- --movies my-test.csv --dry-run
 ```
@@ -338,11 +353,13 @@ If needed in the future, could add:
 ## Dependencies Added
 
 ### Production Dependencies
+
 - `csv-parse` (^6.1.0): Industry-standard CSV parser
 - `chalk` (^5.6.2): Terminal color formatting
 - `ora` (^9.0.0): Elegant terminal spinner
 
 ### Development Dependencies
+
 - `tsx` (^4.20.6): TypeScript executor for Node.js
 - `@types/csv-parse` (^1.1.12): TypeScript types for csv-parse
 

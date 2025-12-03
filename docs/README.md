@@ -116,6 +116,13 @@ docs/
   - Common issues
   - Performance profiling
 
+### Performance & Caching
+
+- [Cache Implementation](CACHE.md) - Memory management and caching behavior
+  - Memory tracking
+  - Cache limits
+  - Eviction policies
+
 ### Project Management
 
 - [Technical Debt](TECHNICAL_DEBT.md)
@@ -141,26 +148,31 @@ docs/
 ### When to Update Documentation
 
 **Update README.md when:**
+
 - Adding new features visible to end users
 - Changing setup or installation procedures
 - Modifying environment variables or configuration
 
 **Update CHANGELOG.md when:**
+
 - Releasing a new version
 - Merging significant features or fixes
 - Making breaking changes
 
 **Update Natural Language Guide when:**
+
 - Adding new natural language patterns
 - Changing date parsing behavior
 - Adding or modifying tool parameters
 
 **Update Testing Guide when:**
+
 - Adding new test suites
 - Discovering new edge cases
 - Updating test procedures or tools
 
 **Update Technical Debt when:**
+
 - Identifying performance bottlenecks
 - Discovering security concerns
 - Planning future features that are deferred
@@ -169,18 +181,21 @@ docs/
 ### Documentation Standards
 
 **Style Guidelines:**
+
 - Use clear, direct language
 - Include code examples for technical concepts
 - Provide both conceptual explanations and practical examples
 - Reference specific file paths where helpful
 
 **Format Conventions:**
+
 - Use markdown for all documentation
 - Include table of contents for documents over 200 lines
 - Use code fences with language tags
 - Keep line length under 120 characters
 
 **Cross-References:**
+
 - Use relative paths for internal links
 - Verify links after moving or renaming files
 - Include absolute file paths in format: `/Users/kofifort/Repos/trakt.tv-mcp/path/to/file.ts`
@@ -190,15 +205,18 @@ docs/
 ## Getting Help
 
 **For Users:**
+
 - Check [Natural Language Guide](guides/NATURAL_LANGUAGE_GUIDE.md) for usage examples
 - Review [README](../README.md) for setup troubleshooting
 
 **For Developers:**
+
 - See [CLAUDE.md](../CLAUDE.md) for project-specific AI instructions
 - Review [Testing Guide](testing/TESTING_GUIDE.md) for quality assurance details
 - Check [Contributing Guide](guides/CONTRIBUTING.md) for contribution guidelines
 
 **For AI Assistants:**
+
 - Start with [Contributing Guide - AI Assistants Section](guides/CONTRIBUTING.md#for-ai-assistants-integration-guidelines)
 - Reference [Natural Language Guide](guides/NATURAL_LANGUAGE_GUIDE.md) for pattern mapping
 
@@ -207,6 +225,7 @@ docs/
 ## Recent Changes
 
 **2025-11-25: Documentation Consolidation**
+
 - Reduced from ~30 files to 10 active files
 - Archived 17 historical documents
 - Consolidated guides from 4 to 2 files:

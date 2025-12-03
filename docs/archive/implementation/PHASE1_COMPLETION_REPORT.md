@@ -9,6 +9,7 @@ Phase 1 has been successfully implemented with comprehensive observability featu
 ### 1. Logger Module (`src/lib/logger.ts`)
 
 **Features Implemented:**
+
 - ✅ RequestLog interface with comprehensive request/response tracking
 - ✅ Logger class with circular buffer (1000 entries, configurable)
 - ✅ File-based logging with automatic rotation (10MB limit)
@@ -20,6 +21,7 @@ Phase 1 has been successfully implemented with comprehensive observability featu
 - ✅ In-memory buffer for fast access to recent logs
 
 **Key Methods:**
+
 - `generateCorrelationId()`: Creates unique IDs for request tracking
 - `logRequest(log: RequestLog)`: Adds entry to buffer and file
 - `createRequestLog()`: Builds log from Axios request config
@@ -29,6 +31,7 @@ Phase 1 has been successfully implemented with comprehensive observability featu
 - `getMetrics()`: Returns performance metrics per tool
 
 **Metrics Tracked:**
+
 - Total calls per tool
 - Successful vs failed calls
 - Average/min/max duration in milliseconds
@@ -37,6 +40,7 @@ Phase 1 has been successfully implemented with comprehensive observability featu
 ### 2. TraktClient Integration (`src/lib/trakt-client.ts`)
 
 **Logging Interceptors Added:**
+
 - ✅ Request interceptor: Generates correlation IDs and timestamps
 - ✅ Response interceptor: Logs successful responses with timing
 - ✅ Error interceptor: Logs failed requests with error details
@@ -44,6 +48,7 @@ Phase 1 has been successfully implemented with comprehensive observability featu
 - ✅ <5ms overhead per request (verified by performance tests)
 
 **Implementation Details:**
+
 - Correlation IDs and start times stored in Axios config metadata
 - Tool names can be set via `_toolName` config property
 - Logging happens after rate limiting check
@@ -54,6 +59,7 @@ Phase 1 has been successfully implemented with comprehensive observability featu
 **New Tool: `debug_last_request`**
 
 **Parameters:**
+
 - `limit` (1-100, default: 10): Number of recent requests to retrieve
 - `toolName` (optional): Filter by tool name
 - `method` (optional): Filter by HTTP method (GET, POST, etc.)
@@ -61,6 +67,7 @@ Phase 1 has been successfully implemented with comprehensive observability featu
 - `includeMetrics` (boolean, default: true): Include performance metrics
 
 **Response Format:**
+
 ```typescript
 {
   success: true,
@@ -73,6 +80,7 @@ Phase 1 has been successfully implemented with comprehensive observability featu
 ```
 
 **Use Cases:**
+
 - Debugging failed operations (filter by statusCode: 404, 500)
 - Performance analysis (check avgDurationMs in metrics)
 - Rate limit monitoring (check rateLimitInfo in logs)
@@ -81,6 +89,7 @@ Phase 1 has been successfully implemented with comprehensive observability featu
 ### 4. MCP Server Registration (`src/index.ts`)
 
 **Tool Registration:**
+
 - ✅ Added `debug_last_request` to tool list
 - ✅ Comprehensive description for LLM understanding
 - ✅ Handler implementation with proper error handling
@@ -89,6 +98,7 @@ Phase 1 has been successfully implemented with comprehensive observability featu
 ### 5. Comprehensive Tests (`src/lib/__tests__/logger.test.ts`)
 
 **Test Coverage:**
+
 - ✅ 23 test cases covering all logger functionality
 - ✅ Correlation ID generation and uniqueness
 - ✅ Circular buffer behavior (max size enforcement)
@@ -103,6 +113,7 @@ Phase 1 has been successfully implemented with comprehensive observability featu
 - ✅ Performance overhead verification (<5ms per log)
 
 **Test Results:**
+
 ```
 ✓ 288 tests passing (including 23 new logger tests)
 ✓ All existing tests still passing (227/227)
@@ -111,17 +122,18 @@ Phase 1 has been successfully implemented with comprehensive observability featu
 
 ## Success Criteria - ALL MET ✅
 
-| Criterion | Status | Details |
-|-----------|--------|---------|
-| All requests logged | ✅ | Request/response interceptors log every API call |
-| <5ms overhead | ✅ | Performance test verifies: 100 logs in <500ms (avg 5ms) |
-| Debug tool returns detailed info | ✅ | Full request/response details, timing, rate limits |
-| Performance metrics tracked | ✅ | Per-tool metrics: calls, success/fail rate, timing stats |
-| Tests pass with >95% coverage | ✅ | 23 comprehensive tests, all passing |
+| Criterion                        | Status | Details                                                  |
+| -------------------------------- | ------ | -------------------------------------------------------- |
+| All requests logged              | ✅     | Request/response interceptors log every API call         |
+| <5ms overhead                    | ✅     | Performance test verifies: 100 logs in <500ms (avg 5ms)  |
+| Debug tool returns detailed info | ✅     | Full request/response details, timing, rate limits       |
+| Performance metrics tracked      | ✅     | Per-tool metrics: calls, success/fail rate, timing stats |
+| Tests pass with >95% coverage    | ✅     | 23 comprehensive tests, all passing                      |
 
 ## Performance Impact
 
 **Measured Overhead:**
+
 - Request logging: <2ms per request (correlation ID generation + metadata)
 - Response logging: <3ms per response (full log creation + buffer insert)
 - Total per API call: <5ms (verified by performance test)
@@ -130,10 +142,12 @@ Phase 1 has been successfully implemented with comprehensive observability featu
 ## Files Created/Modified
 
 ### Created:
+
 - `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/logger.ts` (401 lines)
 - `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/__tests__/logger.test.ts` (485 lines)
 
 ### Modified:
+
 - `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/trakt-client.ts` (Added logging interceptors)
 - `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/tools.ts` (Added debugLastRequest function)
 - `/Users/kofifort/Repos/trakt.tv-mcp/src/index.ts` (Registered debug_last_request tool)
@@ -141,6 +155,7 @@ Phase 1 has been successfully implemented with comprehensive observability featu
 ## Usage Examples
 
 ### Example 1: Debug Last 5 Requests
+
 ```typescript
 // Via MCP tool call
 {
@@ -154,6 +169,7 @@ Phase 1 has been successfully implemented with comprehensive observability featu
 ```
 
 ### Example 2: Find Failed Requests
+
 ```typescript
 {
   "name": "debug_last_request",
@@ -167,6 +183,7 @@ Phase 1 has been successfully implemented with comprehensive observability featu
 ```
 
 ### Example 3: Check log_watch Performance
+
 ```typescript
 {
   "name": "debug_last_request",
@@ -186,6 +203,7 @@ Phase 1 has been successfully implemented with comprehensive observability featu
 Phase 1 is complete and all success criteria have been met. Ready to proceed to:
 
 **Phase 2: Search Result Caching**
+
 - Implement LRU cache with TTL for frequently searched content
 - Reduce duplicate API calls
 - Target: >30% cache hit rate in typical usage

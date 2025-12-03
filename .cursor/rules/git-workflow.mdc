@@ -1,0 +1,22 @@
+---
+description: Guidelines for git workflow and branch management
+globs: ["**/*"]
+---
+
+# Git Workflow Rules
+
+1. **Check Context**: ALWAYS check the current branch (`git branch`) before making changes or committing.
+   - If you are on the wrong branch, stash changes, checkout the correct branch, and pop the stash.
+   - Do not commit unrelated changes to feature branches.
+
+2. **Branch Naming**: Use the convention `feature/issue-id-short-description` or `fix/issue-id-short-description`.
+
+3. **Commit Messages**: Follow Conventional Commits (e.g., `feat: ...`, `fix: ...`, `chore: ...`). Include the issue ID if applicable.
+
+4. **Pull Requests**:
+   - **Title**: Must include the issue ID (e.g., "feat: add cache metrics (KHQ-24)").
+   - Verify local tests pass before creating a PR.
+   - Run linting and formatting (`npm run lint:fix && npm run format`) before pushing the final commit.
+   - Update the Linear issue status when a PR is created or merged.
+
+5. **Clean History**: Avoid "oops" commits. Amend previous commits or interactive rebase if necessary before pushing (unless working on a shared branch).

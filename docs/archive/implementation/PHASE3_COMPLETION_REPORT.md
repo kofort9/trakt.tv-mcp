@@ -29,6 +29,7 @@ Successfully executed the documentation reorganization script and applied cross-
 ### Changes Made
 
 **Files Moved (17 total):**
+
 - **4 guide files** → `docs/guides/`
   - CLAUDE_PROMPT_GUIDELINES.md
   - CONTRIBUTING_NL.md
@@ -53,6 +54,7 @@ Successfully executed the documentation reorganization script and applied cross-
   - CRITICAL_BUGS_AND_PLAN.md
 
 **Cross-References Updated:**
+
 - 10 cross-reference updates across 3 files
 - All relative paths corrected for new directory structure
 - Git shows files as "renamed" (R) not deleted/added, confirming clean migration
@@ -83,12 +85,14 @@ RM NL_PATTERNS_REFERENCE.md -> docs/guides/NL_PATTERNS_REFERENCE.md
 #### Files Created
 
 **`src/lib/parallel.ts` (183 lines)**
+
 - `parallelMap()` - Generic parallel execution with controlled concurrency
 - `parallelSearchMovies()` - Specialized function for parallel movie searches
 - Configuration: `maxConcurrency=5`, `batchSize=10`, `delayBetweenBatches=100ms`
 - Full TypeScript type safety with discriminated unions
 
 **Key Features:**
+
 - Rate limiter aware (respects Trakt's 1000 req/5min limit)
 - Partial success support (some searches can fail while others succeed)
 - Deduplication (case-insensitive, prevents duplicate searches)
@@ -98,12 +102,14 @@ RM NL_PATTERNS_REFERENCE.md -> docs/guides/NL_PATTERNS_REFERENCE.md
 #### Files Modified
 
 **`src/lib/tools.ts` (lines 369-452)**
+
 - Updated `bulkLog` for movies to use `parallelSearchMovies()`
 - Maintained existing validation and error handling
 - Improved error reporting for search failures
 - Backward compatible with existing API
 
 **Performance Impact:**
+
 - Before: Sequential processing (~500ms per movie)
 - After: Parallel processing (~100ms per movie with batching)
 - Speedup: **4-5x faster** (exceeds 2-3x target)
@@ -111,12 +117,14 @@ RM NL_PATTERNS_REFERENCE.md -> docs/guides/NL_PATTERNS_REFERENCE.md
 #### Files Created - Testing
 
 **`src/lib/__tests__/parallel.test.ts` (331 lines)**
+
 - 14 comprehensive test cases
 - Tests for concurrent execution, rate limiting, partial failures
 - Performance benchmarks
 - Edge case handling (empty arrays, all failures, etc.)
 
 **`scripts/benchmark-parallel.ts` (134 lines)**
+
 - Performance benchmark script with realistic scenarios
 - Tests with 5, 10, and 20 movies
 - Measures sequential vs. parallel performance
@@ -133,6 +141,7 @@ Duration:   6.25s
 ```
 
 **Test Breakdown:**
+
 - ✅ parallel.test.ts - 14 tests (all passing)
 - ✅ tools.test.ts - 24 tests (includes bulk log tests)
 - ✅ cache.test.ts - 28 tests
@@ -141,6 +150,7 @@ Duration:   6.25s
 - ✅ All other existing tests maintained
 
 **Coverage:**
+
 - parallel.ts: >95%
 - tools.ts: ~95%
 - Overall: Maintained 100% pass rate
@@ -173,11 +183,13 @@ Parallel Configuration: maxConcurrency=5, batchSize=10
 #### Real-World Impact
 
 **Scenario: User logs 10 movies from their weekend watchlist**
+
 - **Before:** ~5 seconds (500ms per sequential search)
 - **After:** ~200ms (parallel search)
 - **User Experience:** Near-instant response
 
 **Scenario: User bulk imports 50 movies**
+
 - **Before:** ~25 seconds
 - **After:** ~1.5 seconds (with batching and delays)
 - **Improvement:** 94% reduction
@@ -190,11 +202,13 @@ Parallel Configuration: maxConcurrency=5, batchSize=10
 **Rate:** ~3.33 requests/second sustained
 
 **Our Configuration:**
+
 - Max concurrency: 5
 - Batch size: 10 movies
 - Delay between batches: 100ms
 
 **Worst Case (100 movies):**
+
 - 10 batches × (2 parallel chunks of 5)
 - Each chunk: ~100ms
 - Between batches: 9 × 100ms = 900ms
@@ -202,6 +216,7 @@ Parallel Configuration: maxConcurrency=5, batchSize=10
 - **Rate:** ~9.17 requests/second (well under limit)
 
 **Verification:**
+
 - ✅ No 429 errors in testing
 - ✅ Existing RateLimiter in TraktClient provides additional protection
 - ✅ Exponential backoff for transient failures
@@ -238,6 +253,7 @@ errors.size === 1   // NonexistentMovie12345 failed
 #### Disambiguation Handling
 
 For bulk operations, disambiguation returns early with helpful context:
+
 ```
 "Multiple movies found for 'Dune'. Please specify year or traktId
 (This occurred while processing "Dune" in the bulk operation.
@@ -246,14 +262,14 @@ Please use log_watch for individual movies if you need to disambiguate multiple 
 
 ### 6. Success Criteria Validation
 
-| Criteria | Target | Actual | Status |
-|----------|--------|--------|--------|
-| Bulk log 10 movies | <2s | 202ms | ✅ EXCEEDED (10x better) |
-| Rate limits respected | No 429 errors | 0 errors | ✅ PASS |
-| Partial success handling | Implemented | Fully tested | ✅ PASS |
-| Test pass rate | 100% | 100% (438/438) | ✅ PASS |
-| Overhead per operation | <10ms | ~2ms | ✅ PASS |
-| Speedup vs. sequential | 2-3x | 4-5x | ✅ EXCEEDED |
+| Criteria                 | Target        | Actual         | Status                   |
+| ------------------------ | ------------- | -------------- | ------------------------ |
+| Bulk log 10 movies       | <2s           | 202ms          | ✅ EXCEEDED (10x better) |
+| Rate limits respected    | No 429 errors | 0 errors       | ✅ PASS                  |
+| Partial success handling | Implemented   | Fully tested   | ✅ PASS                  |
+| Test pass rate           | 100%          | 100% (438/438) | ✅ PASS                  |
+| Overhead per operation   | <10ms         | ~2ms           | ✅ PASS                  |
+| Speedup vs. sequential   | 2-3x          | 4-5x           | ✅ EXCEEDED              |
 
 ---
 
@@ -281,6 +297,7 @@ src/lib/
 ### Type Safety
 
 All parallel operations use strict TypeScript types:
+
 ```typescript
 // Generic parallel execution
 export interface ParallelResult<T> {
@@ -298,6 +315,7 @@ export interface ParallelSearchResult {
 ### Integration Points
 
 **Parallel → TraktClient:**
+
 ```typescript
 parallelSearchMovies(client, movieNames, year)
   → client.search() (with caching from Phase 2)
@@ -305,6 +323,7 @@ parallelSearchMovies(client, movieNames, year)
 ```
 
 **Benefits of Integration:**
+
 - Cache hits reduce actual API calls
 - Rate limiter prevents 429 errors
 - Logger tracks all requests for debugging
@@ -362,19 +381,23 @@ parallelSearchMovies(client, movieNames, year)
 ## Performance Metrics
 
 ### Before Phase 3
+
 - Sequential bulk operations: ~500ms per movie
 - 10 movies: ~5 seconds
 - 20 movies: ~10 seconds
 - Rate limit utilization: 20-40%
 
 ### After Phase 3
+
 - Parallel bulk operations: ~100ms per movie (with overhead)
 - 10 movies: ~200ms (**25x faster**)
 - 20 movies: ~500ms (**20x faster**)
 - Rate limit utilization: 60-80% (more efficient)
 
 ### Cache Impact (Combined with Phase 2)
+
 When cache hit rate is 30%:
+
 - 10 movies, 3 cached: ~140ms (36% improvement)
 - With both phases: **35x faster than original**
 
@@ -383,12 +406,14 @@ When cache hit rate is 30%:
 ## Next Steps
 
 ### Immediate
+
 1. ✅ Commit changes to phase-3-mcp-tools branch
 2. ✅ Create completion report (this document)
 3. 🔄 Push to remote and verify CI/CD passes
 4. 🔄 Create PR to main branch
 
 ### Future Enhancements (Optional)
+
 Based on TECHNICAL_IMPROVEMENTS_PLAN.md:
 
 1. **Phase 4: Integration Tests** (P2 - Optional)
@@ -412,12 +437,12 @@ Based on TECHNICAL_IMPROVEMENTS_PLAN.md:
 
 ### Risks Identified & Mitigated
 
-| Risk | Severity | Mitigation | Status |
-|------|----------|------------|--------|
-| Rate limit exceeded | High | Conservative concurrency (5), batching | ✅ Mitigated |
-| Partial failures | Medium | Detailed error reporting, graceful degradation | ✅ Mitigated |
-| Memory pressure | Low | Bounded arrays, streaming results | ✅ Mitigated |
-| Cache inconsistency | Low | Combined with Phase 2 TTL enforcement | ✅ Mitigated |
+| Risk                | Severity | Mitigation                                     | Status       |
+| ------------------- | -------- | ---------------------------------------------- | ------------ |
+| Rate limit exceeded | High     | Conservative concurrency (5), batching         | ✅ Mitigated |
+| Partial failures    | Medium   | Detailed error reporting, graceful degradation | ✅ Mitigated |
+| Memory pressure     | Low      | Bounded arrays, streaming results              | ✅ Mitigated |
+| Cache inconsistency | Low      | Combined with Phase 2 TTL enforcement          | ✅ Mitigated |
 
 ### Production Readiness
 
@@ -436,17 +461,20 @@ Based on TECHNICAL_IMPROVEMENTS_PLAN.md:
 ## Lessons Learned
 
 ### What Went Well
+
 1. **Clean abstraction** - `parallelMap` is reusable for future tools
 2. **Conservative approach** - Rate limiting strategy prevented issues
 3. **Comprehensive testing** - Caught edge cases early
 4. **Performance benchmarks** - Validated assumptions with data
 
 ### Areas for Improvement
+
 1. **Test execution time** - Could parallelize test suite itself
 2. **Dynamic tuning** - Could adjust concurrency based on API response headers
 3. **Metrics collection** - Could track parallel execution in logger
 
 ### Best Practices Established
+
 1. Always benchmark before/after for performance work
 2. Conservative rate limiting beats optimistic approaches
 3. Partial success support is critical for bulk operations
@@ -466,11 +494,13 @@ Phase 3 implementation has been successfully completed with all objectives met o
 The parallel bulk operations infrastructure is production-ready and provides a solid foundation for future enhancements.
 
 **Total Implementation Time:** ~4 hours
+
 - Task 1 (Documentation): 30 minutes
 - Task 2 (Parallel Implementation): 2.5 hours
 - Testing & Benchmarking: 1 hour
 
 **Lines of Code Added:**
+
 - Implementation: 183 lines
 - Tests: 331 lines
 - Benchmarks: 134 lines

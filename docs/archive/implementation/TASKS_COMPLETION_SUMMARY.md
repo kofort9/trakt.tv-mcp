@@ -26,11 +26,13 @@ chmod +x reorganize_docs.sh
 ### Results
 
 **Files Moved:** 17 total
+
 - 4 guide files → `docs/guides/`
 - 11 testing files → `docs/testing/`
 - 2 archive files → `docs/archive/`
 
 **Cross-References Updated:** 10 updates across 3 files
+
 - CLAUDE_PROMPT_GUIDELINES.md (2 refs)
 - NL_PATTERNS_REFERENCE.md (1 ref)
 - CONTRIBUTING_NL.md (7 refs)
@@ -38,6 +40,7 @@ chmod +x reorganize_docs.sh
 ### Verification
 
 Git status shows all files as "renamed" (R/RM), confirming clean migration:
+
 - No files deleted/added separately
 - Cross-references successfully updated
 - All documentation paths now reflect new structure
@@ -51,6 +54,7 @@ Git status shows all files as "renamed" (R/RM), confirming clean migration:
 #### 1. Created `src/lib/parallel.ts` (183 lines)
 
 **Core Functions:**
+
 - `parallelMap<T, R>()` - Generic parallel execution engine
   - Configurable concurrency (default: 5)
   - Batch processing with delays
@@ -63,6 +67,7 @@ Git status shows all files as "renamed" (R/RM), confirming clean migration:
   - Integration with TraktClient
 
 **Configuration:**
+
 ```typescript
 {
   maxConcurrency: 5,      // Conservative for rate limits
@@ -74,12 +79,14 @@ Git status shows all files as "renamed" (R/RM), confirming clean migration:
 #### 2. Updated `src/lib/tools.ts` (lines 369-452)
 
 **Changes:**
+
 - Replaced sequential for-loop with `parallelSearchMovies()`
 - Enhanced error reporting for search failures
 - Maintained backward compatibility
 - Preserved all existing validation and disambiguation logic
 
 **Before:**
+
 ```typescript
 for (const movieName of movieNames) {
   const searchResults = await client.search(movieName, 'movie');
@@ -88,18 +95,16 @@ for (const movieName of movieNames) {
 ```
 
 **After:**
+
 ```typescript
-const { results, errors } = await parallelSearchMovies(
-  client,
-  movieNames,
-  year
-);
+const { results, errors } = await parallelSearchMovies(client, movieNames, year);
 // Process all results in parallel...
 ```
 
 #### 3. Created `src/lib/__tests__/parallel.test.ts` (331 lines)
 
 **Test Coverage:**
+
 - 24 comprehensive test cases
 - Concurrent execution with rate limiting
 - Partial failure scenarios
@@ -111,6 +116,7 @@ const { results, errors } = await parallelSearchMovies(
 #### 4. Created `scripts/benchmark-parallel.ts` (134 lines)
 
 **Benchmark Scenarios:**
+
 - 5 movies, 10 movies, 20 movies
 - Mock API latency: 100ms per request
 - Measures sequential vs. parallel performance
@@ -146,7 +152,7 @@ const { results, errors } = await parallelSearchMovies(
 
 **Issue:** JavaScript's `.sort()` on number arrays sorts as strings
 **Fix:** Updated to `.sort((a, b) => a - b)` in 2 test cases
-**Files:** src/lib/__tests__/parallel.test.ts (lines 31, 75)
+**Files:** src/lib/**tests**/parallel.test.ts (lines 31, 75)
 
 ---
 
@@ -197,27 +203,27 @@ Summary
 
 ### Real-World Impact
 
-| Scenario | Before | After | Improvement |
-|----------|--------|-------|-------------|
-| 5 movies | 2.5s | 100ms | 96% faster |
-| 10 movies | 5.0s | 200ms | 96% faster |
-| 20 movies | 10.0s | 500ms | 95% faster |
-| 50 movies | 25.0s | 1.5s | 94% faster |
+| Scenario  | Before | After | Improvement |
+| --------- | ------ | ----- | ----------- |
+| 5 movies  | 2.5s   | 100ms | 96% faster  |
+| 10 movies | 5.0s   | 200ms | 96% faster  |
+| 20 movies | 10.0s  | 500ms | 95% faster  |
+| 50 movies | 25.0s  | 1.5s  | 94% faster  |
 
 ---
 
 ## Success Criteria Validation
 
-| Criteria | Target | Actual | Status |
-|----------|--------|--------|--------|
-| Bulk log 10 movies | <2000ms | 202ms | ✅ EXCEEDED (10x better) |
-| Rate limits respected | No 429 errors | 0 errors | ✅ PASS |
-| Partial success handling | Implemented | Fully tested | ✅ PASS |
-| Test pass rate | 100% | 100% (438/438) | ✅ PASS |
-| Overhead per operation | <10ms | ~2ms | ✅ PASS |
-| Speedup vs. sequential | 2-3x | 4-5x | ✅ EXCEEDED |
-| Documentation organized | Complete | 17 files moved | ✅ PASS |
-| Cross-refs updated | All | 10 updates | ✅ PASS |
+| Criteria                 | Target        | Actual         | Status                   |
+| ------------------------ | ------------- | -------------- | ------------------------ |
+| Bulk log 10 movies       | <2000ms       | 202ms          | ✅ EXCEEDED (10x better) |
+| Rate limits respected    | No 429 errors | 0 errors       | ✅ PASS                  |
+| Partial success handling | Implemented   | Fully tested   | ✅ PASS                  |
+| Test pass rate           | 100%          | 100% (438/438) | ✅ PASS                  |
+| Overhead per operation   | <10ms         | ~2ms           | ✅ PASS                  |
+| Speedup vs. sequential   | 2-3x          | 4-5x           | ✅ EXCEEDED              |
+| Documentation organized  | Complete      | 17 files moved | ✅ PASS                  |
+| Cross-refs updated       | All           | 10 updates     | ✅ PASS                  |
 
 ---
 
@@ -230,7 +236,7 @@ Summary
    - Generic parallelMap function
    - Specialized parallelSearchMovies
 
-2. **src/lib/__tests__/parallel.test.ts** (331 lines)
+2. **src/lib/**tests**/parallel.test.ts** (331 lines)
    - 24 comprehensive test cases
    - Performance benchmarks
    - Edge case validation
@@ -247,7 +253,7 @@ Summary
    - Enhanced error reporting
    - Maintained backward compatibility
 
-2. **src/lib/__tests__/parallel.test.ts** (lines 31, 75)
+2. **src/lib/**tests**/parallel.test.ts** (lines 31, 75)
    - Fixed numeric sort comparators
 
 ### Documentation Files
@@ -300,11 +306,13 @@ Success Response
 ### Dependencies
 
 **Phase 3 leverages:**
+
 - **Phase 2:** Cache (reduces actual API calls)
 - **Phase 1:** Logger (tracks all parallel operations)
 - **Existing:** Rate limiter, error handling, OAuth
 
 **Benefits:**
+
 - Cache hits further improve parallel performance
 - Logger provides debugging for parallel operations
 - Rate limiter prevents 429 errors even with parallelism
@@ -314,10 +322,12 @@ Success Response
 ## Rate Limiting Analysis
 
 ### Trakt API Limits
+
 - **Limit:** 1000 requests per 5 minutes (300 seconds)
 - **Sustained Rate:** ~3.33 requests/second
 
 ### Our Configuration
+
 - **Max Concurrency:** 5 simultaneous requests
 - **Batch Size:** 10 movies per batch
 - **Delay:** 100ms between batches
@@ -325,6 +335,7 @@ Success Response
 ### Compliance Verification
 
 **Scenario: 100 movies**
+
 - 10 batches × 2 parallel chunks (5 each)
 - Each chunk: ~100ms
 - Between batches: 9 × 100ms = 900ms
@@ -332,12 +343,14 @@ Success Response
 - **Rate:** ~9.17 requests/second
 
 **Safety Margins:**
+
 - ✅ Well under 3.33 req/sec limit (with room for spikes)
 - ✅ Existing RateLimiter provides additional protection
 - ✅ Exponential backoff handles transient failures
 - ✅ Conservative concurrency (5 vs. theoretical 16+)
 
 **Test Results:**
+
 - 0 rate limit errors (429) in testing
 - Successful completion of all parallel operations
 - No performance degradation under load
@@ -433,13 +446,15 @@ Message: "feat(phase3): Implement parallel bulk operations with 4-5x speedup"
 ### Commit Contents
 
 **New Files:**
+
 - PHASE3_COMPLETION_REPORT.md
 - src/lib/parallel.ts
-- src/lib/__tests__/parallel.test.ts
+- src/lib/**tests**/parallel.test.ts
 - scripts/benchmark-parallel.ts
 - Multiple documentation files (reorganization)
 
 **Modified Files:**
+
 - src/lib/tools.ts (parallel integration)
 - Documentation cross-references (10 updates)
 
@@ -448,6 +463,7 @@ Message: "feat(phase3): Implement parallel bulk operations with 4-5x speedup"
 ## Next Steps
 
 ### Immediate
+
 1. ✅ Commit completed
 2. 🔄 Push to remote: `git push origin phase-3-mcp-tools`
 3. 🔄 Verify CI/CD passes
@@ -460,25 +476,30 @@ Message: "feat(phase3): Implement parallel bulk operations with 4-5x speedup"
 # Phase 3: Parallel Bulk Operations
 
 ## Summary
+
 Implements parallel processing for bulk movie logging with 4-5x performance improvements.
 
 ## Key Changes
+
 - Created parallel.ts with rate-limit aware execution
 - Updated bulkLog to use parallel searches
 - 438 tests passing (100% pass rate)
 - Comprehensive documentation reorganization
 
 ## Performance
+
 - 10 movies: 1013ms → 202ms (80% improvement)
 - 20 movies: 2022ms → 505ms (75% improvement)
 - Success criteria exceeded: <2s target, achieved 202ms
 
 ## Testing
+
 - 24 new tests for parallel operations
 - Performance benchmarks validated
 - All edge cases covered
 
 ## Documentation
+
 - Reorganized 17 documentation files
 - Updated 10 cross-references
 - Created comprehensive completion report
@@ -503,12 +524,14 @@ Based on TECHNICAL_IMPROVEMENTS_PLAN.md:
 ## Success Summary
 
 ### Task 1: Documentation Reorganization
+
 - ✅ Script executed successfully
 - ✅ 17 files moved to new structure
 - ✅ 10 cross-references updated
 - ✅ Git shows clean renames
 
 ### Task 2: Phase 3 Implementation
+
 - ✅ Parallel infrastructure created
 - ✅ bulkLog updated with parallel processing
 - ✅ 438 tests passing (100% pass rate)
@@ -518,6 +541,7 @@ Based on TECHNICAL_IMPROVEMENTS_PLAN.md:
 - ✅ Comprehensive documentation
 
 ### Overall Assessment
+
 **Status:** ✅ PRODUCTION READY
 
 Both tasks completed successfully with all requirements met or exceeded. The implementation is robust, well-tested, and ready for production deployment.

@@ -35,11 +35,11 @@ Items are categorized by area and tagged with priority levels (P0-P2).
 
 ## Priority Levels
 
-| Priority | Description | Timeline |
-|----------|-------------|----------|
-| **P0** | Critical - Blocks production use or major security risk | Immediate |
-| **P1** | High - Significant impact on performance or UX | Next sprint |
-| **P2** | Medium - Nice to have, improves quality | Backlog |
+| Priority | Description                                             | Timeline    |
+| -------- | ------------------------------------------------------- | ----------- |
+| **P0**   | Critical - Blocks production use or major security risk | Immediate   |
+| **P1**   | High - Significant impact on performance or UX          | Next sprint |
+| **P2**   | Medium - Nice to have, improves quality                 | Backlog     |
 
 ---
 
@@ -52,6 +52,7 @@ Items are categorized by area and tagged with priority levels (P0-P2).
 **Added:** 2025-11-20
 
 **Current State:**
+
 - LRU cache (`/Users/kofifort/Repos/trakt.tv-mcp/src/lib/cache.ts`) tracks operational metrics:
   - Hit/miss counts
   - Eviction counts
@@ -73,19 +74,21 @@ export interface CacheMetrics {
   size: number;
   hitRate: number;
   // Add these:
-  memoryBytesUsed: number;      // Approximate memory usage
-  avgEntrySize: number;          // Average entry size in bytes
-  maxMemoryBytes?: number;       // Optional memory limit
+  memoryBytesUsed: number; // Approximate memory usage
+  avgEntrySize: number; // Average entry size in bytes
+  maxMemoryBytes?: number; // Optional memory limit
 }
 ```
 
 **Implementation Notes:**
+
 - Calculate approximate memory using `Buffer.byteLength(JSON.stringify(entry))`
 - Track per-entry memory on `set()` and update on `delete()`/`prune()`
 - Consider adding memory-based eviction as alternative to count-based eviction
 - Add warning logs when memory usage exceeds thresholds
 
 **Affected Files:**
+
 - `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/cache.ts` (lines 18-24, 36-228)
 - `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/__tests__/cache.test.ts`
 - `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/__tests__/cache-performance.test.ts`
@@ -103,6 +106,7 @@ export interface CacheMetrics {
 **Added:** 2025-11-20
 
 **Current State:**
+
 - Logger writes to `os.tmpdir()/trakt-mcp-logs` by default (`/Users/kofifort/Repos/trakt.tv-mcp/src/lib/logger.ts`, line 100)
 - Log files contain sensitive data:
   - Request/response bodies (truncated to 5KB)
@@ -130,6 +134,7 @@ export interface CacheMetrics {
 **Proposed Solutions:**
 
 #### 1. Restrict Directory Permissions
+
 ```typescript
 private ensureLogDirectory(): void {
   try {
@@ -150,21 +155,21 @@ private ensureLogDirectory(): void {
 ```
 
 #### 2. Use User-Specific Directory
+
 Change default from shared temp to user-specific:
+
 ```typescript
 // Current:
 this.logDirectory = config.logDirectory || path.join(os.tmpdir(), 'trakt-mcp-logs');
 
 // Proposed:
-this.logDirectory = config.logDirectory || path.join(
-  os.homedir(),
-  '.trakt-mcp',
-  'logs'
-);
+this.logDirectory = config.logDirectory || path.join(os.homedir(), '.trakt-mcp', 'logs');
 ```
 
 #### 3. Implement Log Cleanup
+
 Add configuration and cleanup mechanism:
+
 ```typescript
 export interface LoggerConfig {
   maxBufferSize?: number;
@@ -172,13 +177,15 @@ export interface LoggerConfig {
   logDirectory?: string;
   enableFileLogging?: boolean;
   // Add these:
-  maxLogAge?: number;        // Max age in days (default: 7)
-  maxLogFiles?: number;      // Max number of rotated files (default: 10)
+  maxLogAge?: number; // Max age in days (default: 7)
+  maxLogFiles?: number; // Max number of rotated files (default: 10)
 }
 ```
 
 #### 4. Set File Permissions on Write
+
 Ensure individual log files are also restricted:
+
 ```typescript
 private writeToFile(log: RequestLog): void {
   try {
@@ -203,6 +210,7 @@ private writeToFile(log: RequestLog): void {
 ```
 
 **Resolution:**
+
 - **Date:** 2025-11-21
 - **Status:** ✅ Implemented
 - **Changes:**
@@ -212,12 +220,14 @@ private writeToFile(log: RequestLog): void {
   - Updated `src/lib/logger.ts` and added `src/lib/__tests__/logger-security.test.ts`
 
 **Affected Files:**
+
 - `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/logger.ts` (lines 86-402)
 - `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/__tests__/logger.test.ts`
 - Configuration documentation (if exists)
 - README.md (update security section if present)
 
 **Rollout Considerations:**
+
 - Users with existing logs in `tmpdir` won't be automatically migrated
 - Consider migration path or documentation for existing users
 - Test on macOS, Linux, and Windows (permission models differ)
@@ -236,11 +246,13 @@ private writeToFile(log: RequestLog): void {
 **Added:** 2025-11-20
 
 **Current State:**
+
 - `/Users/kofifort/Repos/trakt.tv-mcp/docs/testing/` contains multiple test reports from various phases
 - Some reports are historical snapshots (e.g., `PHASE3_TEST_SUMMARY.md`, `FINAL_TEST_REPORT_WITH_BUGS.md`)
 - Archive directory exists at `/Users/kofifort/Repos/trakt.tv-mcp/docs/archive/` with bug reports
 
 **Problem:**
+
 - Testing directory is cluttered with historical completion reports
 - Difficult to distinguish active test documentation from historical records
 - New contributors may be confused about which reports are current
@@ -248,6 +260,7 @@ private writeToFile(log: RequestLog): void {
 **Proposed Solution:**
 
 #### Create Organized Archive Structure
+
 ```
 docs/
 ├── archive/
@@ -273,12 +286,14 @@ docs/
 #### Determine Which Reports to Archive
 
 **Archive Candidates (Completion Snapshots):**
+
 - `PHASE3_TEST_SUMMARY.md` - Superseded by comprehensive report
 - `PHASE3_TEST_RESULTS.md` - Intermediate results, now historical
 - `PHASE3_TESTING_SUMMARY.md` - Duplicate summary information
 - `FINAL_TEST_REPORT_WITH_BUGS.md` - Pre-fix snapshot, bugs resolved
 
 **Keep in Testing (Active/Reference):**
+
 - `PHASE3_COMPREHENSIVE_TEST_REPORT.md` - Comprehensive current reference
 - `PHASE3_RETEST_EXECUTIVE_SUMMARY.md` - Latest verification results
 - `PHASE3_RETEST_RESULTS.md` - Latest test outcomes
@@ -288,6 +303,7 @@ docs/
 - `TEST_QUICK_REFERENCE.md` - Active quick reference guide
 
 #### Update Documentation Index
+
 Update `/Users/kofifort/Repos/trakt.tv-mcp/docs/README.md` to reflect new structure:
 
 ```markdown
@@ -300,6 +316,7 @@ Update `/Users/kofifort/Repos/trakt.tv-mcp/docs/README.md` to reflect new struct
 ```
 
 #### Create Archive README
+
 New file: `/Users/kofifort/Repos/trakt.tv-mcp/docs/archive/README.md`
 
 ```markdown
@@ -309,14 +326,17 @@ Historical documents preserved for reference. These are snapshots from specific
 points in the project timeline and may not reflect current behavior.
 
 ## Bug Reports
+
 Historical bug tracking and resolution documentation.
 
 ## Completion Reports
+
 Test completion snapshots from development phases. For current test documentation,
 see [/docs/testing/](/docs/testing/).
 ```
 
 **Migration Checklist:**
+
 - [ ] Create `docs/archive/completion-reports/` directory
 - [ ] Move historical test reports to archive
 - [ ] Create `docs/archive/README.md` with index
@@ -326,6 +346,7 @@ see [/docs/testing/](/docs/testing/).
 - [ ] Verify all relative links still work
 
 **Affected Files:**
+
 - `/Users/kofifort/Repos/trakt.tv-mcp/docs/README.md`
 - `/Users/kofifort/Repos/trakt.tv-mcp/docs/testing/PHASE3_TEST_SUMMARY.md` (move)
 - `/Users/kofifort/Repos/trakt.tv-mcp/docs/testing/PHASE3_TEST_RESULTS.md` (move)
@@ -341,6 +362,7 @@ see [/docs/testing/](/docs/testing/).
 ### [Placeholder for Future Testing Improvements]
 
 This section will track:
+
 - Test coverage gaps
 - Integration test needs
 - Performance test requirements
@@ -353,6 +375,7 @@ This section will track:
 ### [Placeholder for Future Feature Requests]
 
 This section will track:
+
 - User-requested features
 - API enhancement opportunities
 - UX improvements
@@ -378,8 +401,10 @@ When identifying technical debt or improvement opportunities:
    - Estimated effort
 
 3. **Use specific file references:**
+
    ```markdown
    **Affected Files:**
+
    - `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/cache.ts` (lines 18-24)
    ```
 

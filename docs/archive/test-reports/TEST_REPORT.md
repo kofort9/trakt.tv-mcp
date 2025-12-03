@@ -25,7 +25,9 @@ The Phase 2 implementation has been thoroughly tested against live Trakt.tv API.
 ## Scope Discovery
 
 ### Expected (Phase 2 Only)
+
 Per Phase 2 requirements, the following should be implemented:
+
 - OAuth 2.0 device flow authentication
 - Token storage and refresh
 - Basic API client with rate limiting
@@ -33,6 +35,7 @@ Per Phase 2 requirements, the following should be implemented:
 - `search_show` tool
 
 ### Actual Implementation Found
+
 The implementation includes **10 MCP tools** (Phase 2-5+):
 
 1. `authenticate` - OAuth device flow (Phase 2)
@@ -55,13 +58,16 @@ The implementation includes **10 MCP tools** (Phase 2-5+):
 ### 1. OAuth Authentication Flow
 
 #### Test 1.1: Device Code Initiation
+
 **Status:** ✅ PASS
 
 **Test Steps:**
+
 1. Call `/oauth/device/code` endpoint with valid client ID
 2. Verify response structure
 
 **Results:**
+
 ```
 Device Code: ad0857ffabb4eb8f0ef4...
 User Code: 2DE6D113
@@ -71,6 +77,7 @@ Poll interval: 5 seconds
 ```
 
 **Validation:**
+
 - ✅ `device_code` present
 - ✅ `user_code` present (8-character alphanumeric)
 - ✅ `verification_url` present (https://trakt.tv/activate)
@@ -78,18 +85,22 @@ Poll interval: 5 seconds
 - ✅ `interval` present (5 seconds)
 
 **Observations:**
+
 - User code format is user-friendly (8 characters, uppercase)
 - Expiry time is reasonable (10 minutes)
 - Poll interval is appropriate (5 seconds)
 
 #### Test 1.2: MCP Tool - authenticate (Not Authenticated)
+
 **Status:** ✅ PASS
 
 **Test Steps:**
+
 1. Call `authenticate` tool via MCP when no token exists
 2. Verify response contains instructions
 
 **Results:**
+
 ```
 Please visit https://trakt.tv/activate and enter code: 416DADBF
 
@@ -97,6 +108,7 @@ Waiting for authorization...
 ```
 
 **Validation:**
+
 - ✅ Verification URL displayed clearly
 - ✅ User code displayed prominently
 - ✅ Background polling initiated
@@ -105,13 +117,15 @@ Waiting for authorization...
 **UX Note:** The message is clear and actionable. User knows exactly what to do.
 
 #### Test 1.3: Already Authenticated State
+
 **Status:** ⏭️ NOT TESTED (Requires manual OAuth completion)
 
 **Reason:** This test requires actually completing the OAuth flow in a browser, which cannot be automated. However, code review shows proper handling:
+
 ```typescript
 if (oauth.isAuthenticated()) {
   return {
-    content: [{ type: 'text', text: 'Already authenticated with Trakt.tv!' }]
+    content: [{ type: 'text', text: 'Already authenticated with Trakt.tv!' }],
   };
 }
 ```
@@ -119,11 +133,13 @@ if (oauth.isAuthenticated()) {
 **Recommendation:** Include in manual testing checklist.
 
 #### Test 1.4: Token Persistence
+
 **Status:** ✅ VERIFIED (Code Review)
 
 **File Location:** `~/.trakt-mcp-token.json`
 
 **Token Structure:**
+
 ```json
 {
   "access_token": "...",
@@ -137,17 +153,20 @@ if (oauth.isAuthenticated()) {
 ```
 
 **Validation:**
+
 - ✅ Token saved to home directory (secure location)
-- ✅ `expires_at` calculated correctly (created_at + expires_in * 1000)
+- ✅ `expires_at` calculated correctly (created_at + expires_in \* 1000)
 - ✅ Token loaded on server startup
 - ✅ File permissions default to user-only (0644)
 
 **Security Note:** Token file is in user's home directory, which is appropriate for a personal MCP server.
 
 #### Test 1.5: Token Auto-Refresh
+
 **Status:** ✅ VERIFIED (Code Review + Unit Tests)
 
 **Refresh Logic:**
+
 ```typescript
 // Check if token is expired or will expire in the next 5 minutes
 const expiryBuffer = 5 * 60 * 1000; // 5 minutes
@@ -157,12 +176,14 @@ if (Date.now() + expiryBuffer >= this.token.expires_at) {
 ```
 
 **Validation:**
+
 - ✅ 5-minute buffer before expiry
 - ✅ Automatic refresh on `getAccessToken()`
 - ✅ Refresh token persisted
 - ✅ Error handling for invalid refresh token
 
 **Edge Case Handling:**
+
 - ✅ Throws clear error if refresh token missing
 - ✅ Instructs user to re-authenticate if refresh fails
 
@@ -171,11 +192,13 @@ if (Date.now() + expiryBuffer >= this.token.expires_at) {
 ### 2. API Client Integration
 
 #### Test 2.1: Search TV Show - Popular Title
+
 **Status:** ✅ PASS
 
 **Query:** "Breaking Bad"
 
 **Results:**
+
 ```json
 {
   "show": {
@@ -196,6 +219,7 @@ if (Date.now() + expiryBuffer >= this.token.expires_at) {
 **First Result:** Breaking Bad (2008) - Trakt ID: 1388
 
 **Validation:**
+
 - ✅ Results returned as array
 - ✅ First result is correct show
 - ✅ All ID fields populated (trakt, slug, tvdb, imdb, tmdb)
@@ -203,12 +227,14 @@ if (Date.now() + expiryBuffer >= this.token.expires_at) {
 - ✅ Response time < 2 seconds
 
 #### Test 2.2: Search Movie
+
 **Status:** ✅ PASS
 
 **Query:** "Inception"
 **Type Filter:** `movie`
 
 **Results:**
+
 ```json
 {
   "movie": {
@@ -228,22 +254,26 @@ if (Date.now() + expiryBuffer >= this.token.expires_at) {
 **First Result:** Inception (2010) - Trakt ID: 16662
 
 **Validation:**
+
 - ✅ Type filter works correctly
 - ✅ Only movies returned (not shows)
 - ✅ Correct movie identified
 - ✅ All IDs present
 
 #### Test 2.3: Ambiguous Search
+
 **Status:** ✅ PASS
 
 **Query:** "Dune" (both show and movie exist)
 
 **Results:**
+
 - Total: 10 results
 - Shows: 3
 - Movies: 7
 
 **Top Results:**
+
 1. [movie] Dune (2021)
 2. [movie] Dune: Part Two (2024)
 3. [show] Dune: Prophecy (2024)
@@ -251,6 +281,7 @@ if (Date.now() + expiryBuffer >= this.token.expires_at) {
 5. [movie] Dune: Part Three (2026)
 
 **Validation:**
+
 - ✅ Both shows and movies returned
 - ✅ Results sorted by relevance (2021 film first)
 - ✅ `type` field distinguishes shows vs movies
@@ -259,20 +290,24 @@ if (Date.now() + expiryBuffer >= this.token.expires_at) {
 **UX Note:** When user searches ambiguously, they get both types. The assistant will need to clarify which one the user wants. This is expected and desirable behavior.
 
 #### Test 2.4: Special Characters
+
 **Status:** ✅ PASS
 
 **Query:** "It's Always Sunny in Philadelphia"
 
 **Results:**
+
 - Found: 2 results
 - First result: "It's Always Sunny in Philadelphia"
 
 **Validation:**
+
 - ✅ Apostrophes handled correctly
 - ✅ No URL encoding issues
 - ✅ Exact title match found
 
 #### Test 2.5: No Results
+
 **Status:** ✅ PASS
 
 **Query:** "xyzabc123notarealshow999"
@@ -280,6 +315,7 @@ if (Date.now() + expiryBuffer >= this.token.expires_at) {
 **Results:** Empty array `[]`
 
 **Validation:**
+
 - ✅ Returns empty array (not null or error)
 - ✅ No exception thrown
 - ✅ Appropriate response format
@@ -287,11 +323,13 @@ if (Date.now() + expiryBuffer >= this.token.expires_at) {
 **UX Note:** Tools should check for empty array and provide helpful message to user (e.g., "No results found. Try a different search term").
 
 #### Test 2.6: Search Ambiguous Title (Multiple Versions)
+
 **Status:** ✅ PASS
 
 **Query:** "The Office"
 
 **Results:**
+
 ```
 Found 10 results:
 - The Office (2005) [us]
@@ -302,6 +340,7 @@ Found 10 results:
 ```
 
 **Validation:**
+
 - ✅ Multiple regional versions returned
 - ✅ Country codes available
 - ✅ Year distinguishes versions
@@ -314,9 +353,11 @@ Found 10 results:
 ### 3. MCP Tool Integration
 
 #### Test 3.1: MCP Server Initialization
+
 **Status:** ✅ PASS
 
 **Results:**
+
 ```
 Server: trakt-mcp-server
 Version: 1.0.0
@@ -324,17 +365,20 @@ Protocol: 2024-11-05
 ```
 
 **Validation:**
+
 - ✅ Server responds to `initialize` request
 - ✅ Correct server name and version
 - ✅ MCP protocol version supported
 
 #### Test 3.2: Tool Registration
+
 **Status:** ✅ PASS (with note)
 
 **Expected:** 2 tools (authenticate, search_show)
 **Actual:** 10 tools
 
 **All Tools Registered:**
+
 1. ✅ authenticate
 2. ✅ search_show
 3. ✅ search_episode
@@ -349,9 +393,11 @@ Protocol: 2024-11-05
 **Note:** Implementation exceeds Phase 2 requirements. All tools have proper schemas and descriptions.
 
 #### Test 3.3: Tool Call - search_show via MCP
+
 **Status:** ✅ PASS
 
 **Request:**
+
 ```json
 {
   "name": "search_show",
@@ -364,15 +410,18 @@ Protocol: 2024-11-05
 **Response:** Valid JSON array with 10 results
 
 **Validation:**
+
 - ✅ Tool callable via MCP
 - ✅ Arguments parsed correctly
 - ✅ Response formatted as JSON
 - ✅ Response includes all required fields
 
 #### Test 3.4: Tool Call - Missing Required Parameter
+
 **Status:** ✅ PASS
 
 **Request:**
+
 ```json
 {
   "name": "search_show",
@@ -381,20 +430,24 @@ Protocol: 2024-11-05
 ```
 
 **Response:**
+
 ```
 Error: Query parameter is required
 ```
 
 **Validation:**
+
 - ✅ Parameter validation works
 - ✅ Clear error message
 - ✅ Error format consistent
 - ✅ Does not crash server
 
 #### Test 3.5: Tool Call - Unknown Tool
+
 **Status:** ✅ PASS
 
 **Request:**
+
 ```json
 {
   "name": "nonexistent_tool",
@@ -403,11 +456,13 @@ Error: Query parameter is required
 ```
 
 **Response:**
+
 ```
 Error: Unknown tool: nonexistent_tool
 ```
 
 **Validation:**
+
 - ✅ Unknown tools rejected
 - ✅ Error message is clear
 - ✅ Server continues running
@@ -417,6 +472,7 @@ Error: Unknown tool: nonexistent_tool
 ### 4. Error Handling
 
 #### Test 4.1: Invalid API Key
+
 **Status:** ⚠️ PARTIAL PASS
 
 **Expected:** 401 Unauthorized
@@ -426,6 +482,7 @@ Error: Unknown tool: nonexistent_tool
 Using an invalid API key returns HTTP 403 instead of 401. This is actually Trakt API behavior, not a bug in the implementation.
 
 **Validation:**
+
 - ⚠️ Error detected correctly
 - ⚠️ Error code is 403 (not 401)
 - ✅ Request fails as expected
@@ -434,6 +491,7 @@ Using an invalid API key returns HTTP 403 instead of 401. This is actually Trakt
 **Recommendation:** Update error handling to expect 403 for invalid credentials, not just 401.
 
 #### Test 4.2: Missing API Key
+
 **Status:** ⚠️ PARTIAL PASS
 
 **Expected:** 401 Unauthorized
@@ -444,9 +502,11 @@ Using an invalid API key returns HTTP 403 instead of 401. This is actually Trakt
 **Recommendation:** Update documentation to reflect that Trakt returns 403 for authentication failures.
 
 #### Test 4.3: Rate Limiting
+
 **Status:** ✅ VERIFIED (Code Review)
 
 **Implementation:**
+
 ```typescript
 class RateLimiter {
   private maxRequests: number = 1000;
@@ -459,6 +519,7 @@ class RateLimiter {
 ```
 
 **Validation:**
+
 - ✅ 1000 requests per 5 minutes (Trakt limit)
 - ✅ Sliding window implementation
 - ✅ Automatic waiting when limit approached
@@ -467,14 +528,17 @@ class RateLimiter {
 **Note:** Rate limiting cannot be easily tested without making 1000+ requests, but implementation is correct per code review.
 
 #### Test 4.4: API Client Interceptors
+
 **Status:** ✅ VERIFIED (Code Review)
 
 **Request Interceptor:**
+
 - ✅ Adds OAuth token automatically
 - ✅ Enforces rate limiting
 - ✅ Sets required headers (api-version, api-key)
 
 **Response Interceptor:**
+
 - ✅ Detects 401 (auth failure)
 - ✅ Detects 429 (rate limit)
 - ✅ Throws clear error messages
@@ -484,6 +548,7 @@ class RateLimiter {
 ## Edge Cases Discovered
 
 ### Edge Case 1: Multiple OAuth Sessions
+
 **Scenario:** User tries to authenticate while authentication is already in progress
 
 **Current Behavior:** Not explicitly handled - could result in multiple polling loops
@@ -491,6 +556,7 @@ class RateLimiter {
 **Severity:** Minor
 
 **Recommendation:** Add a flag to prevent multiple simultaneous authentication attempts:
+
 ```typescript
 private isAuthenticating = false;
 
@@ -504,6 +570,7 @@ async initiateDeviceFlow() {
 ```
 
 ### Edge Case 2: Token File Corruption
+
 **Scenario:** `~/.trakt-mcp-token.json` contains invalid JSON
 
 **Current Behavior:** Caught and logged to stderr, but user is not notified
@@ -511,6 +578,7 @@ async initiateDeviceFlow() {
 **Severity:** Minor
 
 **Current Code:**
+
 ```typescript
 try {
   const data = readFileSync(TOKEN_FILE_PATH, 'utf-8');
@@ -522,6 +590,7 @@ try {
 ```
 
 **Recommendation:** Consider notifying user and offering to re-authenticate:
+
 ```typescript
 } catch (error) {
   console.error('Failed to load token:', error);
@@ -533,6 +602,7 @@ try {
 ```
 
 ### Edge Case 3: Network Timeout During OAuth Polling
+
 **Scenario:** Network disconnects during device flow polling
 
 **Current Behavior:** Poll loop continues indefinitely, error logged to stderr
@@ -540,6 +610,7 @@ try {
 **Severity:** Minor
 
 **Recommendation:** Add timeout to polling loop (e.g., stop after 10 minutes):
+
 ```typescript
 async pollForToken(deviceCode: string, interval: number): Promise<TokenResponse> {
   const pollInterval = interval * 1000;
@@ -555,6 +626,7 @@ async pollForToken(deviceCode: string, interval: number): Promise<TokenResponse>
 ```
 
 ### Edge Case 4: Simultaneous Token Refresh
+
 **Scenario:** Multiple API calls trigger token refresh at the same time
 
 **Current Behavior:** Could result in multiple refresh requests
@@ -564,6 +636,7 @@ async pollForToken(deviceCode: string, interval: number): Promise<TokenResponse>
 **Recommendation:** Implement refresh lock/promise caching to prevent duplicate refreshes.
 
 ### Edge Case 5: Show Name With Special Characters in Tools
+
 **Scenario:** User searches for "Marvel's Agents of S.H.I.E.L.D."
 
 **Current Behavior:** Should work (URL encoding handled by axios)
@@ -577,10 +650,12 @@ async pollForToken(deviceCode: string, interval: number): Promise<TokenResponse>
 ## UX Findings & Recommendations
 
 ### Finding 1: OAuth Device Code Display
+
 **Current:** Code displayed inline in text
 **Rating:** Good
 
 **Example:**
+
 ```
 Please visit https://trakt.tv/activate and enter code: 416DADBF
 
@@ -588,6 +663,7 @@ Waiting for authorization...
 ```
 
 **Recommendation:** Consider adding visual emphasis or step-by-step instructions:
+
 ```
 To authenticate with Trakt.tv:
 
@@ -599,11 +675,13 @@ The server will automatically detect when you've completed authorization.
 ```
 
 ### Finding 2: Search Result Disambiguation
+
 **Current:** Returns all matches without guidance
 
 **Scenario:** User searches "Dune" and gets 10 results (shows + movies)
 
 **Recommendation:** When results include multiple types, the assistant should clarify:
+
 ```
 I found multiple results for "Dune":
 
@@ -621,11 +699,13 @@ Which one did you mean?
 This is handled at the assistant level, not server level, but documentation should include this pattern.
 
 ### Finding 3: Empty Search Results
+
 **Current:** Returns empty array `[]`
 
 **UX Impact:** Assistant needs to check for this and provide helpful message
 
 **Recommended Assistant Pattern:**
+
 ```typescript
 const results = await search_show({ query: userQuery });
 
@@ -640,11 +720,13 @@ if (results.length === 0) {
 **Recommendation:** Add this pattern to documentation/examples.
 
 ### Finding 4: Error Messages
+
 **Current:** Technical error messages (e.g., "Query parameter is required")
 
 **Rating:** Acceptable but could be better
 
 **Recommendation:** Consider more user-friendly error responses:
+
 - "Query parameter is required" → "Please provide a show or movie title to search for"
 - "Unknown tool: X" → "I don't recognize that command. Available commands are: authenticate, search_show, ..."
 
@@ -653,43 +735,53 @@ if (results.length === 0) {
 ## Natural Language Pattern Testing
 
 ### Patterns That Work Well
+
 These queries work correctly with the current implementation:
 
 ✅ **Direct Show Names**
+
 - "Breaking Bad"
 - "The Office"
 - "Game of Thrones"
 
 ✅ **Movies**
+
 - "Inception"
 - "The Matrix"
 
 ✅ **Shows with Special Characters**
+
 - "It's Always Sunny in Philadelphia"
 - "Bob's Burgers"
 
 ✅ **Ambiguous Titles**
+
 - "Dune" (returns both shows and movies)
 - "The Office" (returns multiple regional versions)
 
 ### Patterns That Need Clarification
+
 These scenarios require assistant-level disambiguation:
 
 ⚠️ **Multiple Versions**
+
 - "The Office" → Which country's version?
 - "Shameless" → US or UK?
 
 ⚠️ **Show vs Movie**
+
 - "Dune" → Which adaptation?
 - "Fargo" → Show or movie?
 
 ⚠️ **Year Needed**
+
 - "Foundation" → Multiple shows with this name
 - "Lost in Space" → 1960s or 2010s?
 
 ### Recommended Clarifying Questions
 
 **For Multiple Types:**
+
 ```
 I found both a TV show and movies named "Dune". Which did you mean?
 - Dune: Prophecy (TV show, 2024)
@@ -698,6 +790,7 @@ I found both a TV show and movies named "Dune". Which did you mean?
 ```
 
 **For Regional Versions:**
+
 ```
 There are several versions of "The Office". Which one?
 - The Office (US, 2005-2013)
@@ -705,6 +798,7 @@ There are several versions of "The Office". Which one?
 ```
 
 **For Unclear Search:**
+
 ```
 I couldn't find an exact match for "[query]". Did you mean:
 - [closest match 1]
@@ -717,9 +811,11 @@ Or should I try a different search?
 ## Integration Testing Notes
 
 ### MCP Inspector Compatibility
+
 **Status:** ✅ Compatible
 
 The server works correctly with MCP Inspector v0.15.0:
+
 - Server starts successfully
 - Tools are discoverable
 - Tool calls execute correctly
@@ -728,9 +824,11 @@ The server works correctly with MCP Inspector v0.15.0:
 **Inspector URL:** `http://localhost:6274/?MCP_PROXY_AUTH_TOKEN=...`
 
 ### Claude Code Integration
+
 **Status:** ⏭️ Not Tested in Live Environment
 
 **Expected Behavior:**
+
 1. User: "I watched Breaking Bad S1E1 yesterday"
 2. Claude Code calls `search_show` to find the show
 3. Claude Code calls `search_episode` to find the episode
@@ -743,6 +841,7 @@ The server works correctly with MCP Inspector v0.15.0:
 ## Performance Observations
 
 ### API Response Times
+
 All tested API calls completed within acceptable timeframes:
 
 - **Search queries:** 500ms - 2s
@@ -750,9 +849,11 @@ All tested API calls completed within acceptable timeframes:
 - **Authentication polling:** 5s intervals (as specified by Trakt)
 
 ### Rate Limiting
+
 **Implementation:** Sliding window, 1000 requests per 5 minutes
 
 **Observed:**
+
 - No rate limiting triggered during testing (< 100 requests)
 - Implementation appears correct per code review
 
@@ -763,22 +864,27 @@ All tested API calls completed within acceptable timeframes:
 ## Security Assessment
 
 ### Token Storage
+
 ✅ **Secure:**
+
 - Stored in user's home directory (`~/.trakt-mcp-token.json`)
 - Not in project directory (won't be committed to git)
 - File permissions: 0644 (user read/write, others read)
 
 ⚠️ **Recommendation:** Set file permissions to 0600 (user-only):
+
 ```typescript
 writeFileSync(TOKEN_FILE_PATH, JSON.stringify(token, null, 2), {
-  mode: 0o600
+  mode: 0o600,
 });
 ```
 
 ### Credentials in .env
+
 ⚠️ **Warning:** `.env` file is in repository (though in `.gitignore`)
 
 **Observed:**
+
 - `.env` contains actual API credentials
 - `.gitignore` properly excludes it
 - No credentials in source code
@@ -786,6 +892,7 @@ writeFileSync(TOKEN_FILE_PATH, JSON.stringify(token, null, 2), {
 ✅ **Good Practice:** Credentials are environment variables, not hardcoded
 
 **Recommendation:** Add `.env.example` with placeholder values:
+
 ```bash
 # Trakt.tv API Credentials
 # Get your credentials at https://trakt.tv/oauth/applications
@@ -804,7 +911,9 @@ DEFAULT_PRIVACY=private
 ```
 
 ### OAuth Flow Security
+
 ✅ **Secure:**
+
 - Uses official OAuth 2.0 device flow
 - Client secret not exposed to user
 - Tokens properly refreshed
@@ -815,6 +924,7 @@ DEFAULT_PRIVACY=private
 ## Bugs Found
 
 ### Bug #1: HTTP Status Code Expectation Mismatch
+
 **Severity:** Low
 **Priority:** Low
 
@@ -832,6 +942,7 @@ Tests expect 401 for invalid/missing API key, but Trakt API returns 403.
 `src/lib/trakt-client.ts` lines 77-80
 
 **Proposed Fix:**
+
 ```typescript
 async (error: AxiosError) => {
   if (error.response?.status === 401 || error.response?.status === 403) {
@@ -839,7 +950,7 @@ async (error: AxiosError) => {
     throw new Error('Authentication failed. Please re-authenticate.');
   }
   // ...
-}
+};
 ```
 
 ---
@@ -849,8 +960,10 @@ async (error: AxiosError) => {
 The following scenarios require manual intervention and cannot be fully automated:
 
 ### 1. Complete OAuth Flow
+
 **Test:** Authenticate with Trakt.tv account
 **Steps:**
+
 1. Call `authenticate` tool
 2. Visit verification URL in browser
 3. Enter user code
@@ -862,8 +975,10 @@ The following scenarios require manual intervention and cannot be fully automate
 **Status:** Not tested (requires manual browser interaction)
 
 ### 2. Token Expiry & Refresh
+
 **Test:** Verify token automatically refreshes before expiry
 **Steps:**
+
 1. Manually edit `~/.trakt-mcp-token.json` to set `expires_at` to 4 minutes from now
 2. Make an API call
 3. Verify token is refreshed automatically
@@ -872,8 +987,10 @@ The following scenarios require manual intervention and cannot be fully automate
 **Status:** Not tested (requires time manipulation)
 
 ### 3. Tools Requiring Authentication
+
 **Test:** Verify authenticated-only tools work after login
 **Steps:**
+
 1. Complete OAuth flow
 2. Test `log_watch` tool
 3. Test `get_history` tool
@@ -889,6 +1006,7 @@ The following scenarios require manual intervention and cannot be fully automate
 ## Recommendations for PR Merge
 
 ### Critical (Must Fix Before Merge)
+
 None - no blocking issues found
 
 ### High Priority (Should Fix Before Merge)
@@ -972,6 +1090,7 @@ None - no blocking issues found
    - Used to discover extra tools beyond Phase 2
 
 ### Test Data Files
+
 All test scripts are standalone and use live Trakt.tv API.
 
 ---
@@ -983,33 +1102,40 @@ All test scripts are standalone and use live Trakt.tv API.
 These patterns work well with the current implementation:
 
 **Simple Show Search:**
+
 - "Breaking Bad"
 - "The Office"
 - "Game of Thrones"
 
 **Show with Special Characters:**
+
 - "It's Always Sunny in Philadelphia"
 - "Bob's Burgers"
 
 **Movie Search:**
+
 - "Inception" (with type: 'movie')
 - "The Matrix" (with type: 'movie')
 
 **Ambiguous Search (Returns Multiple Types):**
+
 - "Dune" → Returns both shows and movies
 - "Fargo" → Returns both show and movie
 
 ### Patterns Requiring Clarification
 
 **Multiple Regional Versions:**
+
 - User: "The Office"
 - Assistant should ask: "Did you mean The Office (US, 2005) or The Office (UK, 2001)?"
 
 **Show vs Movie:**
+
 - User: "I watched Dune"
 - Assistant should ask: "Did you mean Dune (2021 movie) or Dune: Prophecy (2024 show)?"
 
 **No Results:**
+
 - User: "xyznotarealshow"
 - Assistant should: "I couldn't find any shows matching that title. Please check the spelling or try a different search term."
 
@@ -1020,6 +1146,7 @@ These patterns work well with the current implementation:
 ### What Was Tested
 
 ✅ **OAuth Authentication**
+
 - Device code request
 - Device code response format
 - MCP tool integration
@@ -1027,6 +1154,7 @@ These patterns work well with the current implementation:
 - Auto-refresh logic (code review)
 
 ✅ **Search API**
+
 - Popular TV shows
 - Movies
 - Ambiguous titles
@@ -1036,6 +1164,7 @@ These patterns work well with the current implementation:
 - Multiple versions
 
 ✅ **MCP Server**
+
 - Server initialization
 - Tool registration
 - Tool calling
@@ -1044,6 +1173,7 @@ These patterns work well with the current implementation:
 - Unknown tool handling
 
 ✅ **Error Handling**
+
 - Missing parameters
 - Invalid API key (behavior documented)
 - Unknown tools
@@ -1052,12 +1182,14 @@ These patterns work well with the current implementation:
 ### What Was NOT Tested
 
 ⏭️ **Requires Manual Testing:**
+
 - Complete OAuth flow (browser interaction required)
 - Token refresh on expiry (time-based)
 - Authenticated tool usage (log_watch, get_history, etc.)
 - Rate limit triggering (requires 1000+ requests)
 
 ⏭️ **Requires Live Integration:**
+
 - End-to-end flow with Claude Code
 - Natural language processing by LLM
 - Multi-step workflows (search → log → verify)
@@ -1069,6 +1201,7 @@ These patterns work well with the current implementation:
 The Phase 2 implementation is **production-ready** with minor recommendations for improvement. All core functionality works correctly:
 
 ### Strengths
+
 - OAuth device flow implemented correctly
 - API client works with live Trakt.tv API
 - Rate limiting implemented properly
@@ -1077,11 +1210,13 @@ The Phase 2 implementation is **production-ready** with minor recommendations fo
 - Implementation exceeds requirements (includes Phase 3+ features)
 
 ### Minor Issues
+
 - Two tests expect 401 but API returns 403 (not a bug, just API behavior)
 - Token file permissions could be more restrictive
 - Some edge cases not explicitly handled
 
 ### Overall Assessment
+
 **APPROVED FOR MERGE** with recommendation to address high-priority items.
 
 The implementation provides a solid foundation for watch tracking functionality and can be safely merged into main after addressing the recommended improvements.

@@ -21,11 +21,13 @@ This document is historical and may contain outdated information.
 ## How to Use This Guide
 
 This document contains all 18 issues formatted for import into Linear. You can:
+
 1. Copy-paste each issue description into Linear's web interface
 2. Use Linear's API to programmatically import these issues
 3. Reference this guide when creating issues manually
 
 Each issue includes:
+
 - Title (max 80 characters, action-oriented)
 - Priority level
 - Labels (tags)
@@ -541,7 +543,7 @@ The cache can become stale when users modify their watch history outside of the 
 - Implement `cache.invalidate(key)` method
 - Invalidate user history cache when mark-watched operations occur
 - Invalidate watchlist cache when add/remove operations occur
-- Support pattern-based invalidation (e.g., "user:*" to invalidate all user entries)
+- Support pattern-based invalidation (e.g., "user:\*" to invalidate all user entries)
 - Add comprehensive tests for various invalidation scenarios
 - Document cache invalidation strategy
 
@@ -561,7 +563,7 @@ The cache can become stale when users modify their watch history outside of the 
 - [ ] `cache.invalidate(key)` method implemented
 - [ ] History cache invalidated on mark-watched operations
 - [ ] Watchlist cache invalidated on add/remove operations
-- [ ] Pattern-based invalidation (e.g., "user:*") supported
+- [ ] Pattern-based invalidation (e.g., "user:\*") supported
 - [ ] Tests verify invalidation scenarios
 - [ ] Cache invalidation strategy documented
 
@@ -847,6 +849,7 @@ None
 ### Related Issue Groups
 
 **Cache-Related Issues (Interconnected):**
+
 - #1 Cache Memory Tracking Implementation
 - #12 Cache Invalidation on Write
 - #13 Periodic Background Cache Pruning
@@ -854,11 +857,13 @@ None
 - #15 Persistent Cache Storage Implementation
 
 **Logging & Security Issues:**
+
 - #2 Log Directory Security Hardening
 - #4 File Logging Directory Robustness
 - #17 Security Policy Documentation
 
 **Debug & Troubleshooting Issues:**
+
 - #3 Debug Tool Usage Documentation
 - #5 Time-Based Log Filtering
 - #6 Request Replay Capability
@@ -866,6 +871,7 @@ None
 - #9 Correlation ID Auto-Extraction
 
 **Documentation & Standards:**
+
 - #16 GitHub Repository Templates
 - #17 Security Policy Documentation
 - #18 MCP Resources Implementation
@@ -874,26 +880,26 @@ None
 
 ## Priority & Effort Summary
 
-| Issue # | Title | Priority | Labels | Est. Effort |
-|---------|-------|----------|--------|-------------|
-| 1 | Cache Memory Tracking | High | Enhancement, Performance, Tech Debt | Medium |
-| 2 | Log Directory Security | High | Security, Bug, Tech Debt | Medium |
-| 3 | Debug Tool Documentation | High | Documentation | Medium |
-| 4 | File Logging Robustness | Medium | Enhancement, Bug | Small |
-| 5 | Time-Based Log Filtering | Medium | Enhancement, Feature | Small |
-| 6 | Request Replay Capability | Medium | Feature, Enhancement | Medium |
-| 7 | Performance Profiling | Medium | Enhancement, Performance | Medium |
-| 8 | Rate Limit Warning | Medium | Enhancement, UX | Small |
-| 9 | Correlation ID Extraction | Medium | Enhancement, UX | Small |
-| 10 | Archive Test Reports | Medium | Tech Debt, Test | Trivial |
-| 11 | Integration Testing Framework | Medium | Test, Tech Debt | Large |
-| 12 | Cache Invalidation | Medium | Enhancement, Bug | Medium |
-| 13 | Background Cache Pruning | Medium | Enhancement, Performance | Small |
-| 14 | Configurable Cache Parameters | Medium | Enhancement, UX | Small |
-| 15 | Persistent Cache Storage | Medium | Feature, Enhancement | Large |
-| 16 | GitHub Templates | Medium | Documentation, Tech Debt | Small |
-| 17 | Security Policy Documentation | Medium | Security, Documentation | Small |
-| 18 | MCP Resources Implementation | Medium | Feature, Enhancement | Large |
+| Issue # | Title                         | Priority | Labels                              | Est. Effort |
+| ------- | ----------------------------- | -------- | ----------------------------------- | ----------- |
+| 1       | Cache Memory Tracking         | High     | Enhancement, Performance, Tech Debt | Medium      |
+| 2       | Log Directory Security        | High     | Security, Bug, Tech Debt            | Medium      |
+| 3       | Debug Tool Documentation      | High     | Documentation                       | Medium      |
+| 4       | File Logging Robustness       | Medium   | Enhancement, Bug                    | Small       |
+| 5       | Time-Based Log Filtering      | Medium   | Enhancement, Feature                | Small       |
+| 6       | Request Replay Capability     | Medium   | Feature, Enhancement                | Medium      |
+| 7       | Performance Profiling         | Medium   | Enhancement, Performance            | Medium      |
+| 8       | Rate Limit Warning            | Medium   | Enhancement, UX                     | Small       |
+| 9       | Correlation ID Extraction     | Medium   | Enhancement, UX                     | Small       |
+| 10      | Archive Test Reports          | Medium   | Tech Debt, Test                     | Trivial     |
+| 11      | Integration Testing Framework | Medium   | Test, Tech Debt                     | Large       |
+| 12      | Cache Invalidation            | Medium   | Enhancement, Bug                    | Medium      |
+| 13      | Background Cache Pruning      | Medium   | Enhancement, Performance            | Small       |
+| 14      | Configurable Cache Parameters | Medium   | Enhancement, UX                     | Small       |
+| 15      | Persistent Cache Storage      | Medium   | Feature, Enhancement                | Large       |
+| 16      | GitHub Templates              | Medium   | Documentation, Tech Debt            | Small       |
+| 17      | Security Policy Documentation | Medium   | Security, Documentation             | Small       |
+| 18      | MCP Resources Implementation  | Medium   | Feature, Enhancement                | Large       |
 
 ---
 

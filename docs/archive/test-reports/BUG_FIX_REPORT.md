@@ -25,12 +25,15 @@ Successfully fixed a critical date parsing bug that was causing all date-based w
 ## The Bug
 
 ### Symptoms
+
 - User logs content as watched "yesterday" (Nov 17, 2025)
 - System records it as watched Nov 16, 2025 instead ❌
 - Affects all natural language dates: "today", "yesterday", "last week", "last month"
 
 ### Root Cause
+
 The `parseNaturalDate()` function in `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/utils.ts` was:
+
 1. Using `date-fns` functions (`startOfDay`, `subDays`, etc.) which operate in **local timezone**
 2. Formatting the result with `'Z'` suffix claiming it was **UTC**
 3. This timezone mismatch caused dates to be off by the timezone offset
@@ -38,6 +41,7 @@ The `parseNaturalDate()` function in `/Users/kofifort/Repos/trakt.tv-mcp/src/lib
 ### Technical Details
 
 **Before Fix:**
+
 ```typescript
 // Operating in local timezone (PST = UTC-8)
 if (lowerInput === 'yesterday') {
@@ -47,6 +51,7 @@ if (lowerInput === 'yesterday') {
 ```
 
 **Issue:**
+
 - `startOfDay()` calculates midnight in **local timezone** (e.g., PST)
 - Adding `'Z'` suffix claims it's UTC, but it's not
 - Example: PST midnight = 08:00 UTC, not 00:00 UTC
@@ -57,17 +62,16 @@ if (lowerInput === 'yesterday') {
 ## The Fix
 
 ### Solution
+
 Replaced all `date-fns` date arithmetic with **native UTC Date operations**:
 
 ```typescript
 // Now operating in UTC from the start
 if (lowerInput === 'yesterday') {
   const now = new Date();
-  const yesterday = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate() - 1
-  ));
+  const yesterday = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1)
+  );
   return yesterday.toISOString();
 }
 // Result: 2025-11-18T00:00:00.000Z (correct!)
@@ -76,6 +80,7 @@ if (lowerInput === 'yesterday') {
 ### Key Changes
 
 1. **Extract UTC date components first**
+
    ```typescript
    const now = new Date();
    const currentYear = now.getUTCFullYear();
@@ -84,11 +89,13 @@ if (lowerInput === 'yesterday') {
    ```
 
 2. **Use `Date.UTC()` to construct dates in UTC timezone**
+
    ```typescript
    const yesterday = new Date(Date.UTC(currentYear, currentMonth, currentDate - 1));
    ```
 
 3. **Use `toISOString()` for consistent UTC output**
+
    ```typescript
    return yesterday.toISOString(); // Always returns UTC format
    ```
@@ -102,11 +109,13 @@ if (lowerInput === 'yesterday') {
 ## Testing & Verification
 
 ### Unit Tests
+
 - Updated `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/__tests__/utils.test.ts`
 - Added 10+ new tests specifically for UTC date handling
 - Added critical regression test to prevent future off-by-one errors
 
 **New Test Coverage:**
+
 - ✅ Verifies dates are at UTC midnight (00:00:00.000Z)
 - ✅ Validates exact date calculations in UTC
 - ✅ Tests timezone-independent behavior
@@ -115,6 +124,7 @@ if (lowerInput === 'yesterday') {
 - ✅ Validates ISO date parsing to UTC midnight
 
 ### Manual Verification Script
+
 Created `/Users/kofifort/Repos/trakt.tv-mcp/scripts/test-date-fix.js` to manually verify the fix:
 
 ```bash
@@ -122,6 +132,7 @@ node scripts/test-date-fix.js
 ```
 
 **Results:**
+
 ```
 === Test Summary ===
 Passed: 6
@@ -132,16 +143,19 @@ Total:  6
 ```
 
 ### Full Test Suite
+
 ```bash
 npm test
 ```
 
 **Results:**
+
 - 169 tests total
 - 169 passed ✅
 - 0 failed
 
 ### Build Verification
+
 ```bash
 npm run build
 ```
@@ -153,6 +167,7 @@ npm run build
 ## Impact Analysis
 
 ### Before Fix
+
 - ❌ All date-based logging was incorrect
 - ❌ "yesterday" logged as 2 days ago
 - ❌ "last week" logged as 8 days ago
@@ -160,6 +175,7 @@ npm run build
 - ❌ Users couldn't trust the logging functionality
 
 ### After Fix
+
 - ✅ All dates are accurate in UTC
 - ✅ "yesterday" logs as exactly 1 day ago
 - ✅ Works correctly regardless of server timezone
@@ -167,7 +183,9 @@ npm run build
 - ✅ Users can trust the logging dates
 
 ### Affected Functionality
+
 This fix impacts:
+
 - `log_watch` tool - all movie/episode date logging
 - Date range queries in history lookups
 - Any feature using natural language date input
@@ -195,6 +213,7 @@ This fix impacts:
    - Provides detailed output for debugging
 
 **Total Changes:**
+
 - 3 files changed
 - 263 lines added
 - 22 lines removed
@@ -204,6 +223,7 @@ This fix impacts:
 ## Example Test Output
 
 ### Before Fix
+
 ```
 Current Time (Local): Tue Nov 18 2025 16:00:00 GMT-0800 (PST)
 Current Time (UTC):   Wed, 19 Nov 2025 00:00:00 GMT
@@ -215,6 +235,7 @@ ERROR: Off by 24 hours (1 day)
 ```
 
 ### After Fix
+
 ```
 Current Time (Local): Tue Nov 18 2025 16:30:48 GMT-0800 (PST)
 Current Time (UTC):   Wed, 19 Nov 2025 00:30:48 GMT
@@ -247,6 +268,7 @@ PASS - Yesterday is exactly 1 day before today
 ## Lessons Learned
 
 ### Best Practices Established
+
 1. **Always use UTC for server-side date operations**
    - Prevents timezone-related bugs
    - Ensures consistent behavior across timezones
@@ -268,21 +290,25 @@ PASS - Yesterday is exactly 1 day before today
 ## Next Steps
 
 ### Immediate (Completed ✅)
+
 - ✅ Fix date parsing bug
 - ✅ Add comprehensive tests
 - ✅ Verify all tests pass
 - ✅ Commit changes
 
 ### Follow-up (Recommended)
+
 1. Review all other date operations in codebase for similar issues
 2. Add integration tests that verify end-to-end date logging
 3. Consider adding timezone configuration option if needed
 4. Document date handling conventions in project README
 
 ### Related Work
+
 This fix addresses **Critical Bug #2** from `CRITICAL_BUGS_AND_PLAN.md`.
 
 **Remaining Critical Issues:**
+
 - Bug #1: Wrong content logged (search result selection)
 - Bug #3: No observability/debugging capability
 
@@ -297,6 +323,7 @@ The critical date parsing bug has been **successfully fixed** and thoroughly tes
 **Status:** ✅ PRODUCTION READY (for date parsing functionality)
 
 **Confidence Level:** HIGH
+
 - Comprehensive test coverage
 - Manual verification passed
 - Regression tests in place

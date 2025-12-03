@@ -10,12 +10,14 @@
 ## When to Use This Archive
 
 Use archived documents to:
+
 - Understand historical context for implementation decisions
 - Review completed testing phases and methodologies
 - Reference bug fixes and resolution approaches
 - Track project evolution over time
 
 **For current information, see:**
+
 - [Active Documentation Index](/Users/kofifort/Repos/trakt.tv-mcp/docs/README.md)
 - [Project README](/Users/kofifort/Repos/trakt.tv-mcp/README.md)
 - [Testing Guide](/Users/kofifort/Repos/trakt.tv-mcp/docs/testing/TESTING_GUIDE.md)
@@ -28,37 +30,37 @@ Use archived documents to:
 
 Documents tracking implementation phases and feature rollout:
 
-| File | Description | Archived Date | Superseded By |
-|------|-------------|---------------|---------------|
-| [IMPLEMENTATION_CHECKLIST.md](implementation/IMPLEMENTATION_CHECKLIST.md) | Phase 3 implementation tracking | Nov 2025 | Phase completed |
-| [PHASE2_IMPLEMENTATION_SUMMARY.md](implementation/PHASE2_IMPLEMENTATION_SUMMARY.md) | Phase 2 completion summary | Nov 2025 | Phase completed |
-| [ROADMAP.md](implementation/ROADMAP.md) | Original project roadmap | Nov 2025 | [TECHNICAL_DEBT.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/TECHNICAL_DEBT.md) |
-| [scripts-IMPLEMENTATION_SUMMARY.md](implementation/scripts-IMPLEMENTATION_SUMMARY.md) | Bulk import script implementation | Nov 2025 | [scripts/README.md](/Users/kofifort/Repos/trakt.tv-mcp/scripts/README.md) |
+| File                                                                                  | Description                       | Archived Date | Superseded By                                                                  |
+| ------------------------------------------------------------------------------------- | --------------------------------- | ------------- | ------------------------------------------------------------------------------ |
+| [IMPLEMENTATION_CHECKLIST.md](implementation/IMPLEMENTATION_CHECKLIST.md)             | Phase 3 implementation tracking   | Nov 2025      | Phase completed                                                                |
+| [PHASE2_IMPLEMENTATION_SUMMARY.md](implementation/PHASE2_IMPLEMENTATION_SUMMARY.md)   | Phase 2 completion summary        | Nov 2025      | Phase completed                                                                |
+| [ROADMAP.md](implementation/ROADMAP.md)                                               | Original project roadmap          | Nov 2025      | [TECHNICAL_DEBT.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/TECHNICAL_DEBT.md) |
+| [scripts-IMPLEMENTATION_SUMMARY.md](implementation/scripts-IMPLEMENTATION_SUMMARY.md) | Bulk import script implementation | Nov 2025      | [scripts/README.md](/Users/kofifort/Repos/trakt.tv-mcp/scripts/README.md)      |
 
 ### Test Reports (10 files)
 
 Historical test reports from Phase 3 comprehensive testing:
 
-| File | Description | Test Date | Status |
-|------|-------------|-----------|--------|
-| [BUG_FIX_REPORT.md](test-reports/BUG_FIX_REPORT.md) | Bug fixes from Phase 3 | Nov 2025 | Resolved |
-| [CRITICAL_BUGS_AND_PLAN.md](test-reports/CRITICAL_BUGS_AND_PLAN.md) | Critical bug tracking | Nov 2025 | Resolved |
-| [FINAL_TEST_REPORT_WITH_BUGS.md](test-reports/FINAL_TEST_REPORT_WITH_BUGS.md) | Final Phase 3 test report | Nov 2025 | All issues resolved |
-| [PHASE3_COMPREHENSIVE_TEST_REPORT.md](test-reports/PHASE3_COMPREHENSIVE_TEST_REPORT.md) | Comprehensive Phase 3 testing | Nov 2025 | 92.6% pass rate |
-| [PHASE3_RETEST_EXECUTIVE_SUMMARY.md](test-reports/PHASE3_RETEST_EXECUTIVE_SUMMARY.md) | Post-fix retest summary | Nov 2025 | All critical bugs fixed |
-| [PHASE3_RETEST_RESULTS.md](test-reports/PHASE3_RETEST_RESULTS.md) | Detailed retest results | Nov 2025 | 100% pass rate achieved |
-| [PHASE3_TESTING_SUMMARY.md](test-reports/PHASE3_TESTING_SUMMARY.md) | Phase 3 testing overview | Nov 2025 | Testing phase complete |
-| [PHASE3_TEST_RESULTS.md](test-reports/PHASE3_TEST_RESULTS.md) | Initial Phase 3 test results | Nov 2025 | Issues documented and fixed |
-| [PHASE3_TEST_SUMMARY.md](test-reports/PHASE3_TEST_SUMMARY.md) | Phase 3 test summary | Nov 2025 | Testing phase complete |
-| [TASK1_OBSERVABILITY_REVIEW.md](test-reports/TASK1_OBSERVABILITY_REVIEW.md) | Observability implementation review | Nov 2025 | Features implemented |
+| File                                                                                    | Description                         | Test Date | Status                      |
+| --------------------------------------------------------------------------------------- | ----------------------------------- | --------- | --------------------------- |
+| [BUG_FIX_REPORT.md](test-reports/BUG_FIX_REPORT.md)                                     | Bug fixes from Phase 3              | Nov 2025  | Resolved                    |
+| [CRITICAL_BUGS_AND_PLAN.md](test-reports/CRITICAL_BUGS_AND_PLAN.md)                     | Critical bug tracking               | Nov 2025  | Resolved                    |
+| [FINAL_TEST_REPORT_WITH_BUGS.md](test-reports/FINAL_TEST_REPORT_WITH_BUGS.md)           | Final Phase 3 test report           | Nov 2025  | All issues resolved         |
+| [PHASE3_COMPREHENSIVE_TEST_REPORT.md](test-reports/PHASE3_COMPREHENSIVE_TEST_REPORT.md) | Comprehensive Phase 3 testing       | Nov 2025  | 92.6% pass rate             |
+| [PHASE3_RETEST_EXECUTIVE_SUMMARY.md](test-reports/PHASE3_RETEST_EXECUTIVE_SUMMARY.md)   | Post-fix retest summary             | Nov 2025  | All critical bugs fixed     |
+| [PHASE3_RETEST_RESULTS.md](test-reports/PHASE3_RETEST_RESULTS.md)                       | Detailed retest results             | Nov 2025  | 100% pass rate achieved     |
+| [PHASE3_TESTING_SUMMARY.md](test-reports/PHASE3_TESTING_SUMMARY.md)                     | Phase 3 testing overview            | Nov 2025  | Testing phase complete      |
+| [PHASE3_TEST_RESULTS.md](test-reports/PHASE3_TEST_RESULTS.md)                           | Initial Phase 3 test results        | Nov 2025  | Issues documented and fixed |
+| [PHASE3_TEST_SUMMARY.md](test-reports/PHASE3_TEST_SUMMARY.md)                           | Phase 3 test summary                | Nov 2025  | Testing phase complete      |
+| [TASK1_OBSERVABILITY_REVIEW.md](test-reports/TASK1_OBSERVABILITY_REVIEW.md)             | Observability implementation review | Nov 2025  | Features implemented        |
 
 ### Linear Integration (1 file)
 
 Linear project management integration documentation:
 
-| File | Description | Archived Date | Note |
-|------|-------------|---------------|------|
-| [LINEAR_IMPORT_GUIDE.md](implementation/LINEAR_IMPORT_GUIDE.md) | Linear issue import guide | Nov 2025 | Reference for future Linear integrations |
+| File                                                            | Description               | Archived Date | Note                                     |
+| --------------------------------------------------------------- | ------------------------- | ------------- | ---------------------------------------- |
+| [LINEAR_IMPORT_GUIDE.md](implementation/LINEAR_IMPORT_GUIDE.md) | Linear issue import guide | Nov 2025      | Reference for future Linear integrations |
 
 ---
 
@@ -93,6 +95,7 @@ From comprehensive Phase 3 testing (see archived test reports):
 - **Total Test Cases:** 27
 
 **Key Achievements:**
+
 1. Natural language date parsing fully validated
 2. Episode range parsing working correctly
 3. All error handling verified with clear messages
@@ -114,18 +117,22 @@ Documented in BUG_FIX_REPORT.md and CRITICAL_BUGS_AND_PLAN.md:
 Information from archived documents has been migrated to:
 
 ### Implementation Tracking
+
 - **From:** IMPLEMENTATION_CHECKLIST.md, ROADMAP.md
 - **To:** [TECHNICAL_DEBT.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/TECHNICAL_DEBT.md)
 
 ### Testing Documentation
-- **From:** All PHASE3_*.md files
+
+- **From:** All PHASE3\_\*.md files
 - **To:** [TESTING_GUIDE.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/testing/TESTING_GUIDE.md)
 
 ### Bug Tracking
+
 - **From:** BUG_FIX_REPORT.md, CRITICAL_BUGS_AND_PLAN.md
 - **To:** Resolved; current issues tracked in [TECHNICAL_DEBT.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/TECHNICAL_DEBT.md)
 
 ### Natural Language Patterns
+
 - **From:** Testing reports with NL pattern validation
 - **To:** [NATURAL_LANGUAGE_GUIDE.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/guides/NATURAL_LANGUAGE_GUIDE.md)
 
@@ -150,6 +157,7 @@ Information from archived documents has been migrated to:
 ### When to Update Archive
 
 Archive documents should **not** be updated. If information needs correction:
+
 1. Update the current documentation
 2. Add a note to this README if the archive contains significant inaccuracies
 

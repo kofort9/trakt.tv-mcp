@@ -36,6 +36,7 @@ The Trakt.tv MCP server provides robust natural language support for dates, epis
 **All dates are parsed to UTC midnight (00:00:00.000Z)** to ensure consistent behavior across timezones.
 
 This means:
+
 - "yesterday" → Previous day at 00:00:00 UTC
 - "today" → Current day at 00:00:00 UTC
 - Users in different timezones get consistent results
@@ -46,15 +47,16 @@ This means:
 
 ### Absolute Day References
 
-| Pattern | Example | Result |
-|---------|---------|--------|
-| `today` | "watched today" | Current date at 00:00:00 UTC |
-| `yesterday` | "watched yesterday" | Previous day at 00:00:00 UTC |
-| `tonight` | "watched tonight" | Current date (synonym for "today") |
+| Pattern      | Example              | Result                                 |
+| ------------ | -------------------- | -------------------------------------- |
+| `today`      | "watched today"      | Current date at 00:00:00 UTC           |
+| `yesterday`  | "watched yesterday"  | Previous day at 00:00:00 UTC           |
+| `tonight`    | "watched tonight"    | Current date (synonym for "today")     |
 | `last night` | "watched last night" | Previous day (synonym for "yesterday") |
-| `last nite` | "watched last nite" | Previous day (informal synonym) |
+| `last nite`  | "watched last nite"  | Previous day (informal synonym)        |
 
 **Usage Example:**
+
 ```json
 {
   "tool": "log_watch",
@@ -72,12 +74,12 @@ This means:
 
 All map to current date (UTC midnight):
 
-| Pattern | Maps To |
-|---------|---------|
-| `this morning` | today |
-| `earlier today` | today |
-| `this afternoon` | today |
-| `this evening` | today |
+| Pattern          | Maps To |
+| ---------------- | ------- |
+| `this morning`   | today   |
+| `earlier today`  | today   |
+| `this afternoon` | today   |
+| `this evening`   | today   |
 
 **Why:** Time-of-day expressions refer to the current day, regardless of the specific time mentioned.
 
@@ -85,19 +87,20 @@ All map to current date (UTC midnight):
 
 ### Relative Time Periods
 
-| Pattern | Example | Calculation | Valid Range |
-|---------|---------|-------------|-------------|
-| `N days ago` | `3 days ago` | Current date - N days | 1-365 days |
-| `N weeks ago` | `2 weeks ago` | Current date - (N × 7) days | 1-52 weeks |
-| `one week ago` | `one week ago` | Same as "1 week ago" | - |
-| `two weeks ago` | `two weeks ago` | Same as "2 weeks ago" | - |
-| `three weeks ago` | `three weeks ago` | Same as "3 weeks ago" | - |
-| `four weeks ago` | `four weeks ago` | Same as "4 weeks ago" | - |
-| `last week` | `last week` | 7 days ago | - |
-| `last month` | `last month` | 30 days ago | - |
-| `last weekend` | `last weekend` | Last Saturday at 00:00:00 UTC | - |
+| Pattern           | Example           | Calculation                   | Valid Range |
+| ----------------- | ----------------- | ----------------------------- | ----------- |
+| `N days ago`      | `3 days ago`      | Current date - N days         | 1-365 days  |
+| `N weeks ago`     | `2 weeks ago`     | Current date - (N × 7) days   | 1-52 weeks  |
+| `one week ago`    | `one week ago`    | Same as "1 week ago"          | -           |
+| `two weeks ago`   | `two weeks ago`   | Same as "2 weeks ago"         | -           |
+| `three weeks ago` | `three weeks ago` | Same as "3 weeks ago"         | -           |
+| `four weeks ago`  | `four weeks ago`  | Same as "4 weeks ago"         | -           |
+| `last week`       | `last week`       | 7 days ago                    | -           |
+| `last month`      | `last month`      | 30 days ago                   | -           |
+| `last weekend`    | `last weekend`    | Last Saturday at 00:00:00 UTC | -           |
 
 **Usage Example:**
+
 ```json
 {
   "tool": "bulk_log",
@@ -117,15 +120,15 @@ All map to current date (UTC midnight):
 
 Pattern: `last [weekday]`
 
-| Pattern | Example | Result |
-|---------|---------|--------|
-| `last monday` | "watched last monday" | Most recent Monday* |
-| `last tuesday` | "watched last tuesday" | Most recent Tuesday* |
-| `last wednesday` | "watched last wednesday" | Most recent Wednesday* |
-| `last thursday` | "watched last thursday" | Most recent Thursday* |
-| `last friday` | "watched last friday" | Most recent Friday* |
-| `last saturday` | "watched last saturday" | Most recent Saturday* |
-| `last sunday` | "watched last sunday" | Most recent Sunday* |
+| Pattern          | Example                  | Result                  |
+| ---------------- | ------------------------ | ----------------------- |
+| `last monday`    | "watched last monday"    | Most recent Monday\*    |
+| `last tuesday`   | "watched last tuesday"   | Most recent Tuesday\*   |
+| `last wednesday` | "watched last wednesday" | Most recent Wednesday\* |
+| `last thursday`  | "watched last thursday"  | Most recent Thursday\*  |
+| `last friday`    | "watched last friday"    | Most recent Friday\*    |
+| `last saturday`  | "watched last saturday"  | Most recent Saturday\*  |
+| `last sunday`    | "watched last sunday"    | Most recent Sunday\*    |
 
 \* **Special Case:** If today is the specified weekday, goes back 7 days (e.g., if today is Monday and you say "last monday", it returns Monday from one week ago).
 
@@ -133,19 +136,20 @@ Pattern: `last [weekday]`
 
 ### Month References
 
-| Pattern | Example | Result |
-|---------|---------|--------|
-| `January YYYY` | "January 2025" | 2025-01-01 at 00:00:00 UTC |
-| `Jan. YYYY` | "Jan. 2025" | 2025-01-01 at 00:00:00 UTC |
-| `Jan YYYY` | "Jan 2025" | 2025-01-01 at 00:00:00 UTC |
-| `February YYYY` | "February 2025" | 2025-02-01 at 00:00:00 UTC |
-| `this month` | "this month" | First day of current month at 00:00:00 UTC |
+| Pattern         | Example         | Result                                     |
+| --------------- | --------------- | ------------------------------------------ |
+| `January YYYY`  | "January 2025"  | 2025-01-01 at 00:00:00 UTC                 |
+| `Jan. YYYY`     | "Jan. 2025"     | 2025-01-01 at 00:00:00 UTC                 |
+| `Jan YYYY`      | "Jan 2025"      | 2025-01-01 at 00:00:00 UTC                 |
+| `February YYYY` | "February 2025" | 2025-02-01 at 00:00:00 UTC                 |
+| `this month`    | "this month"    | First day of current month at 00:00:00 UTC |
 
 **Supported month names:** January/Jan, February/Feb, March/Mar, April/Apr, May, June/Jun, July/Jul, August/Aug, September/Sep, October/Oct, November/Nov, December/Dec
 
 **For date ranges:** Use `parseMonthRange()` utility function which returns both `startDate` and `endDate` spanning the full month (e.g., January 1-31).
 
 **Usage Example:**
+
 ```json
 {
   "tool": "summarize_history",
@@ -160,8 +164,8 @@ Pattern: `last [weekday]`
 
 ### ISO Dates
 
-| Pattern | Example | Result |
-|---------|---------|--------|
+| Pattern      | Example      | Result                     |
+| ------------ | ------------ | -------------------------- |
 | `YYYY-MM-DD` | "2025-01-15" | 2025-01-15 at 00:00:00 UTC |
 
 **When to use:** For dates more than 1 year in the past, ISO format is required (relative expressions like "400 days ago" are rejected).
@@ -174,11 +178,11 @@ Pattern: `last [weekday]`
 
 Users can specify single episodes in multiple ways (all equivalent):
 
-| Format | Example |
-|--------|---------|
-| Standard | `S1E1` |
-| Zero-padded | `S01E01` |
-| Lowercase | `s1e1` |
+| Format           | Example              |
+| ---------------- | -------------------- |
+| Standard         | `S1E1`               |
+| Zero-padded      | `S01E01`             |
+| Lowercase        | `s1e1`               |
 | Natural language | `season 1 episode 1` |
 
 **Parser:** Episodes are extracted from natural language and normalized internally.
@@ -187,13 +191,14 @@ Users can specify single episodes in multiple ways (all equivalent):
 
 ### Episode Ranges
 
-| Format | Example | Result |
-|--------|---------|--------|
-| Simple range | `1-5` | Episodes 1, 2, 3, 4, 5 |
-| Range with E prefix | `E1-E5` | Episodes 1, 2, 3, 4, 5 |
-| Natural language | `episodes 1 through 5` | Episodes 1, 2, 3, 4, 5 |
+| Format              | Example                | Result                 |
+| ------------------- | ---------------------- | ---------------------- |
+| Simple range        | `1-5`                  | Episodes 1, 2, 3, 4, 5 |
+| Range with E prefix | `E1-E5`                | Episodes 1, 2, 3, 4, 5 |
+| Natural language    | `episodes 1 through 5` | Episodes 1, 2, 3, 4, 5 |
 
 **Usage Example:**
+
 ```json
 {
   "tool": "bulk_log",
@@ -211,13 +216,14 @@ Users can specify single episodes in multiple ways (all equivalent):
 
 ### Non-Contiguous Episodes
 
-| Format | Example | Result |
-|--------|---------|--------|
-| Comma-separated | `1,3,5` | Episodes 1, 3, 5 |
-| Mixed ranges | `1-3,5,7-9` | Episodes 1, 2, 3, 5, 7, 8, 9 |
-| Complex | `1,3-5,8,10-12` | Episodes 1, 3, 4, 5, 8, 10, 11, 12 |
+| Format          | Example         | Result                             |
+| --------------- | --------------- | ---------------------------------- |
+| Comma-separated | `1,3,5`         | Episodes 1, 3, 5                   |
+| Mixed ranges    | `1-3,5,7-9`     | Episodes 1, 2, 3, 5, 7, 8, 9       |
+| Complex         | `1,3-5,8,10-12` | Episodes 1, 3, 4, 5, 8, 10, 11, 12 |
 
 **Usage Example:**
+
 ```json
 {
   "tool": "bulk_log",
@@ -240,12 +246,14 @@ Users can specify single episodes in multiple ways (all equivalent):
 ### Pattern 1: Query Watch History (Monthly)
 
 **User Phrasings:**
+
 - "What did I watch in Jan. 2025?"
 - "What did I watch in January 2025?"
 - "Show me what I watched in Jan 2025"
 - "Give me my January 2025 watch history"
 
 **Implementation:**
+
 ```json
 {
   "tool": "summarize_history",
@@ -263,12 +271,14 @@ Users can specify single episodes in multiple ways (all equivalent):
 ### Pattern 2: Query Watch History (Recent Period)
 
 **User Phrasings:**
+
 - "What did I watch last week?"
 - "Show me what I watched yesterday"
 - "What have I watched today?"
 - "What did I watch in the last 7 days?"
 
 **Implementation:**
+
 ```json
 {
   "tool": "summarize_history",
@@ -284,11 +294,13 @@ Users can specify single episodes in multiple ways (all equivalent):
 ### Pattern 3: Log Single Episode
 
 **User Phrasings:**
+
 - "Watched Breaking Bad S1E1 yesterday"
 - "I watched episode 5 of Demon Slayer season 1 last night"
 - "Saw The Bear S2E3 today"
 
 **Implementation:**
+
 ```json
 {
   "tool": "log_watch",
@@ -307,11 +319,13 @@ Users can specify single episodes in multiple ways (all equivalent):
 ### Pattern 4: Log Movie
 
 **User Phrasings:**
+
 - "Watched Dune yesterday"
 - "Saw Interstellar last week"
 - "I watched The Matrix"
 
 **Implementation:**
+
 ```json
 {
   "tool": "log_watch",
@@ -330,11 +344,13 @@ Users can specify single episodes in multiple ways (all equivalent):
 ### Pattern 5: Bulk Log Episode Range
 
 **User Phrasings:**
+
 - "Watched Breaking Bad S1E1-5"
 - "Binged episodes 1 through 10 of Demon Slayer season 1"
 - "Caught up on The Bear S2E1-E8 last weekend"
 
 **Implementation:**
+
 ```json
 {
   "tool": "bulk_log",
@@ -353,10 +369,12 @@ Users can specify single episodes in multiple ways (all equivalent):
 ### Pattern 6: Bulk Log Multiple Movies
 
 **User Phrasings:**
+
 - "Watched Dune and Interstellar yesterday"
 - "Binged three movies: The Matrix, Inception, and Interstellar"
 
 **Implementation:**
+
 ```json
 {
   "tool": "bulk_log",
@@ -374,12 +392,12 @@ Users can specify single episodes in multiple ways (all equivalent):
 
 ### Date Validation
 
-| Rule | Boundary | Error Example |
-|------|----------|---------------|
-| Empty strings not allowed | - | `""` → Error: "Date parameter cannot be empty" |
-| Zero values rejected | N/A | `"0 days ago"` → Error: "Ambiguous date" |
-| Max days in past | 365 days | `"400 days ago"` → Error: "Date too far in past" |
-| Max weeks in past | 52 weeks | `"60 weeks ago"` → Error: "Date too far in past" |
+| Rule                      | Boundary | Error Example                                    |
+| ------------------------- | -------- | ------------------------------------------------ |
+| Empty strings not allowed | -        | `""` → Error: "Date parameter cannot be empty"   |
+| Zero values rejected      | N/A      | `"0 days ago"` → Error: "Ambiguous date"         |
+| Max days in past          | 365 days | `"400 days ago"` → Error: "Date too far in past" |
+| Max weeks in past         | 52 weeks | `"60 weeks ago"` → Error: "Date too far in past" |
 
 **For dates beyond 1 year:** Use ISO format (YYYY-MM-DD) instead of relative expressions.
 
@@ -389,14 +407,15 @@ Users can specify single episodes in multiple ways (all equivalent):
 
 ### Episode/Season Validation
 
-| Parameter | Rule | Valid Range | Invalid Examples |
-|-----------|------|-------------|------------------|
-| Episode | Positive integer | ≥ 1 | `0`, `-1`, `1.5` |
-| Season | Non-negative integer | ≥ 0 | `-1`, `2.5` |
+| Parameter | Rule                 | Valid Range | Invalid Examples |
+| --------- | -------------------- | ----------- | ---------------- |
+| Episode   | Positive integer     | ≥ 1         | `0`, `-1`, `1.5` |
+| Season    | Non-negative integer | ≥ 0         | `-1`, `2.5`      |
 
 **Special Note:** Season 0 is valid (represents special episodes/specials in many shows).
 
 **Implementation:**
+
 - `validateEpisodeNumber()` in `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/utils.ts` (lines 341-345)
 - `validateSeasonNumber()` in `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/utils.ts` (lines 350-354)
 
@@ -404,21 +423,21 @@ Users can specify single episodes in multiple ways (all equivalent):
 
 ### Episode Range Validation
 
-| Rule | Valid | Invalid |
-|------|-------|---------|
-| Range must be ascending | `1-5` | `5-1` |
-| Must have both start and end | `1-5` | `1-`, `-5` |
-| Must be numeric | `1-5` | `abc`, `one-five` |
-| Minimum episode is 1 | `1-5` | `0-5` |
+| Rule                         | Valid | Invalid           |
+| ---------------------------- | ----- | ----------------- |
+| Range must be ascending      | `1-5` | `5-1`             |
+| Must have both start and end | `1-5` | `1-`, `-5`        |
+| Must be numeric              | `1-5` | `abc`, `one-five` |
+| Minimum episode is 1         | `1-5` | `0-5`             |
 
 ---
 
 ### Content Name Validation
 
-| Rule | Valid | Invalid |
-|------|-------|---------|
-| Non-empty strings | `"Breaking Bad"` | `""`, `"   "` |
-| Must be provided | `"Dune"` | `undefined`, `null` |
+| Rule              | Valid            | Invalid             |
+| ----------------- | ---------------- | ------------------- |
+| Non-empty strings | `"Breaking Bad"` | `""`, `"   "`       |
+| Must be provided  | `"Dune"`         | `undefined`, `null` |
 
 **Implementation:** See `validateNonEmptyString()` in `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/utils.ts` (lines 409-414).
 
@@ -434,20 +453,24 @@ Users can specify single episodes in multiple ways (all equivalent):
   "error": {
     "code": "ERROR_CODE",
     "message": "Human-readable description",
-    "details": { /* optional context */ },
-    "suggestions": [ /* optional actionable suggestions */ ]
+    "details": {
+      /* optional context */
+    },
+    "suggestions": [
+      /* optional actionable suggestions */
+    ]
   }
 }
 ```
 
 ### Common Error Codes
 
-| Code | Meaning | Example |
-|------|---------|---------|
-| `VALIDATION_ERROR` | Input validation failed | Missing required parameter |
-| `NOT_FOUND` | Content not found on Trakt | Misspelled show name |
-| `TRAKT_API_ERROR` | Trakt.tv API issue | Network error, rate limit |
-| `INVALID_INPUT` | Invalid parameter value | Empty string, negative number |
+| Code               | Meaning                    | Example                       |
+| ------------------ | -------------------------- | ----------------------------- |
+| `VALIDATION_ERROR` | Input validation failed    | Missing required parameter    |
+| `NOT_FOUND`        | Content not found on Trakt | Misspelled show name          |
+| `TRAKT_API_ERROR`  | Trakt.tv API issue         | Network error, rate limit     |
+| `INVALID_INPUT`    | Invalid parameter value    | Empty string, negative number |
 
 ---
 
@@ -516,10 +539,7 @@ Users can specify single episodes in multiple ways (all equivalent):
   "error": {
     "code": "TRAKT_API_ERROR",
     "message": "Date too far in past: 400 days ago. Please use an ISO date (YYYY-MM-DD) for dates more than a year ago.",
-    "suggestions": [
-      "Use ISO format like \"2024-01-15\"",
-      "Maximum: \"365 days ago\""
-    ]
+    "suggestions": ["Use ISO format like \"2024-01-15\"", "Maximum: \"365 days ago\""]
   }
 }
 ```
@@ -596,6 +616,7 @@ The server returns a disambiguation response when:
 **For AI Assistants:** Present options to the user and ask them to clarify which version they meant.
 
 **Example Response:**
+
 ```
 I found multiple matches for "Dune":
 
@@ -611,24 +632,24 @@ Which one did you watch? You can tell me by year (e.g., "the 2021 movie") or I c
 
 ### Key Functions
 
-| Function | Location | Purpose |
-|----------|----------|---------|
-| `parseNaturalDate()` | `/src/lib/utils.ts:11-227` | Parse natural language dates to ISO format |
-| `parseDateRange()` | `/src/lib/utils.ts:232-244` | Parse start/end date ranges |
-| `parseMonthRange()` | `/src/lib/utils.ts:250-304` | Parse month names to full month ranges |
-| `parseEpisodeRange()` | `/src/lib/utils.ts:310-336` | Parse episode range strings to arrays |
-| `validateEpisodeNumber()` | `/src/lib/utils.ts:341-345` | Validate episode numbers |
-| `validateSeasonNumber()` | `/src/lib/utils.ts:350-354` | Validate season numbers |
-| `validateNonEmptyString()` | `/src/lib/utils.ts:409-414` | Validate string parameters |
-| `handleSearchDisambiguation()` | `/src/lib/utils.ts:493-576` | Handle ambiguous search results |
+| Function                       | Location                    | Purpose                                    |
+| ------------------------------ | --------------------------- | ------------------------------------------ |
+| `parseNaturalDate()`           | `/src/lib/utils.ts:11-227`  | Parse natural language dates to ISO format |
+| `parseDateRange()`             | `/src/lib/utils.ts:232-244` | Parse start/end date ranges                |
+| `parseMonthRange()`            | `/src/lib/utils.ts:250-304` | Parse month names to full month ranges     |
+| `parseEpisodeRange()`          | `/src/lib/utils.ts:310-336` | Parse episode range strings to arrays      |
+| `validateEpisodeNumber()`      | `/src/lib/utils.ts:341-345` | Validate episode numbers                   |
+| `validateSeasonNumber()`       | `/src/lib/utils.ts:350-354` | Validate season numbers                    |
+| `validateNonEmptyString()`     | `/src/lib/utils.ts:409-414` | Validate string parameters                 |
+| `handleSearchDisambiguation()` | `/src/lib/utils.ts:493-576` | Handle ambiguous search results            |
 
 ### Tool Implementations
 
-| Tool | Location | Purpose |
-|------|----------|---------|
-| `logWatch()` | `/src/lib/tools.ts:95-271` | Log single episode or movie |
-| `bulkLog()` | `/src/lib/tools.ts:277-` | Log multiple episodes or movies |
-| `searchEpisode()` | `/src/lib/tools.ts:29-90` | Search for specific episode |
+| Tool              | Location                   | Purpose                         |
+| ----------------- | -------------------------- | ------------------------------- |
+| `logWatch()`      | `/src/lib/tools.ts:95-271` | Log single episode or movie     |
+| `bulkLog()`       | `/src/lib/tools.ts:277-`   | Log multiple episodes or movies |
+| `searchEpisode()` | `/src/lib/tools.ts:29-90`  | Search for specific episode     |
 
 ---
 
@@ -636,13 +657,13 @@ Which one did you watch? You can tell me by year (e.g., "the 2021 movie") or I c
 
 These verbs are synonymous when logging watches:
 
-| Verb | Example |
-|------|---------|
-| watched | "watched Breaking Bad" |
-| binged | "binged 5 episodes" |
-| saw | "saw Dune yesterday" |
-| logged | "logged Breaking Bad as watched" |
-| finished | "finished season 1" |
+| Verb     | Example                          |
+| -------- | -------------------------------- |
+| watched  | "watched Breaking Bad"           |
+| binged   | "binged 5 episodes"              |
+| saw      | "saw Dune yesterday"             |
+| logged   | "logged Breaking Bad as watched" |
+| finished | "finished season 1"              |
 
 **Note:** "binged" typically implies multiple episodes/movies but is handled the same way.
 
@@ -652,10 +673,10 @@ These verbs are synonymous when logging watches:
 
 ### Content Name Parameters
 
-| Canonical | Alias | Context |
-|-----------|-------|---------|
-| `movieName` | `title` | When `type` is `"movie"` |
-| `showName` | `title` | When `type` is `"episode"` |
+| Canonical   | Alias   | Context                    |
+| ----------- | ------- | -------------------------- |
+| `movieName` | `title` | When `type` is `"movie"`   |
+| `showName`  | `title` | When `type` is `"episode"` |
 
 **Examples:**
 
@@ -680,6 +701,7 @@ These verbs are synonymous when logging watches:
 When multiple interpretations are possible, ask the user for clarification rather than guessing.
 
 **Example:**
+
 - **User:** "Watched some episodes of Breaking Bad"
 - **Bad Response:** "Logging all 62 episodes of Breaking Bad as watched today."
 - **Good Response:** "Which episodes of Breaking Bad did you watch? You can specify: 'S1E1' or 'season 1 episode 1', 'episodes 1-5' or 'S1E1-5', or 'episodes 1, 3, and 5'."
@@ -691,6 +713,7 @@ When multiple interpretations are possible, ask the user for clarification rathe
 When asking for clarification, include example formats users can copy.
 
 **Example:**
+
 ```
 I need to know which season and episode you watched. You can say something like:
 • "Season 1 episode 5"
@@ -705,6 +728,7 @@ I need to know which season and episode you watched. You can say something like:
 If users provide incomplete information, prompt for missing details without restarting the conversation.
 
 **Example:**
+
 - **User:** "Log Breaking Bad as watched"
 - **Claude:** "I can help log that! I just need a few more details: Which season and episode? (e.g., 'S1E1') and when did you watch it? (e.g., 'yesterday', 'today', 'last week')"
 
@@ -724,10 +748,12 @@ For optional parameters, use intelligent defaults:
 Before logging large ranges (e.g., S1E1-20), confirm with user:
 
 **Example:**
+
 - **User:** "Binged all of Breaking Bad season 1"
 - **Claude:** "That's 7 episodes. Should I log all episodes of Breaking Bad season 1 (S1E1-E7) as watched today?"
 
 **Threshold Recommendation:**
+
 - 1-3 episodes: Proceed without confirmation
 - 4-10 episodes: Confirm with count
 - 11+ episodes: Confirm and suggest date range option
@@ -751,6 +777,7 @@ After successfully logging watches, provide friendly confirmation:
 When errors include suggestions, present them to users:
 
 **Example:**
+
 ```
 I couldn't find "Breaking Bed" on Trakt.tv. Here are some suggestions:
 • Check the spelling of the show name - did you mean "Breaking Bad"?
@@ -765,38 +792,38 @@ Would you like me to search for "Breaking Bad" instead?
 
 ### Date Edge Cases
 
-| Test Case | Input | Expected Result |
-|-----------|-------|-----------------|
-| Empty string | `""` | Error: "Date parameter cannot be empty" |
-| Zero days | `"0 days ago"` | Error: "Ambiguous date" |
-| Zero weeks | `"0 weeks ago"` | Error: "Ambiguous date" |
-| Max days | `"365 days ago"` | Valid (exactly 1 year) |
-| Exceed max days | `"366 days ago"` | Error: "Date too far in past" |
-| Max weeks | `"52 weeks ago"` | Valid (exactly 1 year) |
-| Exceed max weeks | `"53 weeks ago"` | Error: "Date too far in past" |
-| Invalid format | `"tomorow"` | Error: "Unable to parse date" |
-| Future date | `"2030-01-01"` | Valid (allowed, returns empty results) |
+| Test Case        | Input            | Expected Result                         |
+| ---------------- | ---------------- | --------------------------------------- |
+| Empty string     | `""`             | Error: "Date parameter cannot be empty" |
+| Zero days        | `"0 days ago"`   | Error: "Ambiguous date"                 |
+| Zero weeks       | `"0 weeks ago"`  | Error: "Ambiguous date"                 |
+| Max days         | `"365 days ago"` | Valid (exactly 1 year)                  |
+| Exceed max days  | `"366 days ago"` | Error: "Date too far in past"           |
+| Max weeks        | `"52 weeks ago"` | Valid (exactly 1 year)                  |
+| Exceed max weeks | `"53 weeks ago"` | Error: "Date too far in past"           |
+| Invalid format   | `"tomorow"`      | Error: "Unable to parse date"           |
+| Future date      | `"2030-01-01"`   | Valid (allowed, returns empty results)  |
 
 ### Episode Edge Cases
 
-| Test Case | Input | Expected Result |
-|-----------|-------|-----------------|
-| Zero episode | `0` | Error: "Episode number must be a positive integer" |
-| Negative episode | `-1` | Error: "Episode number must be a positive integer" |
-| Fractional episode | `1.5` | Error: "Episode number must be a positive integer" |
-| Negative season | `-1` | Error: "Season number must be a non-negative integer" |
-| Zero season | `0` | Valid (special episodes) |
-| Reversed range | `"5-1"` | Error: "Invalid episode range" |
-| Missing range end | `"1-"` | Error: "Invalid episode range" |
+| Test Case          | Input   | Expected Result                                       |
+| ------------------ | ------- | ----------------------------------------------------- |
+| Zero episode       | `0`     | Error: "Episode number must be a positive integer"    |
+| Negative episode   | `-1`    | Error: "Episode number must be a positive integer"    |
+| Fractional episode | `1.5`   | Error: "Episode number must be a positive integer"    |
+| Negative season    | `-1`    | Error: "Season number must be a non-negative integer" |
+| Zero season        | `0`     | Valid (special episodes)                              |
+| Reversed range     | `"5-1"` | Error: "Invalid episode range"                        |
+| Missing range end  | `"1-"`  | Error: "Invalid episode range"                        |
 
 ### Content Name Edge Cases
 
-| Test Case | Input | Expected Result |
-|-----------|-------|-----------------|
-| Empty string | `""` | Error: "parameter cannot be empty or whitespace" |
-| Whitespace only | `"   "` | Error: "parameter cannot be empty or whitespace" |
-| Misspelled name | `"Breaking Bed"` | Error: "No show found" + suggestions |
-| Ambiguous name | `"Dune"` | Disambiguation response with options |
+| Test Case       | Input            | Expected Result                                  |
+| --------------- | ---------------- | ------------------------------------------------ |
+| Empty string    | `""`             | Error: "parameter cannot be empty or whitespace" |
+| Whitespace only | `"   "`          | Error: "parameter cannot be empty or whitespace" |
+| Misspelled name | `"Breaking Bed"` | Error: "No show found" + suggestions             |
+| Ambiguous name  | `"Dune"`         | Disambiguation response with options             |
 
 ---
 
@@ -804,26 +831,26 @@ Would you like me to search for "Breaking Bad" instead?
 
 ### Date Expression Categories
 
-| Category | Count | Examples |
-|----------|-------|----------|
-| Absolute days | 5 | today, yesterday, tonight, last night, last nite |
-| Time-of-day | 4 | this morning, earlier today, this afternoon, this evening |
-| Relative periods | 4 | N days ago, N weeks ago, last week, last month |
-| Weekdays | 7 | last monday, last tuesday, ..., last sunday |
-| Month names | 12 | January, February, ..., December (+ abbreviations) |
-| Special | 2 | last weekend, this month |
-| ISO | 1 | YYYY-MM-DD |
+| Category         | Count | Examples                                                  |
+| ---------------- | ----- | --------------------------------------------------------- |
+| Absolute days    | 5     | today, yesterday, tonight, last night, last nite          |
+| Time-of-day      | 4     | this morning, earlier today, this afternoon, this evening |
+| Relative periods | 4     | N days ago, N weeks ago, last week, last month            |
+| Weekdays         | 7     | last monday, last tuesday, ..., last sunday               |
+| Month names      | 12    | January, February, ..., December (+ abbreviations)        |
+| Special          | 2     | last weekend, this month                                  |
+| ISO              | 1     | YYYY-MM-DD                                                |
 
 **Total supported patterns:** 35+ natural language expressions + ISO dates
 
 ### Boundary Summary
 
-| Validation Type | Min | Max | Notes |
-|-----------------|-----|-----|-------|
-| Episode number | 1 | ∞ | Positive integers only |
-| Season number | 0 | ∞ | Zero is valid (specials) |
-| Days ago | 1 | 365 | Use ISO for older dates |
-| Weeks ago | 1 | 52 | Use ISO for older dates |
+| Validation Type | Min | Max | Notes                    |
+| --------------- | --- | --- | ------------------------ |
+| Episode number  | 1   | ∞   | Positive integers only   |
+| Season number   | 0   | ∞   | Zero is valid (specials) |
+| Days ago        | 1   | 365 | Use ISO for older dates  |
+| Weeks ago       | 1   | 52  | Use ISO for older dates  |
 
 ---
 
