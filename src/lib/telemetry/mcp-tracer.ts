@@ -210,7 +210,10 @@ export function addToolParams(span: Span, params: Record<string, unknown>): void
  * @param span - The active span
  * @param result - Tool result object
  */
-export function addToolResult(span: Span, result: { success?: boolean; [key: string]: unknown }): void {
+export function addToolResult(
+  span: Span,
+  result: { success?: boolean; [key: string]: unknown }
+): void {
   // Track success/failure
   if (typeof result.success === 'boolean') {
     span.setAttribute('mcp.tool.result.success', result.success);

@@ -3,6 +3,8 @@
  * Reduces API calls for frequently searched content
  */
 
+import { getCurrentSpan } from './telemetry/mcp-tracer.js';
+
 export interface CacheEntry<T> {
   value: T;
   expiry: number; // Unix timestamp in ms
@@ -122,6 +124,11 @@ export class LRUCache<K, V> {
 
     if (!entry) {
       this.recordMiss();
+      // Add telemetry for cache miss
+      const span = getCurrentSpan();
+      if (span) {
+        span.setAttribute('cache.miss', true);
+      }
       return undefined;
     }
 
@@ -132,6 +139,12 @@ export class LRUCache<K, V> {
       this.cache.delete(key);
       this.metrics.size = this.cache.size;
       this.recordMiss();
+      // Add telemetry for expired entry
+      const span = getCurrentSpan();
+      if (span) {
+        span.setAttribute('cache.miss', true);
+        span.setAttribute('cache.miss_reason', 'expired');
+      }
       return undefined;
     }
 
@@ -144,6 +157,12 @@ export class LRUCache<K, V> {
     });
 
     this.recordHit();
+    // Add telemetry for cache hit
+    const span = getCurrentSpan();
+    if (span) {
+      span.setAttribute('cache.hit', true);
+      span.setAttribute('cache.entry_hits', entry.hits + 1);
+    }
     return entry.value;
   }
 
@@ -296,6 +315,8 @@ export class LRUCache<K, V> {
   prune(): number {
     const now = Date.now();
     let removed = 0;
+    const sizeBefore = this.cache.size;
+    const memoryBefore = this.metrics.memoryBytesUsed;
 
     for (const [key, entry] of this.cache.entries()) {
       if (now > entry.expiry) {
@@ -309,6 +330,15 @@ export class LRUCache<K, V> {
     this.updateAvgEntrySize();
     if (removed > 0) {
       this.resetWarningFlag();
+
+      // Add telemetry for pruning operation
+      const span = getCurrentSpan();
+      if (span) {
+        span.setAttribute('cache.prune.entries_removed', removed);
+        span.setAttribute('cache.prune.size_before', sizeBefore);
+        span.setAttribute('cache.prune.size_after', this.cache.size);
+        span.setAttribute('cache.prune.memory_freed', memoryBefore - this.metrics.memoryBytesUsed);
+      }
     }
     return removed;
   }

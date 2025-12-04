@@ -27,7 +27,12 @@ export type MatchType = 'exact' | 'fuzzy' | 'partial' | 'none';
 /**
  * How ambiguity was resolved (for future implementation)
  */
-export type ResolutionMethod = 'user_choice' | 'year_filter' | 'trakt_id' | 'auto_selected' | 'none';
+export type ResolutionMethod =
+  | 'user_choice'
+  | 'year_filter'
+  | 'trakt_id'
+  | 'auto_selected'
+  | 'none';
 
 /**
  * Track search ambiguity when multiple matches are found

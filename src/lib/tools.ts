@@ -25,6 +25,8 @@ import {
   TraktHistorySummary,
   DisambiguationResponse,
 } from '../types/trakt.js';
+import { traceMcpTool, addToolParams } from './telemetry/mcp-tracer.js';
+import { trackSearchAmbiguity, trackQueryComplexity } from './telemetry/nlp-events.js';
 
 /**
  * Search for a specific episode by show name, season, and episode number
@@ -39,52 +41,75 @@ export async function searchEpisode(
     traktId?: number;
   }
 ): Promise<ToolSuccess<TraktEpisode> | ToolError | DisambiguationResponse> {
-  try {
-    const { showName, season, episode, year, traktId } = args;
+  return await traceMcpTool('search_episode', async (span) => {
+    try {
+      const { showName, season, episode, year, traktId } = args;
 
-    // Validate inputs
-    validateNonEmptyString(showName, 'showName');
-    validateSeasonNumber(season);
-    validateEpisodeNumber(episode);
+      // Add tool parameters to span
+      addToolParams(span, { showName, season, episode, year, traktId });
 
-    // First, search for the show
-    const searchResults = await client.search(showName, 'show');
+      // Track query complexity for NLP analysis
+      trackQueryComplexity(showName, { 'tool.name': 'search_episode' });
 
-    if (!Array.isArray(searchResults) || searchResults.length === 0) {
-      return createToolError('NOT_FOUND', `No show found matching "${showName}"`, undefined, [
-        'Check the spelling of the show name',
-        'Try using search_show to browse available titles',
-        'Use the exact title as it appears on Trakt.tv',
-        'Try including the year if there are multiple versions',
-      ]);
+      // Validate inputs
+      validateNonEmptyString(showName, 'showName');
+      validateSeasonNumber(season);
+      validateEpisodeNumber(episode);
+
+      // First, search for the show
+      const searchResults = await client.search(showName, 'show');
+
+      if (!Array.isArray(searchResults) || searchResults.length === 0) {
+        // Track NLP event: no results found
+        trackSearchAmbiguity(showName, 0, false, 'none', { 'tool.name': 'search_episode' });
+        return createToolError('NOT_FOUND', `No show found matching "${showName}"`, undefined, [
+          'Check the spelling of the show name',
+          'Try using search_show to browse available titles',
+          'Use the exact title as it appears on Trakt.tv',
+          'Try including the year if there are multiple versions',
+        ]);
+      }
+
+      // Track NLP event: search ambiguity
+      trackSearchAmbiguity(
+        showName,
+        searchResults.length,
+        searchResults.length > 1 && !year && !traktId,
+        'exact',
+        { 'tool.name': 'search_episode' }
+      );
+
+      // Handle disambiguation
+      const disambiguationResult = handleSearchDisambiguation(
+        searchResults,
+        showName,
+        'show',
+        year,
+        traktId
+      );
+
+      if (disambiguationResult.needsDisambiguation) {
+        return disambiguationResult.response;
+      }
+
+      const show = disambiguationResult.selected.show;
+      if (!show) {
+        return createToolError('NOT_FOUND', `Show data not found in search results`);
+      }
+
+      // Get the specific episode
+      const episodeData = await client.searchEpisode(show.ids.slug, season, episode);
+
+      const result = createToolSuccess<TraktEpisode>(episodeData as TraktEpisode);
+      // Add result metadata to span
+      span.setAttribute('mcp.tool.result.success', result.success);
+      span.setAttribute('mcp.tool.result.type', 'episode');
+      return result;
+    } catch (error) {
+      const message = sanitizeError(error, 'searchEpisode');
+      return createToolError('TRAKT_API_ERROR', message);
     }
-
-    // Handle disambiguation
-    const disambiguationResult = handleSearchDisambiguation(
-      searchResults,
-      showName,
-      'show',
-      year,
-      traktId
-    );
-
-    if (disambiguationResult.needsDisambiguation) {
-      return disambiguationResult.response;
-    }
-
-    const show = disambiguationResult.selected.show;
-    if (!show) {
-      return createToolError('NOT_FOUND', `Show data not found in search results`);
-    }
-
-    // Get the specific episode
-    const episodeData = await client.searchEpisode(show.ids.slug, season, episode);
-
-    return createToolSuccess<TraktEpisode>(episodeData as TraktEpisode);
-  } catch (error) {
-    const message = sanitizeError(error, 'searchEpisode');
-    return createToolError('TRAKT_API_ERROR', message);
-  }
+  });
 }
 
 /**
