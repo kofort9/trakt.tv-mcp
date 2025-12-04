@@ -1,4 +1,11 @@
 #!/usr/bin/env node
+/**
+ * IMPORTANT: Initialize OpenTelemetry FIRST, before any other imports
+ * This ensures all subsequent imports are properly instrumented
+ */
+import { initTelemetry } from './lib/telemetry/config.js';
+initTelemetry();
+
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
