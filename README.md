@@ -15,6 +15,7 @@ MCP server for Trakt.tv API - enables AI assistants to track watched shows, movi
 - **Search**: Find movies, TV shows, and anime on Trakt.tv
 - **Smart Disambiguation**: Automatically handles content with multiple versions or years
 - **OAuth 2.0 Authentication**: Secure integration with your Trakt.tv account
+- **OpenTelemetry Instrumentation**: Comprehensive observability with Honeycomb integration ([see docs](docs/observability.md))
 
 ## Quick Start
 
@@ -45,6 +46,7 @@ This server is designed for AI assistant integration. See [Contributing Guide - 
 **Quick Links:**
 - [Setup Instructions](#setup) (below)
 - [Natural Language Guide](docs/guides/NATURAL_LANGUAGE_GUIDE.md) - Complete guide to natural language patterns
+- [Observability Guide](docs/observability.md) - OpenTelemetry instrumentation and Honeycomb integration
 - [Contributing Guide](docs/guides/CONTRIBUTING.md) - For developers and AI assistants
 - [Testing Guide](docs/testing/TESTING_GUIDE.md) - Comprehensive testing documentation
 - [CHANGELOG](CHANGELOG.md) - Version history and release notes
