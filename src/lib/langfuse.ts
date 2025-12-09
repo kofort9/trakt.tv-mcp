@@ -244,7 +244,13 @@ export function logAmbiguity(
           needs_clarification: needsClarification,
           match_type: matchType,
           ambiguity_level:
-            matchCount === 0 ? 'none' : matchCount === 1 ? 'low' : matchCount <= 5 ? 'medium' : 'high',
+            matchCount === 0
+              ? 'none'
+              : matchCount === 1
+                ? 'low'
+                : matchCount <= 5
+                  ? 'medium'
+                  : 'high',
         },
       })
     : langfuse.event({

@@ -133,12 +133,10 @@ export async function logWatch(
       // Search for the show
       const searchResults = await client.search(showName, 'show');
       if (!Array.isArray(searchResults) || searchResults.length === 0) {
-        return createToolError(
-          'NOT_FOUND',
-          `No show found matching "${showName}"`,
-          undefined,
-          ['Check the spelling of the show name', 'Try using search_show to browse available titles']
-        );
+        return createToolError('NOT_FOUND', `No show found matching "${showName}"`, undefined, [
+          'Check the spelling of the show name',
+          'Try using search_show to browse available titles',
+        ]);
       }
 
       // Handle disambiguation
@@ -188,12 +186,10 @@ export async function logWatch(
       // Search for the movie
       const searchResults = await client.search(movieName, 'movie');
       if (!Array.isArray(searchResults) || searchResults.length === 0) {
-        return createToolError(
-          'NOT_FOUND',
-          `No movie found matching "${movieName}"`,
-          undefined,
-          ['Check the spelling of the movie name', 'Try using search_show to browse available movies']
-        );
+        return createToolError('NOT_FOUND', `No movie found matching "${movieName}"`, undefined, [
+          'Check the spelling of the movie name',
+          'Try using search_show to browse available movies',
+        ]);
       }
 
       // Handle disambiguation
