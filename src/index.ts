@@ -1,11 +1,4 @@
 #!/usr/bin/env node
-/**
- * IMPORTANT: Initialize OpenTelemetry FIRST, before any other imports
- * This ensures all subsequent imports are properly instrumented
- */
-import { initTelemetry } from './lib/telemetry/config.js';
-initTelemetry();
-
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -21,6 +14,7 @@ import * as tools from './lib/tools.js';
 import { PROFILE_RESOURCE, getProfile } from './resources/profile.js';
 import { WATCHLIST_RESOURCES, getWatchlist } from './resources/watchlist.js';
 import { HISTORY_RESOURCES, getHistory } from './resources/history.js';
+import { startTrace, traceToolCall, endTrace, shutdown } from './lib/langfuse.js';
 
 // Server configuration
 const SERVER_NAME = 'trakt-mcp-server';
@@ -210,7 +204,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'log_watch',
         description:
-          'Log a single episode or movie as watched. Supports natural language dates like "yesterday", "last night", "3 days ago", "2 weeks ago". If no date provided, uses current time.',
+          'Log a single episode or movie as watched. Accepts ISO 8601 dates (YYYY-MM-DD or full timestamp). If no date provided, uses current time.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -219,17 +213,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               enum: ['episode', 'movie'],
               description: 'Content type',
             },
-            title: {
-              type: 'string',
-              description: 'Title of the movie or show (can be used instead of movieName/showName)',
-            },
             showName: {
               type: 'string',
-              description: 'Show name (required for episodes, unless title is provided)',
+              description: 'Show name (required for episodes)',
             },
             movieName: {
               type: 'string',
-              description: 'Movie name (required for movies, unless title is provided)',
+              description: 'Movie name (required for movies)',
             },
             season: {
               type: 'number',
@@ -242,7 +232,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             watchedAt: {
               type: 'string',
               description:
-                'When it was watched. Supports: "today", "yesterday", "last night", "N days ago", "N weeks ago", "last week", or ISO date (YYYY-MM-DD)',
+                'When it was watched. ISO 8601 format: "2025-12-08" (date only) or "2025-12-08T20:30:00.000Z" (full timestamp)',
             },
             year: {
               type: 'number',
@@ -289,7 +279,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             watchedAt: {
               type: 'string',
-              description: 'When watched (applies to all items). Supports natural language.',
+              description:
+                'When watched (applies to all items). ISO 8601 format: "2025-12-08" or full timestamp',
             },
             year: {
               type: 'number',
@@ -318,11 +309,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             startDate: {
               type: 'string',
-              description: 'Start date for history range (supports natural language)',
+              description: 'Start date for history range. ISO 8601 format: "2025-12-08"',
             },
             endDate: {
               type: 'string',
-              description: 'End date for history range (supports natural language)',
+              description: 'End date for history range. ISO 8601 format: "2025-12-08"',
             },
             limit: {
               type: 'number',
@@ -340,11 +331,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {
             startDate: {
               type: 'string',
-              description: 'Start date for analysis (supports natural language)',
+              description: 'Start date for analysis. ISO 8601 format: "2025-12-08"',
             },
             endDate: {
               type: 'string',
-              description: 'End date for analysis (supports natural language)',
+              description: 'End date for analysis. ISO 8601 format: "2025-12-08"',
             },
           },
         },
@@ -454,6 +445,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
+  // Start a trace for this tool call
+  startTrace(`mcp.${name}`, { tool: name, args });
+
   try {
     if (name === 'authenticate') {
       // Check if already authenticated
@@ -487,39 +481,40 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     if (name === 'search_show') {
-      const query = args?.query as string;
-      const type = args?.type as 'show' | 'movie' | undefined;
+      return await traceToolCall('search_show', args || {}, async () => {
+        const query = args?.query as string;
+        const type = args?.type as 'show' | 'movie' | undefined;
 
-      if (!query) {
-        throw new Error('Query parameter is required');
-      }
+        if (!query) {
+          throw new Error('Query parameter is required');
+        }
 
-      const results = await traktClient.search(query, type);
+        const results = await traktClient.search(query, type);
 
-      // Add helpful message for empty search results
-      if (Array.isArray(results) && results.length === 0) {
-        const response = {
-          results: [],
-          message: `No results found for "${query}". Try different search terms or check spelling.`,
-        };
+        if (Array.isArray(results) && results.length === 0) {
+          const response = {
+            results: [],
+            message: `No results found for "${query}". Try different search terms or check spelling.`,
+          };
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(response, null, 2),
+              },
+            ],
+          };
+        }
+
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify(response, null, 2),
+              text: JSON.stringify(results, null, 2),
             },
           ],
         };
-      }
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(results, null, 2),
-          },
-        ],
-      };
+      });
     }
 
     if (name === 'search_episode') {
@@ -709,6 +704,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       ],
       isError: true,
     };
+  } finally {
+    // End trace and flush to Langfuse
+    await endTrace();
   }
 });
 
@@ -722,4 +720,15 @@ async function main() {
 main().catch((error) => {
   console.error('Server error:', error);
   process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  await shutdown();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  await shutdown();
+  process.exit(0);
 });

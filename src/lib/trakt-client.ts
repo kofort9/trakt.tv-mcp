@@ -3,8 +3,6 @@ import { TraktConfig, TraktSettings } from '../types/trakt.js';
 import { TraktOAuth } from './oauth.js';
 import { logger } from './logger.js';
 import { LRUCache, generateSearchCacheKey, generateEpisodeCacheKey } from './cache.js';
-import { traceTraktApiCall, addRateLimitInfo, addRetryInfo, addCacheInfo } from './telemetry/trakt-tracer.js';
-import { trace } from '@opentelemetry/api';
 
 /**
  * Rate limiter for API requests
@@ -118,18 +116,6 @@ export class TraktClient {
         const fullLog = logger.completeRequestLog(partialLog, response, startTime);
         logger.logRequest(fullLog);
 
-        // Add telemetry for successful responses
-        const activeSpan = trace.getActiveSpan();
-        if (activeSpan) {
-          activeSpan.setAttribute('http.status_code', response.status);
-          activeSpan.setAttribute('http.response_size', response.headers['content-length'] || 0);
-
-          // Add rate limit info from headers
-          if (response.headers) {
-            addRateLimitInfo(activeSpan, response.headers as Record<string, string | number>);
-          }
-        }
-
         return response;
       },
       async (error: AxiosError) => {
@@ -166,12 +152,6 @@ export class TraktClient {
             console.warn(
               `Rate limit hit. Retrying in ${backoffDelay}ms (attempt ${retryCount + 1}/${maxRetries})`
             );
-
-            // Add telemetry for retry
-            const activeSpan = trace.getActiveSpan();
-            if (activeSpan) {
-              addRetryInfo(activeSpan, retryCount + 1, maxRetries, backoffDelay);
-            }
 
             // Wait for backoff delay
             await new Promise((resolve) => setTimeout(resolve, backoffDelay));
@@ -230,74 +210,52 @@ export class TraktClient {
    * Search for shows and movies (with caching)
    */
   async search(query: string, type?: 'show' | 'movie', year?: number) {
-    return await traceTraktApiCall('GET', `/search/${type || 'show,movie'}`, async (span) => {
-      const cacheKey = generateSearchCacheKey(query, type, year);
+    const cacheKey = generateSearchCacheKey(query, type, year);
 
-      // Add search parameters to span
-      span.setAttribute('trakt.search.query', query);
-      if (type) span.setAttribute('trakt.search.type', type);
-      if (year) span.setAttribute('trakt.search.year', year);
+    // Check cache first
+    const cached = this.searchCache.get(cacheKey);
+    if (cached !== undefined) {
+      console.error(`[CACHE_HIT] Search: "${query}" (${type || 'all'}${year ? `, ${year}` : ''})`);
+      return cached;
+    }
 
-      // Check cache first
-      const cached = this.searchCache.get(cacheKey);
-      if (cached !== undefined) {
-        console.error(`[CACHE_HIT] Search: "${query}" (${type || 'all'}${year ? `, ${year}` : ''})`);
-        addCacheInfo(span, true, cacheKey);
-        return cached;
-      }
+    // Cache miss - fetch from API
+    console.error(`[CACHE_MISS] Search: "${query}" (${type || 'all'}${year ? `, ${year}` : ''})`);
 
-      // Cache miss - fetch from API
-      console.error(`[CACHE_MISS] Search: "${query}" (${type || 'all'}${year ? `, ${year}` : ''})`);
-      addCacheInfo(span, false, cacheKey);
+    const params: Record<string, string | number> = { query };
+    if (type) params.type = type;
+    if (year) params.years = year;
 
-      const params: Record<string, string | number> = { query };
-      if (type) params.type = type;
-      if (year) params.years = year;
+    const result = await this.get(`/search/${type || 'show,movie'}`, { params });
 
-      const result = await this.get(`/search/${type || 'show,movie'}`, { params });
+    // Store in cache
+    this.searchCache.set(cacheKey, result);
 
-      // Store in cache
-      this.searchCache.set(cacheKey, result);
-
-      return result;
-    });
+    return result;
   }
 
   /**
    * Search for a specific episode (with caching)
    */
   async searchEpisode(showId: string, season: number, episode: number) {
-    return await traceTraktApiCall(
-      'GET',
-      `/shows/${showId}/seasons/${season}/episodes/${episode}`,
-      async (span) => {
-        const cacheKey = generateEpisodeCacheKey(showId, season, episode);
+    const cacheKey = generateEpisodeCacheKey(showId, season, episode);
 
-        // Add episode parameters to span
-        span.setAttribute('trakt.episode.show_id', showId);
-        span.setAttribute('trakt.episode.season', season);
-        span.setAttribute('trakt.episode.number', episode);
+    // Check cache first
+    const cached = this.searchCache.get(cacheKey);
+    if (cached !== undefined) {
+      console.error(`[CACHE_HIT] Episode: ${showId} S${season}E${episode}`);
+      return cached;
+    }
 
-        // Check cache first
-        const cached = this.searchCache.get(cacheKey);
-        if (cached !== undefined) {
-          console.error(`[CACHE_HIT] Episode: ${showId} S${season}E${episode}`);
-          addCacheInfo(span, true, cacheKey);
-          return cached;
-        }
+    // Cache miss - fetch from API
+    console.error(`[CACHE_MISS] Episode: ${showId} S${season}E${episode}`);
 
-        // Cache miss - fetch from API
-        console.error(`[CACHE_MISS] Episode: ${showId} S${season}E${episode}`);
-        addCacheInfo(span, false, cacheKey);
+    const result = await this.get(`/shows/${showId}/seasons/${season}/episodes/${episode}`);
 
-        const result = await this.get(`/shows/${showId}/seasons/${season}/episodes/${episode}`);
+    // Store in cache
+    this.searchCache.set(cacheKey, result);
 
-        // Store in cache
-        this.searchCache.set(cacheKey, result);
-
-        return result;
-      }
-    );
+    return result;
   }
 
   /**

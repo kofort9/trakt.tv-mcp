@@ -1,8 +1,6 @@
 import { TraktClient } from './trakt-client.js';
 import { CacheMetrics } from './cache.js';
 import {
-  parseNaturalDate,
-  parseDateRange,
   parseEpisodeRange,
   validateEpisodeNumber,
   validateSeasonNumber,
@@ -25,8 +23,6 @@ import {
   TraktHistorySummary,
   DisambiguationResponse,
 } from '../types/trakt.js';
-import { traceMcpTool, addToolParams } from './telemetry/mcp-tracer.js';
-import { trackSearchAmbiguity, trackQueryComplexity } from './telemetry/nlp-events.js';
 
 /**
  * Search for a specific episode by show name, season, and episode number
@@ -41,85 +37,71 @@ export async function searchEpisode(
     traktId?: number;
   }
 ): Promise<ToolSuccess<TraktEpisode> | ToolError | DisambiguationResponse> {
-  return await traceMcpTool('search_episode', async (span) => {
-    try {
-      const { showName, season, episode, year, traktId } = args;
+  try {
+    const { showName, season, episode, year, traktId } = args;
 
-      // Add tool parameters to span
-      addToolParams(span, { showName, season, episode, year, traktId });
+    // Validate inputs
+    validateNonEmptyString(showName, 'showName');
+    validateSeasonNumber(season);
+    validateEpisodeNumber(episode);
 
-      // Track query complexity for NLP analysis
-      trackQueryComplexity(showName, { 'tool.name': 'search_episode' });
+    // First, search for the show
+    const searchResults = await client.search(showName, 'show');
 
-      // Validate inputs
-      validateNonEmptyString(showName, 'showName');
-      validateSeasonNumber(season);
-      validateEpisodeNumber(episode);
-
-      // First, search for the show
-      const searchResults = await client.search(showName, 'show');
-
-      if (!Array.isArray(searchResults) || searchResults.length === 0) {
-        // Track NLP event: no results found
-        trackSearchAmbiguity(showName, 0, false, 'none', { 'tool.name': 'search_episode' });
-        return createToolError('NOT_FOUND', `No show found matching "${showName}"`, undefined, [
-          'Check the spelling of the show name',
-          'Try using search_show to browse available titles',
-          'Use the exact title as it appears on Trakt.tv',
-          'Try including the year if there are multiple versions',
-        ]);
-      }
-
-      // Track NLP event: search ambiguity
-      trackSearchAmbiguity(
-        showName,
-        searchResults.length,
-        searchResults.length > 1 && !year && !traktId,
-        'exact',
-        { 'tool.name': 'search_episode' }
-      );
-
-      // Handle disambiguation
-      const disambiguationResult = handleSearchDisambiguation(
-        searchResults,
-        showName,
-        'show',
-        year,
-        traktId
-      );
-
-      if (disambiguationResult.needsDisambiguation) {
-        return disambiguationResult.response;
-      }
-
-      const show = disambiguationResult.selected.show;
-      if (!show) {
-        return createToolError('NOT_FOUND', `Show data not found in search results`);
-      }
-
-      // Get the specific episode
-      const episodeData = await client.searchEpisode(show.ids.slug, season, episode);
-
-      const result = createToolSuccess<TraktEpisode>(episodeData as TraktEpisode);
-      // Add result metadata to span
-      span.setAttribute('mcp.tool.result.success', result.success);
-      span.setAttribute('mcp.tool.result.type', 'episode');
-      return result;
-    } catch (error) {
-      const message = sanitizeError(error, 'searchEpisode');
-      return createToolError('TRAKT_API_ERROR', message);
+    if (!Array.isArray(searchResults) || searchResults.length === 0) {
+      return createToolError('NOT_FOUND', `No show found matching "${showName}"`, undefined, [
+        'Check the spelling of the show name',
+        'Try using search_show to browse available titles',
+        'Use the exact title as it appears on Trakt.tv',
+        'Try including the year if there are multiple versions',
+      ]);
     }
-  });
+
+    // Handle disambiguation
+    const disambiguationResult = handleSearchDisambiguation(
+      searchResults,
+      showName,
+      'show',
+      year,
+      traktId
+    );
+
+    if (disambiguationResult.needsDisambiguation) {
+      return disambiguationResult.response;
+    }
+
+    const show = disambiguationResult.selected.show;
+    if (!show) {
+      return createToolError('NOT_FOUND', `Show data not found in search results`);
+    }
+
+    // Get the specific episode
+    const episodeData = await client.searchEpisode(show.ids.slug, season, episode);
+
+    return createToolSuccess<TraktEpisode>(episodeData as TraktEpisode);
+  } catch (error) {
+    const message = sanitizeError(error, 'searchEpisode');
+    return createToolError('TRAKT_API_ERROR', message);
+  }
 }
 
 /**
- * Log a single episode or movie as watched
+ * Log a single episode or movie as watched.
+ *
+ * Accepts show/movie names and searches internally. For disambiguation,
+ * use year or traktId parameters.
+ *
+ * @param watchedAt - Optional. ISO 8601 date string. Accepts two formats:
+ *                    - Date only: "2025-12-08" (YYYY-MM-DD)
+ *                    - Full timestamp: "2025-12-08T20:30:00.000Z"
+ *                    Claude converts natural language ("yesterday", "last week")
+ *                    to ISO format before calling this tool.
+ *                    If not provided, defaults to current time.
  */
 export async function logWatch(
   client: TraktClient,
   args: {
     type: 'episode' | 'movie';
-    title?: string; // Alias for movieName/showName
     showName?: string;
     movieName?: string;
     season?: number;
@@ -130,67 +112,39 @@ export async function logWatch(
   }
 ): Promise<ToolSuccess<TraktHistoryAddResponse> | ToolError | DisambiguationResponse> {
   try {
-    const { type, title, showName, movieName, season, episode, watchedAt, year, traktId } = args;
+    const { type, showName, movieName, season, episode, watchedAt, year, traktId } = args;
 
-    // Parameter normalization: support 'title' as alias for movieName/showName
-    let effectiveMovieName = movieName;
-    let effectiveShowName = showName;
-
-    // Validate title parameter if provided
-    if (title !== undefined) {
-      if (typeof title !== 'string' || title.trim() === '') {
-        return createToolError(
-          'INVALID_INPUT',
-          'Invalid title: Title must be a non-empty string.',
-          undefined,
-          ['Provide a movie or show name', 'Use movieName or showName parameter instead']
-        );
-      }
-    }
-
-    // Then use title as alias
-    if (title && !movieName && type === 'movie') {
-      effectiveMovieName = title;
-    }
-    if (title && !showName && type === 'episode') {
-      effectiveShowName = title;
-    }
-
-    // Parse watched date if provided
-    const watched_at = watchedAt ? parseNaturalDate(watchedAt) : new Date().toISOString();
+    // watchedAt accepts ISO 8601 format only (YYYY-MM-DD or full timestamp)
+    // Claude handles natural language → ISO conversion
+    const watched_at = watchedAt || new Date().toISOString();
 
     if (type === 'episode') {
-      if (!effectiveShowName || season === undefined || episode === undefined) {
+      if (!showName || season === undefined || episode === undefined) {
         return createToolError(
           'VALIDATION_ERROR',
-          'For episodes, showName (or title), season, and episode are required'
+          'For episodes, showName, season, and episode are required'
         );
       }
 
-      validateNonEmptyString(effectiveShowName, 'showName');
+      validateNonEmptyString(showName, 'showName');
       validateSeasonNumber(season);
       validateEpisodeNumber(episode);
 
       // Search for the show
-      const searchResults = await client.search(effectiveShowName, 'show');
+      const searchResults = await client.search(showName, 'show');
       if (!Array.isArray(searchResults) || searchResults.length === 0) {
         return createToolError(
           'NOT_FOUND',
-          `No show found matching "${effectiveShowName}"`,
+          `No show found matching "${showName}"`,
           undefined,
-          [
-            'Check the spelling of the show name',
-            'Try using search_show to browse available titles',
-            'Use the exact title as it appears on Trakt.tv',
-            'Try including the year if there are multiple versions',
-          ]
+          ['Check the spelling of the show name', 'Try using search_show to browse available titles']
         );
       }
 
       // Handle disambiguation
       const disambiguationResult = handleSearchDisambiguation(
         searchResults,
-        effectiveShowName,
+        showName,
         'show',
         year,
         traktId
@@ -203,16 +157,6 @@ export async function logWatch(
       const show = disambiguationResult.selected.show;
       if (!show) {
         return createToolError('NOT_FOUND', `Show data not found in search results`);
-      }
-
-      // Get episode details to verify it exists
-      try {
-        await client.searchEpisode(show.ids.slug, season, episode);
-      } catch {
-        return createToolError(
-          'NOT_FOUND',
-          `Episode S${season}E${episode} not found for "${effectiveShowName}"`
-        );
       }
 
       // Add to history
@@ -235,31 +179,27 @@ export async function logWatch(
       return createToolSuccess<TraktHistoryAddResponse>(response as TraktHistoryAddResponse);
     } else {
       // Movie
-      if (!effectiveMovieName) {
-        return createToolError('VALIDATION_ERROR', 'For movies, movieName (or title) is required');
+      if (!movieName) {
+        return createToolError('VALIDATION_ERROR', 'For movies, movieName is required');
       }
 
-      validateNonEmptyString(effectiveMovieName, 'movieName');
+      validateNonEmptyString(movieName, 'movieName');
 
       // Search for the movie
-      const searchResults = await client.search(effectiveMovieName, 'movie');
+      const searchResults = await client.search(movieName, 'movie');
       if (!Array.isArray(searchResults) || searchResults.length === 0) {
         return createToolError(
           'NOT_FOUND',
-          `No movie found matching "${effectiveMovieName}"`,
+          `No movie found matching "${movieName}"`,
           undefined,
-          [
-            'Check the spelling of the movie name',
-            'Try using search_show with type filter to browse available movies',
-            'Include the release year if known',
-          ]
+          ['Check the spelling of the movie name', 'Try using search_show to browse available movies']
         );
       }
 
       // Handle disambiguation
       const disambiguationResult = handleSearchDisambiguation(
         searchResults,
-        effectiveMovieName,
+        movieName,
         'movie',
         year,
         traktId
@@ -294,8 +234,14 @@ export async function logWatch(
 }
 
 /**
- * Bulk log multiple episodes or movies at once
- * Supports episode ranges like "1-5" or "1,3,5"
+ * Bulk log multiple episodes or movies at once.
+ *
+ * For episodes: accepts show name, season, and episode range string.
+ * For movies: accepts array of movie names.
+ *
+ * @param episodes - For episodes: range string like "1-5" or "1,3,5" or "1-3,5,7-9"
+ * @param watchedAt - Optional. ISO 8601 date string (YYYY-MM-DD or full timestamp).
+ *                    Claude converts natural language to ISO format.
  */
 export async function bulkLog(
   client: TraktClient,
@@ -304,7 +250,7 @@ export async function bulkLog(
     showName?: string;
     movieNames?: string[];
     season?: number;
-    episodes?: string; // Can be "1-5" or "1,3,5" or "1-3,5,7-9"
+    episodes?: string; // Range string like "1-5" or "1,3,5"
     watchedAt?: string;
     year?: number;
     traktId?: number;
@@ -313,13 +259,14 @@ export async function bulkLog(
   try {
     const { type, showName, movieNames, season, episodes, watchedAt, year, traktId } = args;
 
-    const watched_at = watchedAt ? parseNaturalDate(watchedAt) : new Date().toISOString();
+    // watchedAt accepts ISO 8601 format only
+    const watched_at = watchedAt || new Date().toISOString();
 
     if (type === 'episodes') {
       if (!showName || season === undefined || !episodes) {
         return createToolError(
           'VALIDATION_ERROR',
-          'For episodes, showName, season, and episodes are required'
+          'For episodes, showName, season, and episodes range are required'
         );
       }
 
@@ -341,8 +288,6 @@ export async function bulkLog(
         return createToolError('NOT_FOUND', `No show found matching "${showName}"`, undefined, [
           'Check the spelling of the show name',
           'Try using search_show to browse available titles',
-          'Use the exact title as it appears on Trakt.tv',
-          'Try including the year if there are multiple versions',
         ]);
       }
 
@@ -383,9 +328,9 @@ export async function bulkLog(
       const response = await client.addToHistory(historyData);
       return createToolSuccess<TraktHistoryAddResponse>(response as TraktHistoryAddResponse);
     } else {
-      // Movies - NOW WITH PARALLEL PROCESSING
+      // Movies
       if (!movieNames || movieNames.length === 0) {
-        return createToolError('VALIDATION_ERROR', 'For movies, movieNames is required');
+        return createToolError('VALIDATION_ERROR', 'For movies, movieNames array is required');
       }
 
       // Validate all movie names first
@@ -423,13 +368,11 @@ export async function bulkLog(
         if (!results || results.length === 0) {
           return createToolError('NOT_FOUND', `No movie found matching "${movieName}"`, undefined, [
             'Check the spelling of the movie name',
-            'Try using search_show with type filter to browse available movies',
-            'Include the release year if known',
+            'Try using search_show to browse available movies',
           ]);
         }
 
-        // Handle disambiguation - for bulk operations, we auto-select first result
-        // to avoid complex multi-movie disambiguation flows
+        // Handle disambiguation
         const disambiguationResult = handleSearchDisambiguation(
           results,
           movieName,
@@ -439,10 +382,9 @@ export async function bulkLog(
         );
 
         if (disambiguationResult.needsDisambiguation) {
-          // For bulk operations, return disambiguation for the problematic movie
           return {
             ...disambiguationResult.response,
-            message: `${disambiguationResult.response.message} (This occurred while processing "${movieName}" in the bulk operation. Please use log_watch for individual movies if you need to disambiguate multiple titles.)`,
+            message: `${disambiguationResult.response.message} (While processing "${movieName}")`,
           };
         }
 
@@ -468,7 +410,11 @@ export async function bulkLog(
 }
 
 /**
- * Get watch history with optional filters
+ * Get watch history with optional filters.
+ *
+ * @param startDate - Optional. ISO 8601 date string (YYYY-MM-DD or full timestamp).
+ *                    Claude converts natural language to ISO format.
+ * @param endDate - Optional. ISO 8601 date string.
  */
 export async function getHistory(
   client: TraktClient,
@@ -482,11 +428,11 @@ export async function getHistory(
   try {
     const { type, startDate, endDate, limit } = args;
 
-    // Parse date range
-    const { startAt, endAt } = parseDateRange(startDate, endDate);
+    // startDate/endDate accept ISO 8601 format directly
+    // Claude handles natural language → ISO conversion
 
     // Fetch history
-    const history = await client.getHistory(type, startAt, endAt);
+    const history = await client.getHistory(type, startDate, endDate);
 
     // Apply limit if specified
     let results = Array.isArray(history) ? history : [];
@@ -521,7 +467,11 @@ export async function getHistory(
 }
 
 /**
- * Summarize watch history with analytics
+ * Summarize watch history with analytics.
+ *
+ * @param startDate - Optional. ISO 8601 date string (YYYY-MM-DD or full timestamp).
+ *                    Claude converts natural language to ISO format.
+ * @param endDate - Optional. ISO 8601 date string.
  */
 export async function summarizeHistory(
   client: TraktClient,
@@ -533,11 +483,11 @@ export async function summarizeHistory(
   try {
     const { startDate, endDate } = args;
 
-    // Parse date range
-    const { startAt, endAt } = parseDateRange(startDate, endDate);
+    // startDate/endDate accept ISO 8601 format directly
+    // Claude handles natural language → ISO conversion
 
     // Fetch full history
-    const history = await client.getHistory(undefined, startAt, endAt);
+    const history = await client.getHistory(undefined, startDate, endDate);
 
     if (!Array.isArray(history)) {
       return createToolError('TRAKT_API_ERROR', 'Invalid history response format');
