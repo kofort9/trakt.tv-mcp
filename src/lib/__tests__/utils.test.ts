@@ -104,12 +104,18 @@ describe('utils', () => {
     });
 
     it('should reject empty strings', () => {
-      expect(() => validateNonEmptyString('', 'param')).toThrow('param parameter cannot be empty or whitespace');
-      expect(() => validateNonEmptyString('   ', 'param')).toThrow('param parameter cannot be empty or whitespace');
+      expect(() => validateNonEmptyString('', 'param')).toThrow(
+        'param parameter cannot be empty or whitespace'
+      );
+      expect(() => validateNonEmptyString('   ', 'param')).toThrow(
+        'param parameter cannot be empty or whitespace'
+      );
     });
 
     it('should reject undefined', () => {
-      expect(() => validateNonEmptyString(undefined, 'param')).toThrow('param parameter cannot be empty or whitespace');
+      expect(() => validateNonEmptyString(undefined, 'param')).toThrow(
+        'param parameter cannot be empty or whitespace'
+      );
     });
   });
 
@@ -149,31 +155,57 @@ describe('utils', () => {
 
     describe('invalid formats', () => {
       it('should reject natural language dates', () => {
-        expect(() => validateISO8601Date('December 8, 2025', 'watchedAt')).toThrow(/must be in ISO 8601 format/);
-        expect(() => validateISO8601Date('today', 'watchedAt')).toThrow(/must be in ISO 8601 format/);
-        expect(() => validateISO8601Date('2025/12/08', 'watchedAt')).toThrow(/must be in ISO 8601 format/);
+        expect(() => validateISO8601Date('December 8, 2025', 'watchedAt')).toThrow(
+          /must be in ISO 8601 format/
+        );
+        expect(() => validateISO8601Date('today', 'watchedAt')).toThrow(
+          /must be in ISO 8601 format/
+        );
+        expect(() => validateISO8601Date('2025/12/08', 'watchedAt')).toThrow(
+          /must be in ISO 8601 format/
+        );
       });
 
       it('should reject wrong separators', () => {
-        expect(() => validateISO8601Date('2025/12/08', 'watchedAt')).toThrow(/must be in ISO 8601 format/);
-        expect(() => validateISO8601Date('2025.12.08', 'watchedAt')).toThrow(/must be in ISO 8601 format/);
-        expect(() => validateISO8601Date('20251208', 'watchedAt')).toThrow(/must be in ISO 8601 format/);
+        expect(() => validateISO8601Date('2025/12/08', 'watchedAt')).toThrow(
+          /must be in ISO 8601 format/
+        );
+        expect(() => validateISO8601Date('2025.12.08', 'watchedAt')).toThrow(
+          /must be in ISO 8601 format/
+        );
+        expect(() => validateISO8601Date('20251208', 'watchedAt')).toThrow(
+          /must be in ISO 8601 format/
+        );
       });
 
       it('should reject incomplete dates', () => {
-        expect(() => validateISO8601Date('2025-12', 'watchedAt')).toThrow(/must be in ISO 8601 format/);
-        expect(() => validateISO8601Date('2025', 'watchedAt')).toThrow(/must be in ISO 8601 format/);
+        expect(() => validateISO8601Date('2025-12', 'watchedAt')).toThrow(
+          /must be in ISO 8601 format/
+        );
+        expect(() => validateISO8601Date('2025', 'watchedAt')).toThrow(
+          /must be in ISO 8601 format/
+        );
       });
 
       it('should reject malformed timestamps', () => {
-        expect(() => validateISO8601Date('2025-12-08T20:30', 'watchedAt')).toThrow(/must be in ISO 8601 format/);
-        expect(() => validateISO8601Date('2025-12-08T20', 'watchedAt')).toThrow(/must be in ISO 8601 format/);
-        expect(() => validateISO8601Date('2025-12-08 20:30:00', 'watchedAt')).toThrow(/must be in ISO 8601 format/);
+        expect(() => validateISO8601Date('2025-12-08T20:30', 'watchedAt')).toThrow(
+          /must be in ISO 8601 format/
+        );
+        expect(() => validateISO8601Date('2025-12-08T20', 'watchedAt')).toThrow(
+          /must be in ISO 8601 format/
+        );
+        expect(() => validateISO8601Date('2025-12-08 20:30:00', 'watchedAt')).toThrow(
+          /must be in ISO 8601 format/
+        );
       });
 
       it('should include parameter name in error message', () => {
-        expect(() => validateISO8601Date('invalid', 'watchedAt')).toThrow('watchedAt must be in ISO 8601 format');
-        expect(() => validateISO8601Date('invalid', 'releasedAt')).toThrow('releasedAt must be in ISO 8601 format');
+        expect(() => validateISO8601Date('invalid', 'watchedAt')).toThrow(
+          'watchedAt must be in ISO 8601 format'
+        );
+        expect(() => validateISO8601Date('invalid', 'releasedAt')).toThrow(
+          'releasedAt must be in ISO 8601 format'
+        );
       });
 
       it('should include the invalid value in error message', () => {
@@ -200,7 +232,9 @@ describe('utils', () => {
       it('should reject truly invalid dates that cannot be parsed', () => {
         // These produce Invalid Date in JavaScript
         expect(() => validateISO8601Date('2025-13-01', 'watchedAt')).toThrow(/is not a valid date/);
-        expect(() => validateISO8601Date('invalid-date', 'watchedAt')).toThrow(/must be in ISO 8601 format/);
+        expect(() => validateISO8601Date('invalid-date', 'watchedAt')).toThrow(
+          /must be in ISO 8601 format/
+        );
       });
 
       it('should accept valid month boundaries', () => {

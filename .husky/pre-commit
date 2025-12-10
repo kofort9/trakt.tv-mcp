@@ -1,6 +1,10 @@
 #!/bin/sh
 # Pre-commit hook: Run code style checks before commit
 
+# Load nvm if available (needed for correct Node version)
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
 echo "🔍 Running code style checks..."
 echo ""
 

@@ -2,6 +2,10 @@
 # Pre-push hook: Skip tests for documentation-only changes
 # Runs full test suite when code files are modified
 
+# Load nvm if available (needed for correct Node version)
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
 # Consume stdin to prevent interference with git commands
 # Git sends ref information via stdin during push, which we don't need
 # and which can interfere with commands that read stdin

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 describe('langfuse integration', () => {
-  let originalEnv: NodeJS.ProcessEnv;
+  let originalEnv: typeof process.env;
 
   beforeEach(() => {
     // Save original env vars
@@ -317,19 +317,15 @@ describe('langfuse integration', () => {
   });
 
   describe('endTrace', () => {
-    it(
-      'should not throw when enabled',
-      async () => {
-        process.env.LANGFUSE_SECRET_KEY = 'test-secret-key';
-        process.env.LANGFUSE_PUBLIC_KEY = 'test-public-key';
+    it('should not throw when enabled', async () => {
+      process.env.LANGFUSE_SECRET_KEY = 'test-secret-key';
+      process.env.LANGFUSE_PUBLIC_KEY = 'test-public-key';
 
-        const { startTrace, endTrace } = await import('../langfuse.js');
-        startTrace('test-session');
+      const { startTrace, endTrace } = await import('../langfuse.js');
+      startTrace('test-session');
 
-        await expect(endTrace()).resolves.not.toThrow();
-      },
-      10000
-    ); // 10 second timeout for network call
+      await expect(endTrace()).resolves.not.toThrow();
+    }, 10000); // 10 second timeout for network call
 
     it('should not throw when disabled', async () => {
       delete process.env.LANGFUSE_SECRET_KEY;
