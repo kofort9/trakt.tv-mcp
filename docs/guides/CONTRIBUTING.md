@@ -42,6 +42,7 @@ For natural language pattern details, see [NATURAL_LANGUAGE_GUIDE.md](./NATURAL_
 
 ### Key Files
 
+
 | File                               | Purpose                                           | Key Functions                                              |
 | ---------------------------------- | ------------------------------------------------- | ---------------------------------------------------------- |
 | `/src/lib/utils.ts`                | Validation, error formatting, episode parsing     | `parseEpisodeRange()`, `validateEpisodeNumber()`, `createToolError()` |
