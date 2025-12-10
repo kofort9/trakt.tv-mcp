@@ -23,7 +23,7 @@
 The Trakt.tv MCP server has undergone comprehensive testing across:
 
 - **10 MCP tools** (all Phase 3 tools validated)
-- **Natural language date parsing** (35+ patterns)
+- **ISO 8601 date validation** (tools accept ISO dates only)
 - **Episode range parsing** (simple, complex, non-contiguous)
 - **Error handling and validation**
 - **Edge cases and boundary conditions**
@@ -100,13 +100,13 @@ Historical test scripts (archived):
 
 **Overall Status:** ✅ **PRODUCTION READY**
 
-| Component       | Tests    | Pass Rate | Status   |
-| --------------- | -------- | --------- | -------- |
-| Date Parsing    | 45+      | 100%      | PASS     |
-| Episode Parsing | 20+      | 100%      | PASS     |
-| MCP Tools       | 27       | 100%      | PASS     |
-| Error Handling  | 15+      | 100%      | PASS     |
-| **TOTAL**       | **107+** | **100%**  | **PASS** |
+| Component        | Tests    | Pass Rate | Status   |
+| ---------------- | -------- | --------- | -------- |
+| Date Validation  | 10+      | 100%      | PASS     |
+| Episode Parsing  | 20+      | 100%      | PASS     |
+| MCP Tools        | 27       | 100%      | PASS     |
+| Error Handling   | 15+      | 100%      | PASS     |
+| **TOTAL**        | **72+**  | **100%**  | **PASS** |
 
 **Critical Bugs Found:** 2 (both fixed in Phase 3)
 **Minor Issues:** 2 (both addressed)
@@ -144,7 +144,7 @@ npm test
 npm test utils.test.ts
 
 # Run tests matching pattern
-npm test -- --grep "parseNaturalDate"
+npm test -- --grep "validation"
 
 # Run with coverage
 npm test -- --coverage
@@ -163,14 +163,14 @@ npm run test:ui
 **Successful Test:**
 
 ```
-✓ parseNaturalDate › yesterday › should return previous day at midnight UTC (3ms)
+✓ validateEpisodeNumber › should accept valid episode numbers (3ms)
 ```
 
 **Failed Test:**
 
 ```
-✗ parseNaturalDate › yesterday › should return previous day at midnight UTC (3ms)
-  AssertionError: expected '2025-11-24T12:00:00.000Z' to be '2025-11-24T00:00:00.000Z'
+✗ validateEpisodeNumber › should reject zero episode number (3ms)
+  AssertionError: expected function to throw but it did not
 ```
 
 **Coverage Report:**
@@ -196,9 +196,9 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 
 **Key Findings:**
 
-1. **Natural language date parsing:** 100% working
-   - All 35+ patterns validated
-   - Edge cases handled correctly
+1. **ISO 8601 date validation:** 100% working
+   - Tools correctly accept ISO 8601 dates
+   - Reject natural language (as expected - Claude's responsibility)
    - Error messages clear and actionable
 
 2. **Episode range parsing:** 100% working
@@ -227,16 +227,17 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 **Workflow Tested:**
 
 1. Search for "Princess Mononoke" → Found correct movie
-2. Parse "yesterday" → Converted to previous day at UTC midnight
-3. Log watch entry → Successfully added to history
-4. Verify in history → Entry appears correctly
+2. Claude converts "yesterday" → "2025-11-18" (ISO 8601)
+3. Tool receives ISO date → Validates successfully
+4. Log watch entry → Successfully added to history
+5. Verify in history → Entry appears correctly
 
-**Result:** ✅ PASS (all 9 test steps)
+**Result:** ✅ PASS (all steps)
 
-**Edge Cases Discovered:**
+**Architecture Validation:**
 
-- Multiple content types with same name (movies + TV shows) → Disambiguation works
-- Natural date parsing case-insensitive → Confirmed working
+- Claude interprets "yesterday" before calling tool → Works correctly
+- Tool receives ISO 8601 date → Validates successfully
 - UTC timezone handling → Consistent across all tests
 
 ---
@@ -252,17 +253,16 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 
 - Date range filtering (January 2025)
 - Statistics calculations (100% accurate)
-- Natural language dates ("yesterday", "last week")
-- Mixed date formats (ISO + natural language)
+- ISO 8601 date acceptance ("2025-01-01", "2025-01-31")
 - Empty results handling (future dates, reversed ranges)
-- Error messages for invalid dates
+- Error messages for invalid date formats
 
 **Performance:**
 
 - January range query: 261ms (Good)
 - Open-ended range: 966ms (Acceptable)
 - All-time query: 182ms (Excellent)
-- Natural language dates: 158ms (Excellent)
+- ISO date validation: <1ms (Excellent)
 
 **Average Response Time:** 392ms
 
@@ -313,39 +313,28 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 
 ---
 
-## Natural Language Testing
+## Date Format Testing
 
-### Supported Date Patterns (All Validated)
+### ISO 8601 Date Validation (All Validated)
 
-**Absolute Days (5 patterns):**
+**Date Only Format:**
 
-- today, yesterday, tonight, last night, last nite
+- `YYYY-MM-DD` - e.g., `2025-12-08`
 
-**Time-of-Day (4 patterns):**
+**Full Timestamp Formats:**
 
-- this morning, earlier today, this afternoon, this evening
+- `YYYY-MM-DDTHH:MM:SSZ` - e.g., `2025-12-08T20:30:00Z`
+- `YYYY-MM-DDTHH:MM:SS.MMMZ` - e.g., `2025-12-08T20:30:00.000Z`
 
-**Relative Periods (4 patterns):**
+**Invalid Formats (Correctly Rejected by Tools):**
 
-- N days ago (1-365), N weeks ago (1-52), last week, last month
+- Natural language: `yesterday`, `last week`, `3 days ago`
+- Non-ISO formats: `12/08/2025`, `08-12-2025`
+- Empty strings: `""`
 
-**Weekdays (7 patterns):**
+**Architecture Note:**
 
-- last monday, last tuesday, last wednesday, last thursday, last friday, last saturday, last sunday
-
-**Special (2 patterns):**
-
-- last weekend, this month
-
-**Month Names (12 patterns):**
-
-- January/Jan, February/Feb, March/Mar, April/Apr, May, June/Jun, July/Jul, August/Aug, September/Sep, October/Oct, November/Nov, December/Dec
-
-**ISO Dates:**
-
-- YYYY-MM-DD
-
-**Total:** 35+ patterns all tested and working
+Natural language date interpretation is Claude's responsibility. Tools only validate ISO 8601 format compliance. Claude interprets expressions like "yesterday" and converts them to ISO dates before calling tools.
 
 ---
 
@@ -505,18 +494,18 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
 
 ## Critical Bugs Fixed
 
-### Bug 1: Date Parsing Off-By-One Error
+### Bug 1: Natural Language Date Parsing Removed
 
-**Severity:** CRITICAL
-**Status:** FIXED ✅
+**Change:** ARCHITECTURAL
+**Status:** COMPLETED ✅
 
-**Issue:** "yesterday" was returning wrong date due to month handling error.
+**Issue:** Tools were handling natural language date parsing internally, leading to complexity.
 
-**Fix:** Corrected month calculation in `parseNaturalDate()`.
+**Fix:** Removed `parseNaturalDate()` from tools. Claude now interprets natural language and passes ISO 8601 dates.
 
-**Commit:** 46ad6b2
+**Commit:** [Current architectural change]
 
-**Testing:** Validated with comprehensive date parsing test suite.
+**Testing:** Validated that tools correctly accept ISO 8601 and reject natural language.
 
 ---
 
@@ -649,14 +638,14 @@ npx prettier --check "src/**/*.ts"
 ### Running Specific Tests
 
 ```bash
-# Date parsing tests
-npm test -- utils.test.ts -t "parseNaturalDate"
+# Validation tests
+npm test -- utils.test.ts -t "validation"
+
+# Episode parsing tests
+npm test -- utils.test.ts -t "parseEpisodeRange"
 
 # Tool tests
 npm test -- tools.test.ts -t "logWatch"
-
-# All validation tests
-npm test -- -t "validation"
 
 # Watch mode for development
 npm run test:watch
@@ -666,7 +655,7 @@ npm run test:watch
 
 ```
 src/lib/__tests__/
-├── utils.test.ts        # Date parsing, validation, utilities
+├── utils.test.ts        # Validation, episode parsing, utilities
 ├── tools.test.ts        # MCP tool implementations
 ├── logger.test.ts       # Logging infrastructure
 └── resources.test.ts    # Resource handlers

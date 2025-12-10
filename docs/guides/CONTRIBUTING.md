@@ -34,20 +34,20 @@ For natural language pattern details, see [NATURAL_LANGUAGE_GUIDE.md](./NATURAL_
 
 ### Architecture Principles
 
-1. **Single Source of Truth:** Date parsing logic lives exclusively in `parseNaturalDate()`
-2. **UTC Consistency:** All dates are converted to UTC midnight to avoid timezone bugs
+1. **Separation of Concerns:** Claude handles natural language interpretation, tools handle ISO 8601 validation
+2. **UTC Consistency:** All dates use UTC timezone to avoid bugs
 3. **Fail Fast:** Invalid input throws errors with helpful messages immediately
 4. **Composability:** Utility functions are small, focused, and composable
 5. **Type Safety:** TypeScript strict mode enforced, no `any` types
 
 ### Key Files
 
-| File                               | Purpose                                           | Key Functions                                                    |
-| ---------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------- |
-| `/src/lib/utils.ts`                | Date parsing, validation, error formatting        | `parseNaturalDate()`, `parseEpisodeRange()`, `createToolError()` |
-| `/src/lib/tools.ts`                | Tool implementations with parameter normalization | `logWatch()`, `bulkLog()`, `searchEpisode()`                     |
-| `/src/lib/__tests__/utils.test.ts` | Unit tests for utilities                          | Test suites for date parsing, validation                         |
-| `/src/lib/__tests__/tools.test.ts` | Integration tests for tools                       | End-to-end tool behavior tests                                   |
+| File                               | Purpose                                           | Key Functions                                              |
+| ---------------------------------- | ------------------------------------------------- | ---------------------------------------------------------- |
+| `/src/lib/utils.ts`                | Validation, error formatting, episode parsing     | `parseEpisodeRange()`, `validateEpisodeNumber()`, `createToolError()` |
+| `/src/lib/tools.ts`                | Tool implementations with parameter normalization | `logWatch()`, `bulkLog()`, `searchEpisode()`               |
+| `/src/lib/__tests__/utils.test.ts` | Unit tests for utilities                          | Test suites for validation, episode parsing                |
+| `/src/lib/__tests__/tools.test.ts` | Integration tests for tools                       | End-to-end tool behavior tests                             |
 
 ---
 
@@ -59,9 +59,9 @@ The Trakt.tv MCP server is designed for AI assistant integration. This section e
 
 ### Core Capabilities to Leverage
 
-- **Natural language dates**: Users say "yesterday" or "last week", not "2025-01-15"
-- **Flexible episodes**: Users say "episodes 1-5" or "S1E1-5"
-- **Action verbs**: "watched", "binged", "saw" all mean the same thing
+- **Natural language dates**: Claude interprets "yesterday" or "last week" → ISO 8601 dates for tools
+- **Flexible episodes**: Tools parse episode ranges like "1-5" or complex patterns like "1-3,5,7-9"
+- **Action verbs**: "watched", "binged", "saw" all mean the same thing (Claude's responsibility)
 - **Parameter aliases**: Accept `title` instead of requiring `movieName`/`showName`
 - **Intelligent errors**: Error messages include actionable suggestions
 
@@ -129,23 +129,23 @@ Before logging large ranges, confirm with the user.
 
 ---
 
-#### 5. Preserve User Intent with Natural Language
+#### 5. Always Convert Natural Language to ISO 8601
 
-Don't convert natural language dates to ISO before calling tools. Let the tool handle parsing.
+Convert natural language dates to ISO 8601 format before calling tools.
 
-**Good:**
-
-```json
-{ "watchedAt": "last night" }
-```
-
-**Less Good:**
+**Required:**
 
 ```json
-{ "watchedAt": "2025-11-18" } // Loses semantic meaning
+{ "watchedAt": "2025-11-18" } // ISO 8601 date
 ```
 
-**Why:** The natural language parser maintains consistency and may handle time-of-day differently in future enhancements.
+**Incorrect:**
+
+```json
+{ "watchedAt": "last night" } // Tools will reject this
+```
+
+**Why:** Tools only accept ISO 8601 dates. Claude is responsible for natural language interpretation.
 
 ---
 
@@ -240,114 +240,49 @@ See [NATURAL_LANGUAGE_GUIDE.md](./NATURAL_LANGUAGE_GUIDE.md) for comprehensive p
 
 ---
 
-## Adding Natural Language Patterns
+## Adding Episode Range Patterns
 
-### Step 1: Identify the Pattern
+### When to Add Parsing Logic
 
-Before implementing, document:
+The tools currently support episode range parsing for patterns like:
+- Simple ranges: `1-5`
+- Non-contiguous: `1,3,5`
+- Mixed: `1-3,5,7-9`
 
-- **User Input:** What will users type? (e.g., "this weekend")
-- **Expected Output:** What date should this map to?
-- **Edge Cases:** What happens on boundary days?
-- **Ambiguity:** Is the meaning clear and unambiguous?
+**Note:** Natural language date parsing has been removed from tools. Claude now handles date interpretation and passes ISO 8601 dates to tools.
 
-**Example:**
+### Adding New Episode Range Patterns
 
-```
-Pattern: "this weekend"
-Output: Next Saturday (or today if today is Saturday/Sunday)
-Edge Case: If today is Monday, returns the upcoming Saturday
-Ambiguity: Clear - always refers to nearest upcoming or current weekend
-```
+If you need to add new episode range formats:
 
----
+**Location:** `/src/lib/utils.ts` - `parseEpisodeRange()` function
 
-### Step 2: Add Logic to `parseNaturalDate()`
-
-**Location:** `/src/lib/utils.ts` (function starts at line 11)
-
-**Pattern:** Add new conditional logic following existing patterns:
+**Pattern:** Extend the existing regex or add new parsing logic
 
 ```typescript
-// Example: Adding "this weekend" support
-if (lowerInput === 'this weekend') {
-  const dayOfWeek = now.getUTCDay(); // 0=Sun, 6=Sat
-  let daysToNextSaturday: number;
-
-  if (dayOfWeek === 0) {
-    // Sunday - next Saturday is 6 days away
-    daysToNextSaturday = 6;
-  } else if (dayOfWeek === 6) {
-    // Already Saturday - return today
-    daysToNextSaturday = 0;
-  } else {
-    // Monday-Friday - calculate days to Saturday
-    daysToNextSaturday = 6 - dayOfWeek;
-  }
-
-  const targetDate = new Date(
-    Date.UTC(currentYear, currentMonth, currentDate + daysToNextSaturday)
-  );
-  return targetDate.toISOString();
+// Example: Adding support for "all" keyword
+if (range.toLowerCase() === 'all') {
+  // Would need season metadata to know total episodes
+  throw new Error('Use explicit episode numbers (e.g., "1-12")');
 }
 ```
 
-**Key Requirements:**
-
-- Use `Date.UTC()` for all date construction (never local time)
-- Return ISO string: `targetDate.toISOString()`
-- Place new patterns **before** the ISO date parsing fallback
-- Use lowercase comparison: `lowerInput.toLowerCase()`
-
 ---
 
-### Step 3: Update Error Messages
-
-Add the new pattern to error messages so users know it's supported:
-
-**Location:** `/src/lib/utils.ts` line 224-226
-
-```typescript
-throw new Error(
-  `Unable to parse date: "${input}". Use ISO format (YYYY-MM-DD) or natural language ` +
-    `(today, tonight, yesterday, last night, this morning, earlier today, this afternoon, ` +
-    `this evening, N days ago, N weeks ago, last week, last weekend, this weekend, ` + // Added "this weekend"
-    `last monday, last month)`
-);
-```
-
----
-
-### Step 4: Add Unit Tests
+### Step 1: Add Unit Tests
 
 **Location:** `/src/lib/__tests__/utils.test.ts`
 
 ```typescript
-describe('parseNaturalDate', () => {
-  describe('this weekend', () => {
-    it('should return next Saturday when today is Monday-Friday', () => {
-      const mockWednesday = new Date('2025-01-15T12:00:00Z');
-      vi.setSystemTime(mockWednesday);
-
-      const result = parseNaturalDate('this weekend');
-      const parsed = new Date(result);
-
-      // Next Saturday should be 2025-01-18
-      expect(parsed.getUTCFullYear()).toBe(2025);
-      expect(parsed.getUTCMonth()).toBe(0); // January
-      expect(parsed.getUTCDate()).toBe(18);
-      expect(parsed.getUTCHours()).toBe(0);
-      expect(parsed.getUTCMinutes()).toBe(0);
+describe('parseEpisodeRange', () => {
+  describe('new pattern', () => {
+    it('should parse the new format correctly', () => {
+      const result = parseEpisodeRange('your-new-pattern');
+      expect(result).toEqual([1, 2, 3]); // Expected episode array
     });
 
-    it('should return today when today is Saturday', () => {
-      const mockSaturday = new Date('2025-01-18T12:00:00Z');
-      vi.setSystemTime(mockSaturday);
-
-      const result = parseNaturalDate('this weekend');
-      const parsed = new Date(result);
-
-      expect(parsed.getUTCDate()).toBe(18);
+    it('should handle edge cases', () => {
+      // Test boundary conditions
     });
   });
 });
@@ -356,35 +291,31 @@ describe('parseNaturalDate', () => {
 **Testing Requirements:**
 
 - Test happy path (typical usage)
-- Test edge cases (boundary days)
-- Verify UTC midnight (hours/minutes/seconds all 0)
-- Test case insensitivity
-- Verify no timezone leaks
+- Test edge cases (boundary values)
+- Test error cases (invalid input)
+- Verify episode numbers are valid (positive integers)
 
 ---
 
-### Step 5: Add Integration Tests
+### Step 2: Add Integration Tests
 
 **Location:** `/src/lib/__tests__/tools.test.ts`
 
 ```typescript
-describe('logWatch with new date pattern', () => {
-  it('should accept "this weekend" as watchedAt parameter', async () => {
+describe('bulkLog with new episode pattern', () => {
+  it('should accept new pattern in episodes parameter', async () => {
     const mockClient = createMockClient();
 
-    const result = await logWatch(mockClient, {
-      type: 'movie',
-      movieName: 'Dune',
-      watchedAt: 'this weekend',
+    const result = await bulkLog(mockClient, {
+      type: 'episodes',
+      showName: 'Breaking Bad',
+      season: 1,
+      episodes: 'your-new-pattern',
+      watchedAt: '2025-12-08',
     });
 
     expect(result.success).toBe(true);
     expect(mockClient.addToHistory).toHaveBeenCalled();
-
-    // Verify the date was parsed correctly
-    const historyCall = mockClient.addToHistory.mock.calls[0][0];
-    const watchedAt = new Date(historyCall.movies[0].watched_at);
-    expect(watchedAt.getUTCDay()).toBe(6); // Saturday
   });
 });
 ```
@@ -398,19 +329,19 @@ describe('logWatch with new date pattern', () => {
 Test your utility functions in isolation:
 
 ```typescript
-describe('parseNaturalDate', () => {
+describe('parseEpisodeRange', () => {
   describe('your new pattern', () => {
     it('should handle happy path', () => {
-      const result = parseNaturalDate('your pattern');
-      // Assert correct behavior
+      const result = parseEpisodeRange('1-5');
+      expect(result).toEqual([1, 2, 3, 4, 5]);
     });
 
     it('should handle edge case 1', () => {
       // Test boundary conditions
     });
 
-    it('should be case-insensitive', () => {
-      expect(parseNaturalDate('YOUR PATTERN')).toBe(parseNaturalDate('your pattern'));
+    it('should reject invalid input', () => {
+      expect(() => parseEpisodeRange('invalid')).toThrow();
     });
   });
 });
@@ -421,8 +352,7 @@ describe('parseNaturalDate', () => {
 - Happy path
 - Edge cases (boundary values)
 - Error cases
-- Case insensitivity
-- UTC consistency
+- Input validation
 
 ---
 
@@ -432,13 +362,13 @@ Test tools using your new pattern:
 
 ```typescript
 describe('logWatch integration', () => {
-  it('should work with new date pattern', async () => {
+  it('should work with ISO 8601 dates', async () => {
     const mockClient = createMockClient();
 
     const result = await logWatch(mockClient, {
       type: 'movie',
       movieName: 'Dune',
-      watchedAt: 'your new pattern',
+      watchedAt: '2025-12-08',
     });
 
     expect(result.success).toBe(true);
@@ -493,8 +423,8 @@ describe('logWatch integration', () => {
 
 **Documentation:**
 
-- [ ] Updated [NATURAL_LANGUAGE_GUIDE.md](./NATURAL_LANGUAGE_GUIDE.md) if needed
-- [ ] Updated error messages to include new patterns
+- [ ] Updated [NATURAL_LANGUAGE_GUIDE.md](./NATURAL_LANGUAGE_GUIDE.md) if adding episode patterns
+- [ ] Updated error messages for new validation rules
 - [ ] Added JSDoc comments to new functions
 - [ ] Created or updated test scripts if applicable
 
@@ -503,7 +433,7 @@ describe('logWatch integration', () => {
 - [ ] Error messages are clear and actionable
 - [ ] Suggestions provided for common errors
 - [ ] Ambiguous inputs handled gracefully
-- [ ] Date parsing is consistent with existing patterns
+- [ ] ISO 8601 date validation is consistent
 - [ ] No surprising behavior or magic
 
 ---
@@ -663,27 +593,27 @@ if (currentDay === targetDay) {
 ```markdown
 ## Description
 
-Add support for "this weekend" date pattern
+Add support for new episode range pattern: "E1-E5,E10"
 
 ## Changes
 
-- Added "this weekend" parsing to `parseNaturalDate()`
-- Returns next Saturday (or today if today is Saturday)
-- Updated error messages to include new pattern
+- Added support for E-prefixed ranges in `parseEpisodeRange()`
+- Handles mixed E-prefix and numeric ranges
+- Updated error messages for invalid patterns
 - Added comprehensive unit tests
-- Added integration tests for `logWatch` with new pattern
+- Added integration tests for `bulkLog` with new pattern
 
 ## Testing
 
-- [x] Unit tests pass (12 new tests added)
-- [x] Integration tests pass (3 new tests added)
+- [x] Unit tests pass (8 new tests added)
+- [x] Integration tests pass (2 new tests added)
 - [x] Manual testing with MCP Inspector completed
-- [x] Tested edge cases (all days of week)
+- [x] Tested edge cases (E-prefix combinations)
 - [x] No regressions in existing functionality
 
 ## Documentation
 
-- [x] Updated docs/guides/NATURAL_LANGUAGE_GUIDE.md
+- [x] Updated docs/guides/NATURAL_LANGUAGE_GUIDE.md if needed
 - [x] Added JSDoc comments
 - [x] Updated error message strings
 
@@ -693,7 +623,7 @@ Add support for "this weekend" date pattern
 - [x] All tests pass (`npm test`)
 - [x] Build succeeds (`npm run build`)
 - [x] No linting errors (`npm run lint`)
-- [x] UTC consistency maintained
+- [x] Episode validation is consistent
 - [x] Error messages are clear and actionable
 ```
 
