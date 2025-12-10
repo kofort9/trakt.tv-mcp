@@ -1,6 +1,35 @@
-# Observability & Telemetry
+# Observability & Tracing
 
-The Trakt MCP server includes comprehensive OpenTelemetry instrumentation for monitoring, debugging, and optimizing the service. Telemetry data is exported to [Honeycomb](https://honeycomb.io) for analysis and visualization.
+The Trakt MCP server includes Langfuse tracing integration for monitoring, debugging, and optimizing the service. Langfuse provides AI-native observability specifically designed for LLM applications and MCP servers.
+
+## Why Langfuse?
+
+After initially implementing OpenTelemetry with Honeycomb, the project migrated to Langfuse for several key reasons:
+
+### AI/LLM-Native Tracing
+- **Purpose-built for AI applications**: Langfuse understands prompts, completions, and agent interactions out of the box
+- **MCP-aware**: Better visibility into tool calls, parameters, and results specific to Model Context Protocol
+- **Prompt engineering insights**: Track how natural language queries are processed and disambiguated
+
+### Simpler Infrastructure
+- **No collector required**: Direct SDK integration without OpenTelemetry Collector infrastructure
+- **Faster setup**: From zero to traced in minutes (just API keys)
+- **Lower operational overhead**: Managed service handles all storage and visualization
+
+### Better Visibility
+- **Structured traces**: Automatic organization by session, tool call, and API request
+- **Rich metadata**: Input/output logging optimized for debugging AI interactions
+- **NLP-specific events**: Track search ambiguity, fuzzy matching, and disambiguation
+
+### Cost Efficiency
+- **Generous free tier**: Suitable for personal projects and small teams
+- **Predictable pricing**: Based on trace volume, not infrastructure
+- **Self-hosted option**: Can run your own Langfuse instance if needed
+
+### Graceful Degradation
+- **Zero dependencies when disabled**: No performance impact without API keys
+- **Fail-safe operation**: Server continues working even if tracing fails
+- **Optional feature**: Tracing is completely opt-in
 
 ## Features
 
@@ -8,371 +37,434 @@ The Trakt MCP server includes comprehensive OpenTelemetry instrumentation for mo
 
 Every MCP tool invocation is automatically traced with:
 
-- **Tool name and parameters** (sensitive data sanitized)
-- **Execution duration** (automatic)
+- **Tool name and parameters** (sanitized for privacy)
+- **Execution duration** (automatic timing)
 - **Success/failure status** with error details
-- **Result metadata** (counts, types, etc.)
+- **Result summary** (counts, types, truncated for large responses)
 
-Example span attributes:
-```
-mcp.tool.name: "search_episode"
-mcp.tool.param.showName: "Breaking Bad"
-mcp.tool.param.season: 1
-mcp.tool.param.episode: 1
-mcp.tool.result.success: true
-mcp.tool.result.type: "episode"
+Example trace attributes:
+```json
+{
+  "name": "mcp.tool.search_episode",
+  "input": {
+    "showName": "Breaking Bad",
+    "season": 1,
+    "episode": 1
+  },
+  "output": {
+    "type": "episode",
+    "success": true
+  },
+  "metadata": {
+    "duration_ms": 152,
+    "success": true
+  }
+}
 ```
 
 ### 2. Trakt API Instrumentation
 
-All Trakt API calls are traced with:
+All Trakt API calls are traced as nested spans with:
 
 - **HTTP method and endpoint** (sanitized for low cardinality)
-- **Response status code and size**
-- **Rate limit information** from response headers
-  - Current usage percentage
-  - Remaining requests
-  - Reset timestamp
-  - Warning when approaching limit (>90%)
-- **Retry attempts** with backoff delays
-- **Cache hit/miss events** with cache keys
+- **Response metadata** (success/failure, duration)
+- **Error details** when requests fail
+- **Result summaries** for debugging
 
-Example span attributes:
-```
-http.method: "GET"
-http.url: "/search/show"
-http.status_code: 200
-trakt.search.query: "Breaking Bad"
-trakt.rate_limit.usage_percent: 15
-trakt.rate_limit.remaining: 850
-cache.hit: true
+Example API span:
+```json
+{
+  "name": "trakt.api",
+  "input": {
+    "method": "GET",
+    "endpoint": "/search/show"
+  },
+  "metadata": {
+    "duration_ms": 145,
+    "http_method": "GET",
+    "http_endpoint": "/search/show",
+    "success": true
+  }
+}
 ```
 
 ### 3. Cache Operations
 
-Cache behavior is tracked at two levels:
+Cache behavior is tracked via events within tool traces:
 
-**Inline Attributes** (added to existing spans):
-- Cache hit/miss indicators
-- Hit counts per entry
-- Expiry reasons (e.g., TTL expired)
+- **Cache hit/miss indicators** with cache keys (truncated for readability)
+- **Tool association** linking cache events to specific operations
 
-**Prune Operations**:
-- Entries removed
-- Memory freed
-- Cache size before/after
-
-Example:
-```
-cache.hit: true
-cache.entry_hits: 5
-cache.prune.entries_removed: 12
-cache.prune.memory_freed: 1048576
+Example cache event:
+```json
+{
+  "name": "cache.hit",
+  "metadata": {
+    "cache_key": "search:show:breaking bad",
+    "tool_name": "search_show"
+  }
+}
 ```
 
-### 4. NLP Event Tracking
+### 4. NLP Ambiguity Tracking
 
 Specialized events track natural language processing patterns:
 
 #### Search Ambiguity
 Tracks when searches return multiple results requiring disambiguation:
 ```typescript
-trackSearchAmbiguity(
-  query: 'The Office',
-  matches: 2,  // US and UK versions
-  needsClarification: true,
-  matchType: 'exact'
+logAmbiguity(
+  'The Office',
+  2,  // US and UK versions
+  true,  // needs clarification
+  'exact'  // match type
 );
 ```
 
-Attributes:
-- `nlp.query`: The search query
-- `nlp.match_count`: Number of matches
-- `nlp.needs_clarification`: Boolean
-- `nlp.ambiguity_level`: "low" | "medium" | "high"
-
-#### Fuzzy Matching
-Records fuzzy match confidence scores:
-```typescript
-trackFuzzyMatch(
-  query: 'Breaking Badd',  // User typo
-  result: 'Breaking Bad',
-  score: 0.92  // High confidence despite typo
-);
+Event attributes:
+```json
+{
+  "name": "nlp.ambiguity",
+  "input": {
+    "query": "The Office"
+  },
+  "metadata": {
+    "match_count": 2,
+    "needs_clarification": true,
+    "match_type": "exact",
+    "ambiguity_level": "medium"
+  }
+}
 ```
 
-#### Query Complexity
-Analyzes search query characteristics:
-```typescript
-trackQueryComplexity('Star Wars Episode IV: A New Hope (1977)');
-```
+**Ambiguity levels**:
+- `none`: 0 matches
+- `low`: 1 match (unambiguous)
+- `medium`: 2-5 matches
+- `high`: 6+ matches
 
-Detects:
-- Word count
-- Presence of years `(1977)`
-- Special characters
-- Parentheses
-- Overall complexity level
-
-#### Search Quality
-Evaluates search result quality:
-```typescript
-trackSearchQuality(
-  query: 'Breaking Bad',
-  resultCount: 1,
-  topMatchScore: 0.95,
-  averageScore: 0.95
-);
-```
-
-Categories: `excellent`, `good`, `fair`, `too_many_results`, `no_results`
+**Match types**:
+- `exact`: Precise title match
+- `fuzzy`: Close match with typos/variations
+- `partial`: Substring or incomplete match
+- `none`: No matches found
 
 ## Configuration
 
 ### Environment Variables
 
 ```bash
-# Required: Honeycomb API key
-HONEYCOMB_API_KEY=your_api_key_here
+# Required: Langfuse API keys
+LANGFUSE_SECRET_KEY=sk-lf-...
+LANGFUSE_PUBLIC_KEY=pk-lf-...
 
-# Optional: Service name (default: "trakt-mcp-server")
-OTEL_SERVICE_NAME=trakt-mcp-server
+# Optional: Langfuse instance URL (defaults to cloud)
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
 
-# Optional: Enable/disable telemetry (default: true if API key present)
-OTEL_ENABLED=true
-
-# Optional: Debug mode for verbose telemetry logging
-OTEL_DEBUG=true
+# Optional: Enable debug logging
+LANGFUSE_DEBUG=true
 ```
 
-### Getting a Honeycomb API Key
+### Getting Langfuse API Keys
 
-1. Sign up at [honeycomb.io](https://honeycomb.io)
-2. Create a new environment (or use existing)
-3. Go to **Account Settings** → **API Keys**
-4. Create a new **Ingest API Key**
-5. Add to your `.env` file or `~/.zshrc`
+#### Option 1: Langfuse Cloud (Recommended)
+
+1. Sign up at [cloud.langfuse.com](https://cloud.langfuse.com)
+2. Create a new project or use existing
+3. Go to **Settings** → **API Keys**
+4. Create a new key pair (public + secret)
+5. Add to your `.env` file or shell profile
+
+#### Option 2: Self-Hosted Langfuse
+
+1. Deploy Langfuse using Docker or Kubernetes ([docs](https://langfuse.com/docs/deployment/self-host))
+2. Access your instance and create a project
+3. Generate API keys from project settings
+4. Set `LANGFUSE_BASE_URL` to your instance URL
 
 ### Setup Example
 
 ```bash
 # Add to .env
-echo "HONEYCOMB_API_KEY=your_key_here" >> .env
+cat >> .env << EOF
+LANGFUSE_SECRET_KEY=sk-lf-your-secret-key-here
+LANGFUSE_PUBLIC_KEY=pk-lf-your-public-key-here
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
+EOF
 
 # Or add to shell profile (persistent across sessions)
-echo 'export HONEYCOMB_API_KEY="your_key_here"' >> ~/.zshrc
+echo 'export LANGFUSE_SECRET_KEY="sk-lf-your-secret-key-here"' >> ~/.zshrc
+echo 'export LANGFUSE_PUBLIC_KEY="pk-lf-your-public-key-here"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
-## Using Honeycomb
+## Using Langfuse
+
+### Trace Structure
+
+Traces are organized hierarchically:
+
+```
+mcp-session (trace)
+  ├─ mcp.tool.search_show (span)
+  │   ├─ trakt.api (span)
+  │   └─ cache.hit (event)
+  ├─ nlp.ambiguity (event)
+  └─ mcp.tool.log_watch (span)
+      └─ trakt.api (span)
+```
+
+### Viewing Traces
+
+In the Langfuse UI:
+
+1. **Traces View**: See all MCP sessions with tool calls
+2. **Span Details**: Drill into individual operations
+3. **Input/Output**: Review parameters and results
+4. **Metadata**: Analyze duration, success rates, errors
+5. **Events**: Track cache operations and NLP patterns
 
 ### Example Queries
 
-#### Find slow tool operations
+Langfuse provides powerful filtering and aggregation:
+
+#### Find Slow Tool Operations
 ```
-AVG(duration_ms) > 1000
-GROUP BY mcp.tool.name
+Filter: name = "mcp.tool.*"
+Sort: metadata.duration_ms DESC
 ```
 
-#### Identify high cache miss rates
+#### Track Cache Effectiveness
 ```
-WHERE cache.miss = true
-GROUP BY trakt.search.query
-COUNT
-```
-
-#### Track API rate limit usage
-```
-P99(trakt.rate_limit.usage_percent)
-GROUP BY trakt.api_version
+Filter: name = "cache.hit" OR name = "cache.miss"
+Group by: tool_name
 ```
 
-#### Analyze search ambiguity patterns
+#### Analyze Search Ambiguity
 ```
-WHERE nlp.needs_clarification = true
-GROUP BY nlp.ambiguity_level
-COUNT
+Filter: name = "nlp.ambiguity"
+Group by: metadata.ambiguity_level
 ```
 
-#### Find retry attempts
+#### Error Rate Monitoring
 ```
-WHERE EXISTS(trakt.retry.attempt)
-GROUP BY http.url
-MAX(trakt.retry.attempt)
+Filter: level = "ERROR"
+Group by: name
+Count by day
 ```
 
 ### Useful Dashboards
 
 **Performance Dashboard**:
 - P50, P95, P99 latencies by tool
-- API call success rates
-- Cache hit rates
+- Tool call volume over time
+- Error rates and types
 
 **NLP Dashboard**:
 - Search ambiguity frequency
-- Query complexity distribution
-- Fuzzy match confidence trends
+- Match type distribution
+- Disambiguation success rate
 
-**Health Dashboard**:
-- API rate limit usage trends
-- Error rates by error code
-- Retry frequency
+**API Health Dashboard**:
+- Trakt API call success rates
+- Response times
+- Error patterns
 
 ## Privacy & Security
 
 ### Data Sanitization
 
-The telemetry system automatically sanitizes sensitive data:
+The tracing system automatically protects sensitive data:
 
-**Sensitive Parameters** (redacted):
-- `token`, `accessToken`, `refreshToken`
-- `apiKey`, `clientSecret`
-- `password`, `secret`
-
-**Long Strings** (truncated):
-- Strings >500 characters are truncated with "... (truncated)" suffix
+**Result Truncation**:
+- Strings >500 characters are truncated with "...[truncated]" suffix
+- Large arrays show only length and first 3 items
+- Complex objects are summarized to prevent data leakage
 
 **Example**:
 ```typescript
-// Input
-{ query: 'Breaking Bad', token: 'secret-token-123' }
+// Large result
+{ results: [/* 50 items */] }
 
-// Sent to Honeycomb
-{ query: 'Breaking Bad', token: '[REDACTED]' }
+// Sent to Langfuse
+{
+  type: "array",
+  length: 50,
+  sample: [item1, item2, item3]
+}
 ```
 
-### No PII Collection
+### What We DO NOT Collect
 
-The instrumentation does NOT collect:
-- User email addresses
-- IP addresses
-- Authentication credentials
+The instrumentation avoids collecting:
+- User authentication tokens (never passed to tracing)
 - Personal viewing history details (only aggregated metrics)
+- Complete API responses (truncated/summarized)
+- Trakt API credentials
+
+### What We DO Collect
+
+For debugging and optimization:
+- Tool names and sanitized parameters
+- Search queries and episode identifiers
+- Success/failure indicators
+- Timing and performance metrics
+- Error messages (without sensitive context)
 
 ## Performance Impact
 
-Telemetry is designed for minimal overhead:
+Tracing is designed for minimal overhead:
 
 - **<5ms per operation** on average
-- **Async export** - no blocking of requests
-- **Graceful degradation** - disabled if HONEYCOMB_API_KEY not set
-- **Efficient span creation** - only when telemetry enabled
+- **Async operation** - tracing does not block tool execution
+- **Graceful degradation** - completely disabled without API keys
+- **Efficient span creation** - only when tracing is enabled
 
-Benchmarks (before/after telemetry):
+Performance comparison (before/after tracing):
 ```
-Search operation (cached):    ~2ms  → ~2.3ms  (+15%)
+Search operation (cached):    ~2ms  → ~2.5ms   (+25%)
 Search operation (uncached):  ~150ms → ~152ms  (+1.3%)
-Tool invocation overhead:     ~1ms  → ~3ms    (+2ms)
+Tool invocation overhead:     ~1ms  → ~2ms     (+1ms)
 ```
 
 ## Troubleshooting
 
-### Telemetry Not Working
+### Tracing Not Working
 
-1. **Check API key is set**:
+1. **Check API keys are set**:
    ```bash
-   echo $HONEYCOMB_API_KEY
+   echo $LANGFUSE_SECRET_KEY
+   echo $LANGFUSE_PUBLIC_KEY
    ```
 
-2. **Verify telemetry initialization**:
-   Look for log message:
+2. **Verify initialization in logs**:
+   Look for stderr message:
    ```
-   [Telemetry] Initialized successfully (service: trakt-mcp-server)
+   [LANGFUSE] Initialized successfully (baseUrl: https://cloud.langfuse.com)
    ```
 
 3. **Enable debug mode**:
    ```bash
-   export OTEL_DEBUG=true
+   export LANGFUSE_DEBUG=true
    ```
 
-### No Data in Honeycomb
+### No Data in Langfuse
 
-1. **Check environment name** matches your Honeycomb setup
-2. **Verify API key permissions** (needs "Send Events")
-3. **Wait 30-60 seconds** for first data to appear
-4. **Check for errors** in console output
+1. **Check API key validity** in Langfuse project settings
+2. **Verify baseUrl** matches your instance (cloud vs self-hosted)
+3. **Wait 10-30 seconds** for async flush to complete
+4. **Check for errors** in stderr output
+5. **Verify project is active** and not archived
 
-### High Memory Usage
+### Trace Data Missing
 
-If telemetry causes memory issues:
+If traces appear but lack detail:
 
-1. **Reduce sampling rate** (future feature):
+1. **Check span creation** - ensure tools are wrapped with `traceToolCall()`
+2. **Verify currentTrace** is set at session start
+3. **Review flush timing** - traces flush on `endTrace()` or `shutdown()`
+
+### Performance Issues
+
+If tracing causes performance problems:
+
+1. **Disable temporarily**:
    ```bash
-   export OTEL_SAMPLING_RATE=0.1  # 10% sampling
+   unset LANGFUSE_SECRET_KEY
+   unset LANGFUSE_PUBLIC_KEY
    ```
 
-2. **Disable telemetry temporarily**:
+2. **Reduce trace volume** (future feature):
    ```bash
-   export OTEL_ENABLED=false
+   export LANGFUSE_SAMPLING_RATE=0.1  # 10% sampling
    ```
 
-3. **Check for span leaks** (report as bug if found)
+3. **Check network latency** to Langfuse instance
 
 ## Development
 
-### Testing Telemetry
+### Testing Tracing
 
-Run telemetry-specific tests:
+Tracing works with or without Langfuse configured:
+
 ```bash
-npm test -- src/lib/__tests__/telemetry
+# Test without tracing (should work identically)
+npm test
+
+# Test with tracing enabled (requires API keys)
+export LANGFUSE_SECRET_KEY=sk-lf-test-key
+export LANGFUSE_PUBLIC_KEY=pk-lf-test-key
+npm test
 ```
 
-### Adding New Instrumentation
+### Adding Tracing to a New Tool
 
-#### Instrument a new MCP tool:
+Wrap tool operations in `traceToolCall()`:
+
 ```typescript
-import { traceMcpTool, addToolParams } from './telemetry/mcp-tracer.js';
+import { traceToolCall } from './langfuse.js';
 
 export async function myNewTool(client: TraktClient, args: MyArgs) {
-  return await traceMcpTool('my_new_tool', async (span) => {
-    // Add parameters to span
-    addToolParams(span, args);
-
+  return await traceToolCall('my_new_tool', args, async () => {
     // Your tool logic here
     const result = await doWork();
-
-    // Add result metadata
-    span.setAttribute('mcp.tool.result.success', true);
-    span.setAttribute('mcp.tool.result.count', result.length);
-
     return result;
   });
 }
 ```
 
-#### Track a new NLP pattern:
-```typescript
-import { trackSearchAmbiguity } from './telemetry/nlp-events.js';
+The function automatically:
+- Creates a span with tool name and parameters
+- Records execution duration
+- Captures errors with proper error levels
+- Summarizes results before logging
 
-// In your search logic
+### Adding API Call Tracing
+
+Wrap Trakt API calls in `traceApiCall()`:
+
+```typescript
+import { traceApiCall } from './langfuse.js';
+
+async function fetchData() {
+  return await traceApiCall('GET', '/my/endpoint', async () => {
+    const response = await axios.get('/my/endpoint');
+    return response.data;
+  });
+}
+```
+
+### Logging NLP Events
+
+Track ambiguity in search results:
+
+```typescript
+import { logAmbiguity } from './langfuse.js';
+
 if (results.length > 1) {
-  trackSearchAmbiguity(
+  logAmbiguity(
     query,
     results.length,
     !hasDisambiguationHint,
-    'exact',
-    { 'custom.attribute': 'value' }
+    'exact'
   );
 }
 ```
 
-#### Add API call tracing:
+### Logging Cache Events
+
+Track cache hits and misses:
+
 ```typescript
-import { traceTraktApiCall, addCacheInfo } from './telemetry/trakt-tracer.js';
+import { logCacheEvent } from './langfuse.js';
 
-async function myApiCall() {
-  return await traceTraktApiCall('GET', '/my/endpoint', async (span) => {
-    // Check cache
-    const cached = cache.get(key);
-    if (cached) {
-      addCacheInfo(span, true, key);
-      return cached;
-    }
-
-    // Make API call
-    const result = await axios.get('/my/endpoint');
-    return result.data;
-  });
+const cached = cache.get(key);
+if (cached) {
+  logCacheEvent('hit', key, 'search_show');
+  return cached;
+} else {
+  logCacheEvent('miss', key, 'search_show');
+  // Fetch from API...
 }
 ```
 
@@ -383,47 +475,95 @@ async function myApiCall() {
 ```
 index.ts (startup)
   ↓
-initTelemetry()
+langfuse.ts initialization (lazy)
   ↓
-NodeSDK.start()
+getLangfuse() checks env vars
   ↓
-OTLPTraceExporter → Honeycomb
+Langfuse SDK initialized (or null if keys missing)
 ```
 
-### Span Hierarchy
+### Trace Lifecycle
 
 ```
-mcp.tool.search_episode (root span)
-  ├─ trakt.api.get./search/show (API call)
-  │   └─ cache.get (cache check)
-  └─ trakt.api.get./shows/{slug}/seasons/{season}/episodes/{episode}
-      └─ cache.get (cache check)
+startTrace() - Begin MCP session
+  ↓
+traceToolCall() - Wrap tool operations
+  ├─ traceApiCall() - Wrap API requests
+  └─ logAmbiguity() - Log NLP events
+  ↓
+endTrace() - Flush and close session
 ```
 
 ### Module Structure
 
 ```
-src/lib/telemetry/
-├── config.ts           # OpenTelemetry SDK initialization
-├── mcp-tracer.ts       # MCP tool tracing utilities
-├── trakt-tracer.ts     # Trakt API tracing utilities
-└── nlp-events.ts       # NLP event tracking
+src/lib/
+├── langfuse.ts           # Langfuse integration (all-in-one)
+├── tools.ts              # MCP tools (traced)
+├── trakt-client.ts       # API client (traced)
+└── cache.ts              # Cache (logged via events)
+```
+
+### Graceful Degradation
+
+When Langfuse is not configured:
+
+1. `getLangfuse()` returns `null`
+2. All tracing functions check for `null` and return early
+3. Operations proceed without tracing overhead
+4. Zero performance impact
+
+```typescript
+export async function traceToolCall<T>(
+  toolName: string,
+  params: Record<string, unknown>,
+  operation: () => Promise<T>
+): Promise<T> {
+  const langfuse = getLangfuse();
+  if (!langfuse) {
+    return operation();  // No tracing, zero overhead
+  }
+  // ... tracing logic
+}
 ```
 
 ## Future Enhancements
 
 Planned improvements:
 
-- [ ] Metrics export (cache hit rate, error rate, etc.)
-- [ ] Sampling rate configuration
-- [ ] Custom span processors for advanced filtering
-- [ ] Trace correlation with user sessions
-- [ ] Performance budgets with alerts
+- [ ] Sampling rate configuration for high-volume deployments
 - [ ] Automatic anomaly detection integration
+- [ ] Custom metadata for user sessions
+- [ ] Integration with Langfuse Prompt Management
+- [ ] Cost tracking per tool/API call
+- [ ] A/B testing support for NLP disambiguation strategies
+
+## Migration from OpenTelemetry
+
+This project originally used OpenTelemetry with Honeycomb. The migration to Langfuse simplified the architecture while improving AI-specific observability:
+
+**What Changed**:
+- Removed OpenTelemetry SDK dependencies
+- Removed OTLP exporter configuration
+- Simplified configuration (no collector needed)
+- Improved AI-native trace visualization
+
+**What Stayed the Same**:
+- Same tracing coverage (tools, API, cache, NLP)
+- Same privacy protections (sanitization, truncation)
+- Same graceful degradation behavior
+- Same performance characteristics
+
+**For Existing Users**:
+If you were using OpenTelemetry:
+1. Remove old environment variables: `HONEYCOMB_API_KEY`, `OTEL_SERVICE_NAME`, `OTEL_ENABLED`
+2. Add Langfuse keys: `LANGFUSE_SECRET_KEY`, `LANGFUSE_PUBLIC_KEY`
+3. Restart the server - tracing continues automatically
 
 ## References
 
-- [OpenTelemetry Documentation](https://opentelemetry.io/docs/)
-- [Honeycomb Guide](https://docs.honeycomb.io/)
-- [Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/)
-- [Trakt API Rate Limits](https://trakt.docs.apiary.io/#introduction/rate-limiting)
+- [Langfuse Documentation](https://langfuse.com/docs)
+- [Langfuse Tracing Guide](https://langfuse.com/docs/tracing)
+- [Langfuse Self-Hosting](https://langfuse.com/docs/deployment/self-host)
+- [Model Context Protocol](https://modelcontextprotocol.io/)
+- [Trakt API Documentation](https://trakt.docs.apiary.io/)

@@ -10,6 +10,9 @@ import { Langfuse } from 'langfuse';
 // Debug mode - set to true to see Langfuse logging
 const DEBUG = process.env.LANGFUSE_DEBUG === 'true';
 
+// Maximum length for string values in traces before truncation
+const MAX_TRACE_STRING_LENGTH = 500;
+
 /**
  * Log to stderr (MCP servers must use stderr for logs, stdout is for protocol)
  */
@@ -331,7 +334,9 @@ function summarizeResult(result: unknown): unknown {
   if (result === null || result === undefined) return result;
 
   if (typeof result === 'string') {
-    return result.length > 500 ? result.substring(0, 500) + '...[truncated]' : result;
+    return result.length > MAX_TRACE_STRING_LENGTH
+      ? result.substring(0, MAX_TRACE_STRING_LENGTH) + '...[truncated]'
+      : result;
   }
 
   if (Array.isArray(result)) {

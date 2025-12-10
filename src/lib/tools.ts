@@ -7,6 +7,7 @@ import {
   createToolError,
   createToolSuccess,
   validateNonEmptyString,
+  validateISO8601Date,
   handleSearchDisambiguation,
   sanitizeError,
   ToolError,
@@ -113,6 +114,9 @@ export async function logWatch(
 ): Promise<ToolSuccess<TraktHistoryAddResponse> | ToolError | DisambiguationResponse> {
   try {
     const { type, showName, movieName, season, episode, watchedAt, year, traktId } = args;
+
+    // Validate ISO 8601 format for watchedAt
+    validateISO8601Date(watchedAt, 'watchedAt');
 
     // watchedAt accepts ISO 8601 format only (YYYY-MM-DD or full timestamp)
     // Claude handles natural language → ISO conversion
@@ -254,6 +258,9 @@ export async function bulkLog(
 ): Promise<ToolSuccess<TraktHistoryAddResponse> | ToolError | DisambiguationResponse> {
   try {
     const { type, showName, movieNames, season, episodes, watchedAt, year, traktId } = args;
+
+    // Validate ISO 8601 format for watchedAt
+    validateISO8601Date(watchedAt, 'watchedAt');
 
     // watchedAt accepts ISO 8601 format only
     const watched_at = watchedAt || new Date().toISOString();
@@ -424,6 +431,10 @@ export async function getHistory(
   try {
     const { type, startDate, endDate, limit } = args;
 
+    // Validate ISO 8601 format for date parameters
+    validateISO8601Date(startDate, 'startDate');
+    validateISO8601Date(endDate, 'endDate');
+
     // startDate/endDate accept ISO 8601 format directly
     // Claude handles natural language → ISO conversion
 
@@ -478,6 +489,10 @@ export async function summarizeHistory(
 ): Promise<ToolSuccess<TraktHistorySummary> | ToolError> {
   try {
     const { startDate, endDate } = args;
+
+    // Validate ISO 8601 format for date parameters
+    validateISO8601Date(startDate, 'startDate');
+    validateISO8601Date(endDate, 'endDate');
 
     // startDate/endDate accept ISO 8601 format directly
     // Claude handles natural language → ISO conversion

@@ -115,6 +115,32 @@ export function validateNonEmptyString(value: string | undefined, paramName: str
 }
 
 /**
+ * Validate ISO 8601 date format
+ * Accepts two formats:
+ * - Date only: YYYY-MM-DD (e.g., "2025-12-08")
+ * - Full timestamp: YYYY-MM-DDTHH:MM:SS.sssZ (e.g., "2025-12-08T20:30:00.000Z")
+ */
+export function validateISO8601Date(value: string | undefined, paramName: string): void {
+  if (!value) return; // Optional parameter - skip if not provided
+
+  const iso8601Pattern = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?)?$/;
+
+  if (!iso8601Pattern.test(value)) {
+    throw new Error(
+      `${paramName} must be in ISO 8601 format (YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS.SSSZ), got: "${value}"`
+    );
+  }
+
+  // Additional validation: ensure it's a valid date
+  const date = new Date(value);
+  if (isNaN(date.getTime())) {
+    throw new Error(
+      `${paramName} is not a valid date: "${value}". Example valid formats: "2025-12-08" or "2025-12-08T20:30:00.000Z"`
+    );
+  }
+}
+
+/**
  * Sanitize error messages for user consumption
  * Maps common API errors to user-friendly messages while logging full errors server-side
  */
