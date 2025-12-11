@@ -15,7 +15,7 @@ MCP server for Trakt.tv API - enables AI assistants to track watched shows, movi
 - **Search**: Find movies, TV shows, and anime on Trakt.tv
 - **Smart Disambiguation**: Automatically handles content with multiple versions or years
 - **OAuth 2.0 Authentication**: Secure integration with your Trakt.tv account
-- **OpenTelemetry Instrumentation**: Comprehensive observability with Honeycomb integration ([see docs](docs/observability.md))
+- **Langfuse Observability**: Comprehensive AI-native tracing and monitoring ([see docs](docs/observability.md))
 
 ## Quick Start
 
@@ -67,6 +67,21 @@ This server is designed for AI assistant integration. See [Contributing Guide - 
 - **Platform Notes**:
   - Permission enforcement is active on Linux and macOS (POSIX).
   - On Windows, file permissions are not strictly enforced by `chmod`. Ensure the log directory is in a secure, user-specific location.
+
+### Token Storage
+
+- **Location**: OAuth tokens are stored in `~/.trakt-mcp/.trakt-token.json`
+- **Permissions**: Token file is created with `0o600` (owner read/write only)
+- **Directory**: Parent directory created with `0o700` (owner only)
+
+### OAuth Authentication
+
+The OAuth device flow includes safeguards against race conditions:
+
+- **Concurrent Polling Prevention**: Only one polling operation can run at a time
+- **Cancellation Support**: Use `cancelPolling()` to abort an in-flight authentication
+- **State Inspection**: Check `isPollingInProgress()` before starting new polls
+- **Automatic Cleanup**: Polling state is always reset after completion or error
 
 ## Development
 

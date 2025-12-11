@@ -508,24 +508,53 @@ src/lib/
 
 When Langfuse is not configured:
 
-1. `getLangfuse()` returns `null`
-2. All tracing functions check for `null` and return early
+1. `isEnabled()` returns `false`
+2. All tracing functions check enabled state and return early
 3. Operations proceed without tracing overhead
 4. Zero performance impact
 
 ```typescript
-export async function traceToolCall<T>(
-  toolName: string,
-  params: Record<string, unknown>,
-  operation: () => Promise<T>
-): Promise<T> {
-  const langfuse = getLangfuse();
-  if (!langfuse) {
-    return operation();  // No tracing, zero overhead
-  }
-  // ... tracing logic
+// Using the class-based tracer
+const tracer = createLangfuseTracer();
+
+if (!tracer.isEnabled()) {
+  // No API keys configured - operations work without tracing
 }
+
+// Or using the default singleton (backward compatible)
+import { traceToolCall, isLangfuseEnabled } from './langfuse.js';
+
+if (!isLangfuseEnabled()) {
+  // Tracing disabled
+}
+
+// traceToolCall automatically handles disabled state
+const result = await traceToolCall('my_tool', params, operation);
 ```
+
+### Class-Based Architecture
+
+The Langfuse integration uses a class-based pattern for better testability:
+
+```typescript
+import { createLangfuseTracer, LangfuseTracer } from './langfuse.js';
+
+// Create a tracer instance (can inject config for testing)
+const tracer = createLangfuseTracer({
+  secretKey: 'sk-lf-...',
+  publicKey: 'pk-lf-...',
+  baseUrl: 'https://cloud.langfuse.com'
+});
+
+// Or use default singleton (reads from env vars)
+import { defaultTracer } from './langfuse.js';
+```
+
+This enables:
+- **Test isolation**: Create separate tracers per test without shared state
+- **Dependency injection**: Pass tracer instances to functions
+- **Multiple instances**: Support different Langfuse projects simultaneously
+- **Backward compatibility**: Existing code using function exports continues to work
 
 ## Future Enhancements
 

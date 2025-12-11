@@ -88,3 +88,84 @@ The cache uses a heuristic-based size estimation function that **does not** refl
 **Implication**: The reported `memoryBytesUsed` metric is an approximation suitable for setting soft limits and monitoring trends, but should not be treated as an exact measurement of actual heap memory consumption.
 
 For precise memory profiling, use Node.js heap snapshots or `process.memoryUsage()`.
+
+## Performance Benchmarks
+
+The cache implementation is validated against these performance targets:
+
+### Success Criteria
+
+| Metric | Target | Typical Result |
+|--------|--------|----------------|
+| Cache Hit Rate | >30% for repeated searches | 75-80% |
+| Memory Usage | <50MB for 500 entries | <1MB |
+| Per-Request Overhead | <2ms | ~0.02ms |
+| Cache Miss Overhead | Minimal | ~0.02ms |
+
+### Benchmark Results
+
+These benchmarks run automatically as part of the test suite (`npm test`):
+
+```
+=== Cache Hit Rate Benchmark ===
+Total Requests: 100
+Cache Hits: 80
+Cache Misses: 20
+Hit Rate: 80.00%
+Target: >30%
+Status: PASS
+
+=== Memory Usage Benchmark ===
+Cache Entries: 500
+Heap Memory Used: <1 MB
+Target: <50 MB
+Status: PASS
+
+=== Cache Overhead Benchmark ===
+Iterations: 10
+Average Overhead: 0.023 ms
+Min: 0.019 ms
+Max: 0.035 ms
+Target: <2 ms
+Status: PASS
+
+=== LRU Eviction Test ===
+Cache Size: 500 (max: 500)
+Evictions: 1
+Status: LRU eviction working correctly
+```
+
+### Running Benchmarks
+
+Benchmarks are included in the standard test suite:
+
+```bash
+# Run all tests including benchmarks
+npm test
+
+# Run only cache performance tests
+npm test -- --testNamePattern="Cache Performance"
+```
+
+### Real-World Performance
+
+With the 80/20 access pattern (80% of requests hit 20% of content):
+
+- Expected hit rate: >60%
+- Observed hit rate: 75-80%
+- Memory footprint: Minimal (<1MB for typical usage)
+
+### Telemetry Integration
+
+Cache operations are automatically tracked via Langfuse when enabled:
+
+```typescript
+// Automatic cache event logging
+logCacheEvent('hit', cacheKey, 'search_show');
+logCacheEvent('miss', cacheKey, 'search_show');
+```
+
+View cache performance in Langfuse:
+- Filter by `name = "cache.hit"` or `name = "cache.miss"`
+- Group by tool name to see hit rates per operation
+- Track cache effectiveness over time
