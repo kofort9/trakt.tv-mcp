@@ -125,18 +125,41 @@ export function validateISO8601Date(value: string | undefined, paramName: string
 
   const iso8601Pattern = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?)?$/;
 
+  // Check format first
   if (!iso8601Pattern.test(value)) {
     throw new Error(
-      `${paramName} must be in ISO 8601 format (YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS.SSSZ), got: "${value}"`
+      `${paramName} must be in ISO 8601 format (YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS.SSSZ). ` +
+        `Got invalid format: "${value}". Examples: "2025-12-08" or "2025-12-08T20:30:00.000Z"`
     );
   }
 
-  // Additional validation: ensure it's a valid date
+  // Extract date parts for strict validation
+  const datePart = value.split('T')[0];
+  const [yearStr, monthStr, dayStr] = datePart.split('-');
+  const year = parseInt(yearStr, 10);
+  const month = parseInt(monthStr, 10);
+  const day = parseInt(dayStr, 10);
+
+  // Validate month range
+  if (month < 1 || month > 12) {
+    throw new Error(
+      `${paramName} has invalid month: ${monthStr}. Month must be between 01 and 12.`
+    );
+  }
+
+  // Validate day range for the specific month
+  const daysInMonth = new Date(year, month, 0).getDate();
+  if (day < 1 || day > daysInMonth) {
+    throw new Error(
+      `${paramName} has invalid day: ${dayStr} for month ${monthStr}. ` +
+        `${monthStr}/${year} has ${daysInMonth} days.`
+    );
+  }
+
+  // Final validation - ensure Date parsing succeeds
   const date = new Date(value);
   if (isNaN(date.getTime())) {
-    throw new Error(
-      `${paramName} is not a valid date: "${value}". Example valid formats: "2025-12-08" or "2025-12-08T20:30:00.000Z"`
-    );
+    throw new Error(`${paramName} could not be parsed as a valid date: "${value}".`);
   }
 }
 

@@ -219,21 +219,43 @@ describe('utils', () => {
         expect(() => validateISO8601Date('2020-02-29', 'watchedAt')).not.toThrow();
       });
 
-      it('should accept dates that JavaScript auto-corrects', () => {
-        // Note: JavaScript Date is lenient and auto-corrects invalid dates
-        // 2023-02-29 becomes 2023-03-01, 2025-04-31 becomes 2025-05-01
-        // The validation function checks format and parseability, not logical correctness
-        expect(() => validateISO8601Date('2023-02-29', 'watchedAt')).not.toThrow();
-        expect(() => validateISO8601Date('2025-02-29', 'watchedAt')).not.toThrow();
-        expect(() => validateISO8601Date('2025-04-31', 'watchedAt')).not.toThrow();
-        expect(() => validateISO8601Date('2025-06-31', 'watchedAt')).not.toThrow();
+      it('should reject invalid months', () => {
+        expect(() => validateISO8601Date('2025-13-01', 'watchedAt')).toThrow(
+          'watchedAt has invalid month: 13. Month must be between 01 and 12.'
+        );
+        expect(() => validateISO8601Date('2025-00-01', 'watchedAt')).toThrow(
+          'watchedAt has invalid month: 00. Month must be between 01 and 12.'
+        );
       });
 
-      it('should reject truly invalid dates that cannot be parsed', () => {
-        // These produce Invalid Date in JavaScript
-        expect(() => validateISO8601Date('2025-13-01', 'watchedAt')).toThrow(/is not a valid date/);
-        expect(() => validateISO8601Date('invalid-date', 'watchedAt')).toThrow(
-          /must be in ISO 8601 format/
+      it('should reject invalid days for specific months', () => {
+        // February in non-leap year
+        expect(() => validateISO8601Date('2023-02-29', 'watchedAt')).toThrow(
+          'watchedAt has invalid day: 29 for month 02. 02/2023 has 28 days.'
+        );
+        expect(() => validateISO8601Date('2025-02-29', 'watchedAt')).toThrow(
+          'watchedAt has invalid day: 29 for month 02. 02/2025 has 28 days.'
+        );
+
+        // April has 30 days
+        expect(() => validateISO8601Date('2025-04-31', 'watchedAt')).toThrow(
+          'watchedAt has invalid day: 31 for month 04. 04/2025 has 30 days.'
+        );
+
+        // June has 30 days
+        expect(() => validateISO8601Date('2025-06-31', 'watchedAt')).toThrow(
+          'watchedAt has invalid day: 31 for month 06. 06/2025 has 30 days.'
+        );
+
+        // February with day 30
+        expect(() => validateISO8601Date('2024-02-30', 'watchedAt')).toThrow(
+          'watchedAt has invalid day: 30 for month 02. 02/2024 has 29 days.'
+        );
+      });
+
+      it('should reject invalid day 00', () => {
+        expect(() => validateISO8601Date('2025-01-00', 'watchedAt')).toThrow(
+          'watchedAt has invalid day: 00 for month 01. 01/2025 has 31 days.'
         );
       });
 
