@@ -139,6 +139,7 @@ describe('langfuse tracer integration (stub transport)', () => {
       publicKey: 'stub-public',
       baseUrl: 'https://stub.langfuse.local',
     });
+    await (tracer as any).healthCheckPromise;
     const state = await getFakeState();
 
     expect(tracer.isEnabled()).toBe(true);
@@ -183,5 +184,46 @@ describe('langfuse tracer integration (stub transport)', () => {
     });
     expect(state.flushes).toBe(1);
     expect(tracer.getLastFlushDurationMs()).not.toBeNull();
+  });
+
+  it('keeps async trace context even if another context clears currentTrace', async () => {
+    const tracer = createLangfuseTracer({
+      secretKey: 'stub-secret',
+      publicKey: 'stub-public',
+    });
+    await (tracer as any).healthCheckPromise;
+    const state = await getFakeState();
+
+    let fastDone: () => void = () => {};
+    const fastFinished = new Promise<void>((resolve) => {
+      fastDone = resolve;
+    });
+
+    const slowTrace = async () => {
+      tracer.startTrace('slow-trace');
+      await fastFinished; // ensure the other context ends and clears currentTrace
+      await tracer.traceToolCall('slow_tool', {}, async () => 'slow-ok');
+      await tracer.endTrace();
+    };
+
+    const fastTrace = async () => {
+      tracer.startTrace('fast-trace');
+      await tracer.traceToolCall('fast_tool', {}, async () => 'fast-ok');
+      await tracer.endTrace(); // sets currentTrace = null in its own context
+      fastDone();
+    };
+
+    await Promise.all([slowTrace(), fastTrace()]);
+
+    expect(state.spans).toContainEqual({
+      trace: 'slow-trace',
+      name: 'mcp.tool.slow_tool',
+      input: {},
+    });
+    expect(state.spans).toContainEqual({
+      trace: 'fast-trace',
+      name: 'mcp.tool.fast_tool',
+      input: {},
+    });
   });
 });

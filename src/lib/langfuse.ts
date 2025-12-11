@@ -26,6 +26,13 @@ function debugLog(message: string, ...args: unknown[]) {
   }
 }
 
+function shouldSkipHealthCheck(): boolean {
+  const override = process.env.LANGFUSE_HEALTH_CHECK; // 'force' | 'skip' | undefined
+  if (override === 'force') return false;
+  if (override === 'skip') return true;
+  return process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+}
+
 /**
  * Configuration for LangfuseTracer
  */
@@ -42,7 +49,8 @@ export interface LangfuseTracerConfig {
 export class LangfuseTracer {
   private langfuse: Langfuse | null = null;
   private currentTrace: LangfuseTraceClient | null = null;
-  private healthCheckPromise: Promise<void> | null = null;
+  private activeTraces = new Set<LangfuseTraceClient>();
+  private healthCheckPromise: Promise<void> = Promise.resolve();
   private traceContext = new AsyncLocalStorage<LangfuseTraceClient | null>();
   private lastFlushDurationMs: number | null = null;
 
@@ -68,6 +76,7 @@ export class LangfuseTracer {
 
     if (!secretKey || !publicKey) {
       log('Not configured - missing LANGFUSE_SECRET_KEY or LANGFUSE_PUBLIC_KEY');
+      this.healthCheckPromise = Promise.resolve();
       return;
     }
 
@@ -77,10 +86,11 @@ export class LangfuseTracer {
         publicKey,
         baseUrl,
       });
-      log(`Initialized successfully (baseUrl: ${baseUrl})`);
       this.healthCheckPromise = this.runHealthCheck();
+      log(`Initialized successfully (baseUrl: ${baseUrl})`);
     } catch (error) {
       log('Failed to initialize:', error);
+      this.healthCheckPromise = Promise.resolve();
     }
   }
 
@@ -89,6 +99,12 @@ export class LangfuseTracer {
    */
   private async runHealthCheck(): Promise<void> {
     if (!this.langfuse) return;
+
+    // Skip network calls in test environments to avoid flakiness
+    if (shouldSkipHealthCheck()) {
+      debugLog('Skipping Langfuse health check (test env or override)');
+      return;
+    }
 
     try {
       debugLog('Running Langfuse health check...');
@@ -104,6 +120,7 @@ export class LangfuseTracer {
         error
       );
       this.langfuse = null;
+      this.activeTraces.clear();
       this.currentTrace = null;
     }
   }
@@ -126,12 +143,23 @@ export class LangfuseTracer {
    * Resolve active trace using async context to avoid cross-request mixing
    */
   private getActiveTrace(): LangfuseTraceClient | null {
-    // If currentTrace is explicitly null, that takes precedence (trace was ended)
-    // Otherwise, check the async context for trace propagation
-    if (this.currentTrace === null) {
-      return null;
+    // Prefer async context (AsyncLocalStorage) so concurrent traces remain isolated
+    const asyncTrace = this.traceContext.getStore();
+    if (asyncTrace !== undefined && asyncTrace !== null) {
+      return asyncTrace;
     }
-    return this.traceContext.getStore() ?? this.currentTrace;
+
+    // If only one trace is active, use it as a safe fallback for orphaned contexts
+    if (this.activeTraces.size === 1) {
+      return [...this.activeTraces][0];
+    }
+
+    // Fall back to instance-level trace only if it is still active
+    if (this.currentTrace && this.activeTraces.has(this.currentTrace)) {
+      return this.currentTrace;
+    }
+
+    return null;
   }
 
   /**
@@ -147,6 +175,7 @@ export class LangfuseTracer {
       name,
       metadata,
     });
+    this.activeTraces.add(this.currentTrace);
     this.traceContext.enterWith(this.currentTrace);
 
     log(`Started trace: ${name}`);
@@ -157,7 +186,8 @@ export class LangfuseTracer {
    * Get the current active trace
    */
   getCurrentTrace(): LangfuseTraceClient | null {
-    return this.getActiveTrace();
+    // This reflects the instance state only (not async context)
+    return this.currentTrace;
   }
 
   /**
@@ -172,52 +202,61 @@ export class LangfuseTracer {
       return operation();
     }
 
-    // Create a span for this tool call
     const activeTrace = this.getActiveTrace();
-    const span = activeTrace
-      ? activeTrace.span({
-          name: `mcp.tool.${toolName}`,
-          input: params,
-        })
-      : this.langfuse.span({
-          name: `mcp.tool.${toolName}`,
-          input: params,
-        });
 
     const startTime = Date.now();
 
-    try {
-      const result = await operation();
-      const durationMs = Date.now() - startTime;
+    const runWithContext = async () => {
+      // Get trace from context (may differ from outer scope in concurrent scenarios)
+      const contextTrace = this.getActiveTrace();
+      const span = contextTrace
+        ? contextTrace.span({
+            name: `mcp.tool.${toolName}`,
+            input: params,
+          })
+        : this.langfuse!.span({
+            name: `mcp.tool.${toolName}`,
+            input: params,
+          });
+      try {
+        const result = await operation();
+        const durationMs = Date.now() - startTime;
 
-      span.update({
-        output: sanitizeOutput(result),
-        metadata: {
-          duration_ms: durationMs,
-          success: true,
-        },
-      });
-      span.end();
+        span.update({
+          output: sanitizeOutput(result),
+          metadata: {
+            duration_ms: durationMs,
+            success: true,
+          },
+        });
+        span.end();
 
-      return result;
-    } catch (error) {
-      const durationMs = Date.now() - startTime;
+        return result;
+      } catch (error) {
+        const durationMs = Date.now() - startTime;
 
-      span.update({
-        output: {
-          error: error instanceof Error ? error.message : String(error),
-        },
-        metadata: {
-          duration_ms: durationMs,
-          success: false,
-          error_type: error instanceof Error ? error.name : 'UnknownError',
-        },
-        level: 'ERROR',
-      });
-      span.end();
+        span.update({
+          output: {
+            error: error instanceof Error ? error.message : String(error),
+          },
+          metadata: {
+            duration_ms: durationMs,
+            success: false,
+            error_type: error instanceof Error ? error.name : 'UnknownError',
+          },
+          level: 'ERROR',
+        });
+        span.end();
 
-      throw error;
+        throw error;
+      }
+    };
+
+    if (activeTrace) {
+      return await this.traceContext.run(activeTrace, runWithContext);
     }
+
+    return await runWithContext();
   }
 
   /**
@@ -229,53 +268,64 @@ export class LangfuseTracer {
     }
 
     const activeTrace = this.getActiveTrace();
-    const span = activeTrace
-      ? activeTrace.span({
-          name: 'trakt.api',
-          input: { method, endpoint },
-        })
-      : this.langfuse.span({
-          name: 'trakt.api',
-          input: { method, endpoint },
-        });
 
     const startTime = Date.now();
 
-    try {
-      const result = await operation();
-      const durationMs = Date.now() - startTime;
+    const runWithContext = async () => {
+      // Get trace from context (may differ from outer scope in concurrent scenarios)
+      const contextTrace = this.getActiveTrace();
+      const span = contextTrace
+        ? contextTrace.span({
+            name: 'trakt.api',
+            input: { method, endpoint },
+          })
+        : this.langfuse!.span({
+            name: 'trakt.api',
+            input: { method, endpoint },
+          });
 
-      span.update({
-        output: sanitizeOutput(result),
-        metadata: {
-          duration_ms: durationMs,
-          http_method: method,
-          http_endpoint: endpoint,
-          success: true,
-        },
-      });
-      span.end();
+      try {
+        const result = await operation();
+        const durationMs = Date.now() - startTime;
 
-      return result;
-    } catch (error) {
-      const durationMs = Date.now() - startTime;
+        span.update({
+          output: sanitizeOutput(result),
+          metadata: {
+            duration_ms: durationMs,
+            http_method: method,
+            http_endpoint: endpoint,
+            success: true,
+          },
+        });
+        span.end();
 
-      span.update({
-        output: {
-          error: error instanceof Error ? error.message : String(error),
-        },
-        metadata: {
-          duration_ms: durationMs,
-          http_method: method,
-          http_endpoint: endpoint,
-          success: false,
-        },
-        level: 'ERROR',
-      });
-      span.end();
+        return result;
+      } catch (error) {
+        const durationMs = Date.now() - startTime;
 
-      throw error;
+        span.update({
+          output: {
+            error: error instanceof Error ? error.message : String(error),
+          },
+          metadata: {
+            duration_ms: durationMs,
+            http_method: method,
+            http_endpoint: endpoint,
+            success: false,
+          },
+          level: 'ERROR',
+        });
+        span.end();
+
+        throw error;
+      }
+    };
+
+    if (activeTrace) {
+      return await this.traceContext.run(activeTrace, runWithContext);
     }
+
+    return await runWithContext();
   }
 
   /**
@@ -356,8 +406,15 @@ export class LangfuseTracer {
     } else {
       await flushPromise;
     }
-    // Clear trace state - clear currentTrace first, then context
-    // This ensures getActiveTrace() returns null after endTrace()
+    // Clear trace state for this trace without clobbering other concurrent traces
+    const traceToClear = activeTrace ?? this.currentTrace;
+    if (traceToClear) {
+      this.activeTraces.delete(traceToClear);
+      if (traceToClear === this.currentTrace) {
+        this.currentTrace = null;
+      }
+    }
+    // Always clear instance-visible trace pointer after endTrace is invoked
     this.currentTrace = null;
     this.traceContext.enterWith(null);
   }
@@ -390,6 +447,15 @@ export class LangfuseTracer {
       await this.langfuse.shutdownAsync();
       this.langfuse = null;
     }
+    this.activeTraces.clear();
+    this.currentTrace = null;
+  }
+
+  /**
+   * Await the initialization-time health check; helpful for startup readiness gates
+   */
+  async waitForHealthCheck(): Promise<void> {
+    await this.healthCheckPromise;
   }
 }
 

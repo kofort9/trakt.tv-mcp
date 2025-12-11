@@ -1,3 +1,4 @@
+/* eslint-env node */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { LangfuseTracer, createLangfuseTracer } from '../langfuse.js';
 
@@ -11,6 +12,7 @@ const createFetchResponse = (body: unknown, status = 200) => ({
   },
 });
 
+// eslint-disable-next-line no-undef
 const originalFetch = global.fetch;
 const mockFetch = vi.fn();
 
@@ -18,17 +20,22 @@ beforeEach(() => {
   mockFetch.mockImplementation(() => Promise.resolve(createFetchResponse({ status: 'ok' })));
 
   // @ts-expect-error - override fetch for tests to prevent real network calls
+  // eslint-disable-next-line no-undef
   global.fetch = mockFetch;
+  process.env.LANGFUSE_HEALTH_CHECK = 'force';
 });
 
 afterEach(() => {
   mockFetch.mockReset();
   if (originalFetch) {
+    // eslint-disable-next-line no-undef
     global.fetch = originalFetch;
   } else {
     // @ts-expect-error - restore to undefined when not available
+    // eslint-disable-next-line no-undef
     delete global.fetch;
   }
+  delete process.env.LANGFUSE_HEALTH_CHECK;
 });
 
 describe('langfuse integration', () => {
@@ -480,11 +487,13 @@ describe('langfuse integration', () => {
           secretKey: 'test-secret-1',
           publicKey: 'test-public-1',
         });
+        await (tracer1 as any).healthCheckPromise;
 
         const tracer2 = createLangfuseTracer({
           secretKey: 'test-secret-2',
           publicKey: 'test-public-2',
         });
+        await (tracer2 as any).healthCheckPromise;
 
         tracer1.startTrace('session-1');
         tracer2.startTrace('session-2');
@@ -508,8 +517,16 @@ describe('langfuse integration', () => {
           end: vi.fn(),
         });
 
-        const traceA = { span: vi.fn().mockReturnValue(fakeSpan()), event: vi.fn(), update: vi.fn() };
-        const traceB = { span: vi.fn().mockReturnValue(fakeSpan()), event: vi.fn(), update: vi.fn() };
+        const traceA = {
+          span: vi.fn().mockReturnValue(fakeSpan()),
+          event: vi.fn(),
+          update: vi.fn(),
+        };
+        const traceB = {
+          span: vi.fn().mockReturnValue(fakeSpan()),
+          event: vi.fn(),
+          update: vi.fn(),
+        };
         const langfuseInstance = (tracer as any).langfuse;
 
         langfuseInstance.trace = vi.fn().mockReturnValueOnce(traceA).mockReturnValueOnce(traceB);
@@ -530,6 +547,21 @@ describe('langfuse integration', () => {
         expect(traceA.span).toHaveBeenCalledTimes(1);
         expect(traceB.span).toHaveBeenCalledTimes(1);
         expect(langfuseInstance.span).not.toHaveBeenCalled();
+      });
+
+      it('getCurrentTrace reflects instance state, not async context', async () => {
+        const tracer = createLangfuseTracer({
+          secretKey: 'test-secret-key',
+          publicKey: 'test-public-key',
+        });
+        await (tracer as any).healthCheckPromise;
+
+        tracer.startTrace('foo');
+        expect(tracer.getCurrentTrace()).not.toBe(null);
+
+        await tracer.endTrace({ awaitFlush: false });
+
+        expect(tracer.getCurrentTrace()).toBe(null);
       });
     });
   });
