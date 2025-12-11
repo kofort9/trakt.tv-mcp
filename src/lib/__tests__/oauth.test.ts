@@ -139,6 +139,136 @@ describe('TraktOAuth', () => {
         'Device authorization failed'
       );
     });
+
+    it('should throw error when polling is already in progress', async () => {
+      const mockTokenResponse: TokenResponse = {
+        access_token: 'test-access-token',
+        token_type: 'Bearer',
+        expires_in: 7776000,
+        refresh_token: 'test-refresh-token',
+        scope: 'public',
+        created_at: Date.now() / 1000,
+      };
+
+      // Simulate slow response to ensure first poll is still in progress
+      mockedAxios.post = vi
+        .fn()
+        .mockImplementation(
+          () =>
+            new Promise((resolve) => setTimeout(() => resolve({ data: mockTokenResponse }), 500))
+        );
+
+      // Start first poll (don't await)
+      const firstPoll = oauth.pollForToken('test-device-code', 0.1);
+
+      // Wait a bit for first poll to start
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Try to start second poll - should fail
+      await expect(oauth.pollForToken('another-code', 0.1)).rejects.toThrow(
+        'Polling already in progress'
+      );
+
+      // Clean up - cancel and wait for first poll to complete or fail
+      oauth.cancelPolling();
+      await expect(firstPoll).rejects.toThrow('Polling was cancelled');
+    });
+
+    it('should allow new poll after cancellation', async () => {
+      const mockTokenResponse: TokenResponse = {
+        access_token: 'test-access-token',
+        token_type: 'Bearer',
+        expires_in: 7776000,
+        refresh_token: 'test-refresh-token',
+        scope: 'public',
+        created_at: Date.now() / 1000,
+      };
+
+      // First call: slow response that will be cancelled
+      // Second call: fast response for the new poll
+      let callCount = 0;
+      mockedAxios.post = vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return new Promise((resolve) =>
+            setTimeout(() => resolve({ data: mockTokenResponse }), 1000)
+          );
+        }
+        return Promise.resolve({ data: mockTokenResponse });
+      });
+
+      // Start first poll
+      const firstPoll = oauth.pollForToken('test-device-code', 0.05);
+
+      // Wait for poll to start
+      await new Promise((resolve) => setTimeout(resolve, 30));
+
+      // Cancel and wait for it to fail
+      oauth.cancelPolling();
+      await expect(firstPoll).rejects.toThrow('Polling was cancelled');
+
+      // Now should be able to start a new poll
+      expect(oauth.isPollingInProgress()).toBe(false);
+      const result = await oauth.pollForToken('test-device-code', 0.05);
+      expect(result).toEqual(mockTokenResponse);
+    });
+
+    it('should report polling status correctly', async () => {
+      const mockTokenResponse: TokenResponse = {
+        access_token: 'test-access-token',
+        token_type: 'Bearer',
+        expires_in: 7776000,
+        refresh_token: 'test-refresh-token',
+        scope: 'public',
+        created_at: Date.now() / 1000,
+      };
+
+      mockedAxios.post = vi
+        .fn()
+        .mockImplementation(
+          () =>
+            new Promise((resolve) => setTimeout(() => resolve({ data: mockTokenResponse }), 200))
+        );
+
+      // Initially not polling
+      expect(oauth.isPollingInProgress()).toBe(false);
+
+      // Start poll (don't await)
+      const pollPromise = oauth.pollForToken('test-device-code', 0.05);
+
+      // Wait for poll to start
+      await new Promise((resolve) => setTimeout(resolve, 30));
+
+      // Should be polling now
+      expect(oauth.isPollingInProgress()).toBe(true);
+
+      // Wait for poll to complete
+      await pollPromise;
+
+      // Should no longer be polling
+      expect(oauth.isPollingInProgress()).toBe(false);
+    });
+
+    it('should reset polling state after error', async () => {
+      mockedAxios.post = vi.fn().mockRejectedValue({
+        isAxiosError: true,
+        response: {
+          status: 404,
+          data: { error: 'invalid_grant' },
+        },
+      });
+
+      // @ts-expect-error - Mock function type mismatch
+      mockedAxios.isAxiosError = vi.fn().mockReturnValue(true);
+
+      // Poll should fail
+      await expect(oauth.pollForToken('invalid-code', 0.05)).rejects.toThrow(
+        'Device authorization failed'
+      );
+
+      // Polling state should be reset
+      expect(oauth.isPollingInProgress()).toBe(false);
+    });
   });
 
   describe('refreshToken', () => {

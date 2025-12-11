@@ -327,7 +327,7 @@ describe('langfuse integration', () => {
         tracer.startTrace('test-session');
 
         await expect(tracer.endTrace()).resolves.not.toThrow();
-      }, 10000); // 10 second timeout for network call
+      }, 15000); // 15 second timeout for network call
 
       it('should not throw when disabled', async () => {
         const tracer = createLangfuseTracer({});
