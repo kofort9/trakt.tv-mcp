@@ -3,6 +3,7 @@ import { TraktConfig, TraktSettings } from '../types/trakt.js';
 import { TraktOAuth } from './oauth.js';
 import { logger } from './logger.js';
 import { LRUCache, generateSearchCacheKey, generateEpisodeCacheKey } from './cache.js';
+import { logCacheEvent } from './langfuse.js';
 
 /**
  * Rate limiter for API requests
@@ -215,11 +216,13 @@ export class TraktClient {
     // Check cache first
     const cached = this.searchCache.get(cacheKey);
     if (cached !== undefined) {
+      logCacheEvent('hit', cacheKey, 'search_content');
       console.error(`[CACHE_HIT] Search: "${query}" (${type || 'all'}${year ? `, ${year}` : ''})`);
       return cached;
     }
 
     // Cache miss - fetch from API
+    logCacheEvent('miss', cacheKey, 'search_content');
     console.error(`[CACHE_MISS] Search: "${query}" (${type || 'all'}${year ? `, ${year}` : ''})`);
 
     const params: Record<string, string | number> = { query };
@@ -243,11 +246,13 @@ export class TraktClient {
     // Check cache first
     const cached = this.searchCache.get(cacheKey);
     if (cached !== undefined) {
+      logCacheEvent('hit', cacheKey, 'searchEpisode');
       console.error(`[CACHE_HIT] Episode: ${showId} S${season}E${episode}`);
       return cached;
     }
 
     // Cache miss - fetch from API
+    logCacheEvent('miss', cacheKey, 'searchEpisode');
     console.error(`[CACHE_MISS] Episode: ${showId} S${season}E${episode}`);
 
     const result = await this.get(`/shows/${showId}/seasons/${season}/episodes/${episode}`);

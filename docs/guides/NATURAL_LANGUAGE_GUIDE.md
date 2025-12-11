@@ -1,14 +1,14 @@
 # Natural Language Support Guide
 
-**Last Updated:** 2025-11-25
-**Purpose:** Comprehensive guide to natural language patterns supported by the Trakt.tv MCP server
+**Last Updated:** 2025-12-09
+**Purpose:** Guide to natural language capabilities in the Trakt.tv MCP server
 
 ---
 
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Date Expressions](#date-expressions)
+2. [Architecture](#architecture)
 3. [Episode Specifications](#episode-specifications)
 4. [Common Usage Patterns](#common-usage-patterns)
 5. [Validation Rules](#validation-rules)
@@ -20,155 +20,75 @@
 
 ## Overview
 
-The Trakt.tv MCP server provides robust natural language support for dates, episode ranges, and conversational queries. This allows users to interact naturally rather than using structured API syntax.
+The Trakt.tv MCP server provides natural language support through a clear separation of concerns between Claude (the AI assistant) and the MCP tools.
 
 ### Key Capabilities
 
-- **Natural date parsing**: "yesterday", "last week", "3 days ago", "last Monday"
-- **Flexible episode specifications**: Ranges, non-contiguous lists, mixed formats
-- **Action verb synonyms**: "watched", "binged", "saw", "logged"
-- **Parameter aliases**: Use `title` instead of `movieName`/`showName`
+- **Natural date interpretation by Claude**: Claude interprets expressions like "yesterday", "last week", "3 days ago" and converts them to ISO 8601 dates
+- **Flexible episode specifications**: Tools parse episode ranges, non-contiguous lists, and mixed formats
+- **Action verb synonyms**: "watched", "binged", "saw", "logged" (handled by Claude)
+- **Parameter aliases**: Use `title` instead of requiring `movieName`/`showName`
 - **Intelligent error messages**: Actionable suggestions for invalid input
 - **Automatic disambiguation**: Handle ambiguous content with multiple versions
 
-### UTC Timezone Handling
-
-**All dates are parsed to UTC midnight (00:00:00.000Z)** to ensure consistent behavior across timezones.
-
-This means:
-
-- "yesterday" → Previous day at 00:00:00 UTC
-- "today" → Current day at 00:00:00 UTC
-- Users in different timezones get consistent results
-
 ---
 
-## Date Expressions
+## Architecture
 
-### Absolute Day References
+### Date Handling: Claude vs. Tools
 
-| Pattern      | Example              | Result                                 |
-| ------------ | -------------------- | -------------------------------------- |
-| `today`      | "watched today"      | Current date at 00:00:00 UTC           |
-| `yesterday`  | "watched yesterday"  | Previous day at 00:00:00 UTC           |
-| `tonight`    | "watched tonight"    | Current date (synonym for "today")     |
-| `last night` | "watched last night" | Previous day (synonym for "yesterday") |
-| `last nite`  | "watched last nite"  | Previous day (informal synonym)        |
+**Claude's Responsibility:**
+- Interpret natural language dates ("yesterday", "last week", "3 days ago")
+- Convert to ISO 8601 format before calling tools
+- Handle user timezone context if needed
 
-**Usage Example:**
+**Tool's Responsibility:**
+- Accept ISO 8601 dates only: `"2025-12-08"` or `"2025-12-08T20:30:00.000Z"`
+- Validate date format
+- Process the date for API calls
 
-```json
-{
-  "tool": "log_watch",
-  "arguments": {
-    "type": "movie",
-    "movieName": "Dune",
-    "watchedAt": "yesterday"
-  }
+### Data Flow
+
+```
+User: "I watched Dune yesterday"
+     ↓
+Claude interprets:
+  - "Dune" → movieName
+  - "yesterday" → "2025-12-08"
+     ↓
+Tool receives: {
+  type: "movie",
+  movieName: "Dune",
+  watchedAt: "2025-12-08"
 }
+     ↓
+Tool validates ISO 8601 format → Success
+     ↓
+Trakt API call with parsed date
 ```
 
----
+### Why This Architecture?
 
-### Time-of-Day Variants
+**Before:** Tools handled natural language parsing internally
+**Now:** Claude handles natural language, tools are "dumb pipes" for ISO dates
 
-All map to current date (UTC midnight):
+**Benefits:**
+1. **Simpler tools** - Tools only validate ISO 8601, not 35+ date patterns
+2. **Better context** - Claude has access to user's timezone, conversation history
+3. **Easier testing** - Tools test ISO dates only, Claude handles interpretation
+4. **Flexibility** - Claude can evolve date interpretation without changing tools
 
-| Pattern          | Maps To |
-| ---------------- | ------- |
-| `this morning`   | today   |
-| `earlier today`  | today   |
-| `this afternoon` | today   |
-| `this evening`   | today   |
+### ISO 8601 Date Format
 
-**Why:** Time-of-day expressions refer to the current day, regardless of the specific time mentioned.
+Tools accept two formats:
 
----
+| Format              | Example                    | Description                   |
+| ------------------- | -------------------------- | ----------------------------- |
+| Date only           | `"2025-12-08"`             | Implies 00:00:00.000Z         |
+| Full timestamp      | `"2025-12-08T20:30:00Z"`   | Specific time with UTC offset |
+| Full timestamp (ms) | `"2025-12-08T20:30:00.000Z"` | With milliseconds             |
 
-### Relative Time Periods
-
-| Pattern           | Example           | Calculation                   | Valid Range |
-| ----------------- | ----------------- | ----------------------------- | ----------- |
-| `N days ago`      | `3 days ago`      | Current date - N days         | 1-365 days  |
-| `N weeks ago`     | `2 weeks ago`     | Current date - (N × 7) days   | 1-52 weeks  |
-| `one week ago`    | `one week ago`    | Same as "1 week ago"          | -           |
-| `two weeks ago`   | `two weeks ago`   | Same as "2 weeks ago"         | -           |
-| `three weeks ago` | `three weeks ago` | Same as "3 weeks ago"         | -           |
-| `four weeks ago`  | `four weeks ago`  | Same as "4 weeks ago"         | -           |
-| `last week`       | `last week`       | 7 days ago                    | -           |
-| `last month`      | `last month`      | 30 days ago                   | -           |
-| `last weekend`    | `last weekend`    | Last Saturday at 00:00:00 UTC | -           |
-
-**Usage Example:**
-
-```json
-{
-  "tool": "bulk_log",
-  "arguments": {
-    "type": "episodes",
-    "showName": "Breaking Bad",
-    "season": 1,
-    "episodes": "1-5",
-    "watchedAt": "last weekend"
-  }
-}
-```
-
----
-
-### Weekday References
-
-Pattern: `last [weekday]`
-
-| Pattern          | Example                  | Result                  |
-| ---------------- | ------------------------ | ----------------------- |
-| `last monday`    | "watched last monday"    | Most recent Monday\*    |
-| `last tuesday`   | "watched last tuesday"   | Most recent Tuesday\*   |
-| `last wednesday` | "watched last wednesday" | Most recent Wednesday\* |
-| `last thursday`  | "watched last thursday"  | Most recent Thursday\*  |
-| `last friday`    | "watched last friday"    | Most recent Friday\*    |
-| `last saturday`  | "watched last saturday"  | Most recent Saturday\*  |
-| `last sunday`    | "watched last sunday"    | Most recent Sunday\*    |
-
-\* **Special Case:** If today is the specified weekday, goes back 7 days (e.g., if today is Monday and you say "last monday", it returns Monday from one week ago).
-
----
-
-### Month References
-
-| Pattern         | Example         | Result                                     |
-| --------------- | --------------- | ------------------------------------------ |
-| `January YYYY`  | "January 2025"  | 2025-01-01 at 00:00:00 UTC                 |
-| `Jan. YYYY`     | "Jan. 2025"     | 2025-01-01 at 00:00:00 UTC                 |
-| `Jan YYYY`      | "Jan 2025"      | 2025-01-01 at 00:00:00 UTC                 |
-| `February YYYY` | "February 2025" | 2025-02-01 at 00:00:00 UTC                 |
-| `this month`    | "this month"    | First day of current month at 00:00:00 UTC |
-
-**Supported month names:** January/Jan, February/Feb, March/Mar, April/Apr, May, June/Jun, July/Jul, August/Aug, September/Sep, October/Oct, November/Nov, December/Dec
-
-**For date ranges:** Use `parseMonthRange()` utility function which returns both `startDate` and `endDate` spanning the full month (e.g., January 1-31).
-
-**Usage Example:**
-
-```json
-{
-  "tool": "summarize_history",
-  "arguments": {
-    "startDate": "2025-01-01",
-    "endDate": "2025-01-31"
-  }
-}
-```
-
----
-
-### ISO Dates
-
-| Pattern      | Example      | Result                     |
-| ------------ | ------------ | -------------------------- |
-| `YYYY-MM-DD` | "2025-01-15" | 2025-01-15 at 00:00:00 UTC |
-
-**When to use:** For dates more than 1 year in the past, ISO format is required (relative expressions like "400 days ago" are rejected).
+**All dates are treated as UTC** to ensure consistent behavior across timezones.
 
 ---
 
@@ -185,11 +105,13 @@ Users can specify single episodes in multiple ways (all equivalent):
 | Lowercase        | `s1e1`               |
 | Natural language | `season 1 episode 1` |
 
-**Parser:** Episodes are extracted from natural language and normalized internally.
+**Note:** Claude typically extracts season and episode numbers and passes them as integers to tools.
 
 ---
 
 ### Episode Ranges
+
+Tools support parsing episode range strings:
 
 | Format              | Example                | Result                 |
 | ------------------- | ---------------------- | ---------------------- |
@@ -207,7 +129,7 @@ Users can specify single episodes in multiple ways (all equivalent):
     "showName": "Demon Slayer",
     "season": 1,
     "episodes": "1-5",
-    "watchedAt": "yesterday"
+    "watchedAt": "2025-12-08"
   }
 }
 ```
@@ -232,27 +154,105 @@ Users can specify single episodes in multiple ways (all equivalent):
     "showName": "The Office",
     "season": 2,
     "episodes": "1-3,5,7-9",
-    "watchedAt": "last week"
+    "watchedAt": "2025-12-01"
   }
 }
 ```
 
-**Implementation:** Use `parseEpisodeRange(range: string)` from `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/utils.ts` (lines 310-336).
+**Implementation:** Episode range parsing is handled by `parseEpisodeRange()` in the tools layer.
 
 ---
 
 ## Common Usage Patterns
 
-### Pattern 1: Query Watch History (Monthly)
+### Pattern 1: Log Single Episode
 
 **User Phrasings:**
 
-- "What did I watch in Jan. 2025?"
-- "What did I watch in January 2025?"
-- "Show me what I watched in Jan 2025"
-- "Give me my January 2025 watch history"
+- "Watched Breaking Bad S1E1 yesterday"
+- "I watched episode 5 of Demon Slayer season 1 last night"
+- "Saw The Bear S2E3 today"
 
-**Implementation:**
+**Claude's Interpretation:**
+
+```json
+{
+  "tool": "log_watch",
+  "arguments": {
+    "type": "episode",
+    "showName": "Breaking Bad",
+    "season": 1,
+    "episode": 1,
+    "watchedAt": "2025-12-08"
+  }
+}
+```
+
+**Note:** Claude converts "yesterday" to ISO date before calling the tool.
+
+---
+
+### Pattern 2: Log Movie
+
+**User Phrasings:**
+
+- "Watched Dune yesterday"
+- "Saw Interstellar last week"
+- "I watched The Matrix"
+
+**Claude's Interpretation:**
+
+```json
+{
+  "tool": "log_watch",
+  "arguments": {
+    "type": "movie",
+    "movieName": "Dune",
+    "watchedAt": "2025-12-08"
+  }
+}
+```
+
+**Ambiguity Note:** Some titles exist as both movie and TV show (e.g., "Dune"). Tools handle disambiguation by returning options for Claude to present to the user.
+
+---
+
+### Pattern 3: Bulk Log Episode Range
+
+**User Phrasings:**
+
+- "Watched Breaking Bad S1E1-5"
+- "Binged episodes 1 through 10 of Demon Slayer season 1"
+- "Caught up on The Bear S2E1-E8 last weekend"
+
+**Claude's Interpretation:**
+
+```json
+{
+  "tool": "bulk_log",
+  "arguments": {
+    "type": "episodes",
+    "showName": "Breaking Bad",
+    "season": 1,
+    "episodes": "1-5",
+    "watchedAt": "2025-12-07"
+  }
+}
+```
+
+**Note:** Episode range string (`"1-5"`) is passed to the tool which parses it.
+
+---
+
+### Pattern 4: Query Watch History (Date Range)
+
+**User Phrasings:**
+
+- "What did I watch in January 2025?"
+- "Show me what I watched last week"
+- "What have I watched today?"
+
+**Claude's Interpretation:**
 
 ```json
 {
@@ -264,116 +264,18 @@ Users can specify single episodes in multiple ways (all equivalent):
 }
 ```
 
-**Note:** Month names must be manually converted to date ranges. The server does not automatically expand "January 2025" to a full month range.
+**Note:** Claude converts "January 2025" to a date range before calling the tool.
 
 ---
 
-### Pattern 2: Query Watch History (Recent Period)
-
-**User Phrasings:**
-
-- "What did I watch last week?"
-- "Show me what I watched yesterday"
-- "What have I watched today?"
-- "What did I watch in the last 7 days?"
-
-**Implementation:**
-
-```json
-{
-  "tool": "summarize_history",
-  "arguments": {
-    "startDate": "last week",
-    "endDate": "today"
-  }
-}
-```
-
----
-
-### Pattern 3: Log Single Episode
-
-**User Phrasings:**
-
-- "Watched Breaking Bad S1E1 yesterday"
-- "I watched episode 5 of Demon Slayer season 1 last night"
-- "Saw The Bear S2E3 today"
-
-**Implementation:**
-
-```json
-{
-  "tool": "log_watch",
-  "arguments": {
-    "type": "episode",
-    "showName": "Breaking Bad",
-    "season": 1,
-    "episode": 1,
-    "watchedAt": "yesterday"
-  }
-}
-```
-
----
-
-### Pattern 4: Log Movie
-
-**User Phrasings:**
-
-- "Watched Dune yesterday"
-- "Saw Interstellar last week"
-- "I watched The Matrix"
-
-**Implementation:**
-
-```json
-{
-  "tool": "log_watch",
-  "arguments": {
-    "type": "movie",
-    "movieName": "Dune",
-    "watchedAt": "yesterday"
-  }
-}
-```
-
-**Ambiguity Note:** Some titles exist as both movie and TV show (e.g., "Dune"). Use `search_show` to confirm, or trigger disambiguation flow.
-
----
-
-### Pattern 5: Bulk Log Episode Range
-
-**User Phrasings:**
-
-- "Watched Breaking Bad S1E1-5"
-- "Binged episodes 1 through 10 of Demon Slayer season 1"
-- "Caught up on The Bear S2E1-E8 last weekend"
-
-**Implementation:**
-
-```json
-{
-  "tool": "bulk_log",
-  "arguments": {
-    "type": "episodes",
-    "showName": "Breaking Bad",
-    "season": 1,
-    "episodes": "1-5",
-    "watchedAt": "yesterday"
-  }
-}
-```
-
----
-
-### Pattern 6: Bulk Log Multiple Movies
+### Pattern 5: Bulk Log Multiple Movies
 
 **User Phrasings:**
 
 - "Watched Dune and Interstellar yesterday"
 - "Binged three movies: The Matrix, Inception, and Interstellar"
 
-**Implementation:**
+**Claude's Interpretation:**
 
 ```json
 {
@@ -381,7 +283,7 @@ Users can specify single episodes in multiple ways (all equivalent):
   "arguments": {
     "type": "movies",
     "movieNames": ["Dune", "Interstellar"],
-    "watchedAt": "yesterday"
+    "watchedAt": "2025-12-08"
   }
 }
 ```
@@ -392,16 +294,16 @@ Users can specify single episodes in multiple ways (all equivalent):
 
 ### Date Validation
 
-| Rule                      | Boundary | Error Example                                    |
-| ------------------------- | -------- | ------------------------------------------------ |
-| Empty strings not allowed | -        | `""` → Error: "Date parameter cannot be empty"   |
-| Zero values rejected      | N/A      | `"0 days ago"` → Error: "Ambiguous date"         |
-| Max days in past          | 365 days | `"400 days ago"` → Error: "Date too far in past" |
-| Max weeks in past         | 52 weeks | `"60 weeks ago"` → Error: "Date too far in past" |
+Tools validate that dates are in ISO 8601 format:
 
-**For dates beyond 1 year:** Use ISO format (YYYY-MM-DD) instead of relative expressions.
+| Rule               | Valid Examples                               | Invalid Examples |
+| ------------------ | -------------------------------------------- | ---------------- |
+| ISO 8601 date only | `"2025-12-08"`                               | `"yesterday"`    |
+| ISO 8601 timestamp | `"2025-12-08T20:30:00.000Z"`                 | `"last week"`    |
+| Empty strings      | N/A (rejected)                               | `""`             |
+| Future dates       | `"2030-01-01"` (accepted, may return empty results) | N/A              |
 
-**Implementation:** See `parseNaturalDate()` in `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/utils.ts` (lines 11-227).
+**Implementation:** Date validation in tools focuses on ISO 8601 format compliance, not semantic meaning.
 
 ---
 
@@ -416,8 +318,8 @@ Users can specify single episodes in multiple ways (all equivalent):
 
 **Implementation:**
 
-- `validateEpisodeNumber()` in `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/utils.ts` (lines 341-345)
-- `validateSeasonNumber()` in `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/utils.ts` (lines 350-354)
+- `validateEpisodeNumber()` in `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/utils.ts`
+- `validateSeasonNumber()` in `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/utils.ts`
 
 ---
 
@@ -439,7 +341,7 @@ Users can specify single episodes in multiple ways (all equivalent):
 | Non-empty strings | `"Breaking Bad"` | `""`, `"   "`       |
 | Must be provided  | `"Dune"`         | `undefined`, `null` |
 
-**Implementation:** See `validateNonEmptyString()` in `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/utils.ts` (lines 409-414).
+**Implementation:** See `validateNonEmptyString()` in `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/utils.ts`.
 
 ---
 
@@ -476,19 +378,19 @@ Users can specify single episodes in multiple ways (all equivalent):
 
 ### Example Error Messages
 
-#### Date Parsing Error
+#### Invalid Date Format
 
 ```json
 {
   "success": false,
   "error": {
-    "code": "TRAKT_API_ERROR",
-    "message": "Unable to parse date: \"tomorow\". Use ISO format (YYYY-MM-DD) or natural language (today, yesterday, last week, last month)"
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid date format: \"yesterday\". Expected ISO 8601 format (YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS.000Z)"
   }
 }
 ```
 
-**Good:** Identifies the typo and explains valid formats.
+**Note:** This error would occur if natural language was passed directly to a tool instead of being interpreted by Claude first.
 
 ---
 
@@ -514,37 +416,17 @@ Users can specify single episodes in multiple ways (all equivalent):
 
 ---
 
-#### Ambiguous Date
+#### Invalid Episode Range
 
 ```json
 {
   "success": false,
   "error": {
-    "code": "TRAKT_API_ERROR",
-    "message": "Ambiguous date: \"0 days ago\" could mean today or yesterday. Use \"today\" or \"yesterday\" instead.",
-    "suggestions": ["today", "yesterday"]
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid episode range: \"5-1\". Start episode must be less than or equal to end episode."
   }
 }
 ```
-
-**Good:** Explains the ambiguity and provides alternatives.
-
----
-
-#### Date Too Far in Past
-
-```json
-{
-  "success": false,
-  "error": {
-    "code": "TRAKT_API_ERROR",
-    "message": "Date too far in past: 400 days ago. Please use an ISO date (YYYY-MM-DD) for dates more than a year ago.",
-    "suggestions": ["Use ISO format like \"2024-01-15\"", "Maximum: \"365 days ago\""]
-  }
-}
-```
-
-**Good:** Explains the limitation and provides alternative.
 
 ---
 
@@ -552,7 +434,7 @@ Users can specify single episodes in multiple ways (all equivalent):
 
 ### When Disambiguation Occurs
 
-The server returns a disambiguation response when:
+Tools return a disambiguation response when:
 
 1. **Multiple shows/movies with same title**
    - Example: "Dune" (2021 movie vs 2024 TV series)
@@ -599,7 +481,8 @@ The server returns a disambiguation response when:
 {
   "type": "movie",
   "movieName": "Dune",
-  "year": 2021
+  "year": 2021,
+  "watchedAt": "2025-12-08"
 }
 ```
 
@@ -609,7 +492,8 @@ The server returns a disambiguation response when:
 {
   "type": "movie",
   "movieName": "Dune",
-  "traktId": 123456
+  "traktId": 123456,
+  "watchedAt": "2025-12-08"
 }
 ```
 
@@ -634,28 +518,25 @@ Which one did you watch? You can tell me by year (e.g., "the 2021 movie") or I c
 
 | Function                       | Location                    | Purpose                                    |
 | ------------------------------ | --------------------------- | ------------------------------------------ |
-| `parseNaturalDate()`           | `/src/lib/utils.ts:11-227`  | Parse natural language dates to ISO format |
-| `parseDateRange()`             | `/src/lib/utils.ts:232-244` | Parse start/end date ranges                |
-| `parseMonthRange()`            | `/src/lib/utils.ts:250-304` | Parse month names to full month ranges     |
-| `parseEpisodeRange()`          | `/src/lib/utils.ts:310-336` | Parse episode range strings to arrays      |
-| `validateEpisodeNumber()`      | `/src/lib/utils.ts:341-345` | Validate episode numbers                   |
-| `validateSeasonNumber()`       | `/src/lib/utils.ts:350-354` | Validate season numbers                    |
-| `validateNonEmptyString()`     | `/src/lib/utils.ts:409-414` | Validate string parameters                 |
-| `handleSearchDisambiguation()` | `/src/lib/utils.ts:493-576` | Handle ambiguous search results            |
+| `parseEpisodeRange()`          | `/src/lib/utils.ts`         | Parse episode range strings to arrays      |
+| `validateEpisodeNumber()`      | `/src/lib/utils.ts`         | Validate episode numbers                   |
+| `validateSeasonNumber()`       | `/src/lib/utils.ts`         | Validate season numbers                    |
+| `validateNonEmptyString()`     | `/src/lib/utils.ts`         | Validate string parameters                 |
+| `handleSearchDisambiguation()` | `/src/lib/utils.ts`         | Handle ambiguous search results            |
 
 ### Tool Implementations
 
-| Tool              | Location                   | Purpose                         |
-| ----------------- | -------------------------- | ------------------------------- |
-| `logWatch()`      | `/src/lib/tools.ts:95-271` | Log single episode or movie     |
-| `bulkLog()`       | `/src/lib/tools.ts:277-`   | Log multiple episodes or movies |
-| `searchEpisode()` | `/src/lib/tools.ts:29-90`  | Search for specific episode     |
+| Tool              | Location            | Purpose                         |
+| ----------------- | ------------------- | ------------------------------- |
+| `logWatch()`      | `/src/lib/tools.ts` | Log single episode or movie     |
+| `bulkLog()`       | `/src/lib/tools.ts` | Log multiple episodes or movies |
+| `searchEpisode()` | `/src/lib/tools.ts` | Search for specific episode     |
 
 ---
 
 ## Action Verbs
 
-These verbs are synonymous when logging watches:
+These verbs are synonymous when logging watches (handled by Claude):
 
 | Verb     | Example                          |
 | -------- | -------------------------------- |
@@ -682,21 +563,33 @@ These verbs are synonymous when logging watches:
 
 ```json
 // Both are valid for movies:
-{ "type": "movie", "movieName": "Dune" }
-{ "type": "movie", "title": "Dune" }
+{ "type": "movie", "movieName": "Dune", "watchedAt": "2025-12-08" }
+{ "type": "movie", "title": "Dune", "watchedAt": "2025-12-08" }
 
 // Both are valid for episodes:
-{ "type": "episode", "showName": "Breaking Bad", "season": 1, "episode": 1 }
-{ "type": "episode", "title": "Breaking Bad", "season": 1, "episode": 1 }
+{ "type": "episode", "showName": "Breaking Bad", "season": 1, "episode": 1, "watchedAt": "2025-12-08" }
+{ "type": "episode", "title": "Breaking Bad", "season": 1, "episode": 1, "watchedAt": "2025-12-08" }
 ```
-
-**Implementation:** See `logWatch()` in `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/tools.ts` (lines 99-135).
 
 ---
 
 ## Best Practices for AI Assistants
 
-### 1. Always Confirm Ambiguous Queries
+### 1. Always Convert Natural Language Dates to ISO 8601
+
+**Before calling tools, interpret natural language dates:**
+
+```
+User: "yesterday" → Tool receives: "2025-12-08"
+User: "last week" → Tool receives: "2025-12-01"
+User: "3 days ago" → Tool receives: "2025-12-05"
+```
+
+**Never pass natural language directly to tools** - they expect ISO 8601 only.
+
+---
+
+### 2. Confirm Ambiguous Queries
 
 When multiple interpretations are possible, ask the user for clarification rather than guessing.
 
@@ -708,7 +601,7 @@ When multiple interpretations are possible, ask the user for clarification rathe
 
 ---
 
-### 2. Provide Helpful Examples
+### 3. Provide Helpful Examples
 
 When asking for clarification, include example formats users can copy.
 
@@ -723,7 +616,7 @@ I need to know which season and episode you watched. You can say something like:
 
 ---
 
-### 3. Handle Partial Information Gracefully
+### 4. Handle Partial Information Gracefully
 
 If users provide incomplete information, prompt for missing details without restarting the conversation.
 
@@ -734,16 +627,16 @@ If users provide incomplete information, prompt for missing details without rest
 
 ---
 
-### 4. Default to Sensible Values
+### 5. Default to Sensible Values
 
 For optional parameters, use intelligent defaults:
 
-- **Date:** Default to `"today"` if not specified
+- **Date:** Default to current date (today's ISO date) if not specified
 - **Do NOT default:** Episode/season numbers (always require explicit specification)
 
 ---
 
-### 5. Confirm Bulk Actions
+### 6. Confirm Bulk Actions
 
 Before logging large ranges (e.g., S1E1-20), confirm with user:
 
@@ -757,18 +650,6 @@ Before logging large ranges (e.g., S1E1-20), confirm with user:
 - 1-3 episodes: Proceed without confirmation
 - 4-10 episodes: Confirm with count
 - 11+ episodes: Confirm and suggest date range option
-
----
-
-### 6. Use Natural Language in Responses
-
-After successfully logging watches, provide friendly confirmation:
-
-**Good:** "I've logged Breaking Bad S1E1 as watched yesterday. Great choice - that's the pilot episode where Walter White's journey begins!"
-
-**Acceptable:** "Successfully logged Breaking Bad S1E1 as watched on 2025-11-18."
-
-**Poor:** "Tool execution completed. Result: success=true"
 
 ---
 
@@ -792,17 +673,17 @@ Would you like me to search for "Breaking Bad" instead?
 
 ### Date Edge Cases
 
-| Test Case        | Input            | Expected Result                         |
-| ---------------- | ---------------- | --------------------------------------- |
-| Empty string     | `""`             | Error: "Date parameter cannot be empty" |
-| Zero days        | `"0 days ago"`   | Error: "Ambiguous date"                 |
-| Zero weeks       | `"0 weeks ago"`  | Error: "Ambiguous date"                 |
-| Max days         | `"365 days ago"` | Valid (exactly 1 year)                  |
-| Exceed max days  | `"366 days ago"` | Error: "Date too far in past"           |
-| Max weeks        | `"52 weeks ago"` | Valid (exactly 1 year)                  |
-| Exceed max weeks | `"53 weeks ago"` | Error: "Date too far in past"           |
-| Invalid format   | `"tomorow"`      | Error: "Unable to parse date"           |
-| Future date      | `"2030-01-01"`   | Valid (allowed, returns empty results)  |
+| Test Case      | Input          | Expected Result                                     |
+| -------------- | -------------- | --------------------------------------------------- |
+| Empty string   | `""`           | Error: "Invalid date format"                        |
+| Natural lang   | `"yesterday"`  | Error: "Expected ISO 8601 format" (if sent to tool) |
+| Invalid format | `"12/08/2025"` | Error: "Invalid date format"                        |
+| Future date    | `"2030-01-01"` | Valid (allowed, may return empty results)           |
+| Valid ISO date | `"2025-12-08"` | Valid                                               |
+
+**Note:** Natural language date errors should only occur if Claude fails to interpret the date before calling tools.
+
+---
 
 ### Episode Edge Cases
 
@@ -815,6 +696,8 @@ Would you like me to search for "Breaking Bad" instead?
 | Zero season        | `0`     | Valid (special episodes)                              |
 | Reversed range     | `"5-1"` | Error: "Invalid episode range"                        |
 | Missing range end  | `"1-"`  | Error: "Invalid episode range"                        |
+
+---
 
 ### Content Name Edge Cases
 
@@ -829,34 +712,30 @@ Would you like me to search for "Breaking Bad" instead?
 
 ## Quick Lookup Tables
 
-### Date Expression Categories
+### Episode Range Formats
 
-| Category         | Count | Examples                                                  |
-| ---------------- | ----- | --------------------------------------------------------- |
-| Absolute days    | 5     | today, yesterday, tonight, last night, last nite          |
-| Time-of-day      | 4     | this morning, earlier today, this afternoon, this evening |
-| Relative periods | 4     | N days ago, N weeks ago, last week, last month            |
-| Weekdays         | 7     | last monday, last tuesday, ..., last sunday               |
-| Month names      | 12    | January, February, ..., December (+ abbreviations)        |
-| Special          | 2     | last weekend, this month                                  |
-| ISO              | 1     | YYYY-MM-DD                                                |
+| Pattern                | Example         | Result                             |
+| ---------------------- | --------------- | ---------------------------------- |
+| Simple range           | `1-5`           | Episodes 1, 2, 3, 4, 5             |
+| Non-contiguous         | `1,3,5`         | Episodes 1, 3, 5                   |
+| Mixed                  | `1-3,5,7-9`     | Episodes 1, 2, 3, 5, 7, 8, 9       |
+| Complex                | `1,3-5,8,10-12` | Episodes 1, 3, 4, 5, 8, 10, 11, 12 |
 
-**Total supported patterns:** 35+ natural language expressions + ISO dates
+---
 
-### Boundary Summary
+### Validation Summary
 
-| Validation Type | Min | Max | Notes                    |
-| --------------- | --- | --- | ------------------------ |
-| Episode number  | 1   | ∞   | Positive integers only   |
-| Season number   | 0   | ∞   | Zero is valid (specials) |
-| Days ago        | 1   | 365 | Use ISO for older dates  |
-| Weeks ago       | 1   | 52  | Use ISO for older dates  |
+| Validation Type | Min | Max | Notes                      |
+| --------------- | --- | --- | -------------------------- |
+| Episode number  | 1   | ∞   | Positive integers only     |
+| Season number   | 0   | ∞   | Zero is valid (specials)   |
+| Date format     | N/A | N/A | ISO 8601 required          |
 
 ---
 
 ## Related Documentation
 
-- **[CONTRIBUTING.md](./CONTRIBUTING.md)** - How to contribute to this project, including adding new NL patterns
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)** - How to contribute to this project, including adding new patterns
 - **[docs/DEBUGGING.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/DEBUGGING.md)** - Debugging guide for troubleshooting
 - **[docs/testing/TESTING_GUIDE.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/testing/TESTING_GUIDE.md)** - Comprehensive testing documentation
 
@@ -864,4 +743,4 @@ Would you like me to search for "Breaking Bad" instead?
 
 **Maintained by:** Development Team
 **For questions or updates:** Submit PR or open issue
-**Last Validated:** 2025-11-25
+**Last Validated:** 2025-12-09

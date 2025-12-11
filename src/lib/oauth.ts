@@ -12,10 +12,26 @@ const TOKEN_FILE_PATH = join(homedir(), '.trakt-mcp', '.trakt-token.json');
 export class TraktOAuth {
   private config: TraktConfig;
   private token: StoredToken | null = null;
+  private isPolling: boolean = false;
+  private abortPolling: boolean = false;
 
   constructor(config: TraktConfig) {
     this.config = config;
     this.loadToken();
+  }
+
+  /**
+   * Check if a polling operation is currently in progress
+   */
+  isPollingInProgress(): boolean {
+    return this.isPolling;
+  }
+
+  /**
+   * Cancel any ongoing polling operation
+   */
+  cancelPolling(): void {
+    this.abortPolling = true;
   }
 
   /**
@@ -39,59 +55,87 @@ export class TraktOAuth {
 
   /**
    * Poll for device authorization token
+   * @param deviceCode - The device code from initiateDeviceFlow
+   * @param interval - Polling interval in seconds
+   * @throws Error if polling is already in progress, cancelled, or authorization fails
    */
   async pollForToken(deviceCode: string, interval: number): Promise<TokenResponse> {
+    // Guard against concurrent polling operations
+    if (this.isPolling) {
+      throw new Error(
+        'Polling already in progress. Call cancelPolling() first to start a new poll.'
+      );
+    }
+
+    this.isPolling = true;
+    this.abortPolling = false;
     const pollInterval = interval * 1000; // Convert to milliseconds
 
-    while (true) {
-      await new Promise((resolve) => setTimeout(resolve, pollInterval));
-
-      try {
-        const response = await axios.post<TokenResponse>(
-          `${this.config.apiBaseUrl}/oauth/device/token`,
-          {
-            code: deviceCode,
-            client_id: this.config.clientId,
-            client_secret: this.config.clientSecret,
-          },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-
-        // Success! Save and return the token
-        const tokenWithExpiry: StoredToken = {
-          ...response.data,
-          expires_at: Date.now() + response.data.expires_in * 1000,
-        };
-        this.token = tokenWithExpiry;
-        this.saveToken(tokenWithExpiry);
-        return response.data;
-      } catch (error) {
-        if (axios.isAxiosError(error) && error.response) {
-          const status = error.response.status;
-
-          // 400 = pending authorization, keep polling
-          if (status === 400) {
-            continue;
-          }
-
-          // 404 = invalid code, 410 = expired, 418 = denied
-          if (status === 404 || status === 410 || status === 418) {
-            throw new Error(`Device authorization failed: ${error.response.data.error}`);
-          }
-
-          // 429 = polling too fast
-          if (status === 429) {
-            await new Promise((resolve) => setTimeout(resolve, pollInterval));
-            continue;
-          }
+    try {
+      while (true) {
+        // Check for cancellation before waiting
+        if (this.abortPolling) {
+          throw new Error('Polling was cancelled');
         }
 
-        throw error;
+        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+
+        // Check for cancellation after waiting
+        if (this.abortPolling) {
+          throw new Error('Polling was cancelled');
+        }
+
+        try {
+          const response = await axios.post<TokenResponse>(
+            `${this.config.apiBaseUrl}/oauth/device/token`,
+            {
+              code: deviceCode,
+              client_id: this.config.clientId,
+              client_secret: this.config.clientSecret,
+            },
+            {
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+
+          // Success! Save and return the token
+          const tokenWithExpiry: StoredToken = {
+            ...response.data,
+            expires_at: Date.now() + response.data.expires_in * 1000,
+          };
+          this.token = tokenWithExpiry;
+          this.saveToken(tokenWithExpiry);
+          return response.data;
+        } catch (error) {
+          if (axios.isAxiosError(error) && error.response) {
+            const status = error.response.status;
+
+            // 400 = pending authorization, keep polling
+            if (status === 400) {
+              continue;
+            }
+
+            // 404 = invalid code, 410 = expired, 418 = denied
+            if (status === 404 || status === 410 || status === 418) {
+              throw new Error(`Device authorization failed: ${error.response.data.error}`);
+            }
+
+            // 429 = polling too fast
+            if (status === 429) {
+              await new Promise((resolve) => setTimeout(resolve, pollInterval));
+              continue;
+            }
+          }
+
+          throw error;
+        }
       }
+    } finally {
+      // Always reset polling state when done
+      this.isPolling = false;
+      this.abortPolling = false;
     }
   }
 

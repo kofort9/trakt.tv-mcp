@@ -1,315 +1,8 @@
-import { parseISO } from 'date-fns';
 import type {
   TraktSearchResult,
   DisambiguationResponse,
   DisambiguationOption,
 } from '../types/trakt.js';
-
-/**
- * Parse natural language date strings into ISO format
- * Supports: "yesterday", "last week", "last month", ISO strings, etc.
- *
- * CRITICAL: Uses UTC dates to avoid timezone-related off-by-one errors.
- * All dates are returned at midnight UTC (00:00:00.000Z).
- */
-export function parseNaturalDate(input: string): string {
-  const lowerInput = input.toLowerCase().trim();
-
-  // Validate input is not empty
-  if (!lowerInput || lowerInput === '') {
-    throw new Error(
-      'Date parameter cannot be empty. Supported formats: "today", "tonight", "yesterday", "last night", "this morning", "earlier today", "this afternoon", "this evening", "N days ago", "N weeks ago", "last week", "last weekend", "last monday" (or any weekday), "last month", "January 2025", or ISO date (YYYY-MM-DD)'
-    );
-  }
-
-  // Get current date in UTC
-  const now = new Date();
-  const currentYear = now.getUTCFullYear();
-  const currentMonth = now.getUTCMonth();
-  const currentDate = now.getUTCDate();
-
-  // Handle month name patterns like "January 2025", "Jan. 2025", "Jan 2025"
-  const monthYearMatch = lowerInput.match(
-    /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{4})$/
-  );
-  if (monthYearMatch) {
-    const monthMap: { [key: string]: number } = {
-      jan: 0,
-      feb: 1,
-      mar: 2,
-      apr: 3,
-      may: 4,
-      jun: 5,
-      jul: 6,
-      aug: 7,
-      sep: 8,
-      oct: 9,
-      nov: 10,
-      dec: 11,
-    };
-    const monthIndex = monthMap[monthYearMatch[1].substring(0, 3)];
-    const year = parseInt(monthYearMatch[2], 10);
-
-    // Return the first day of the month at UTC midnight
-    const firstDay = new Date(Date.UTC(year, monthIndex, 1));
-    return firstDay.toISOString();
-  }
-
-  // Handle "this month" - returns first day of current month
-  if (lowerInput === 'this month') {
-    const firstDay = new Date(Date.UTC(currentYear, currentMonth, 1));
-    return firstDay.toISOString();
-  }
-
-  // Handle relative dates using UTC date operations
-  if (lowerInput === 'today') {
-    const today = new Date(Date.UTC(currentYear, currentMonth, currentDate));
-    return today.toISOString();
-  }
-
-  if (lowerInput === 'yesterday') {
-    // Subtract 1 day in UTC
-    const yesterday = new Date(Date.UTC(currentYear, currentMonth, currentDate - 1));
-    return yesterday.toISOString();
-  }
-
-  // Handle "last night" - synonym for yesterday
-  if (lowerInput === 'last night' || lowerInput === 'last nite') {
-    const yesterday = new Date(Date.UTC(currentYear, currentMonth, currentDate - 1));
-    return yesterday.toISOString();
-  }
-
-  // Handle "tonight" - synonym for today
-  if (lowerInput === 'tonight') {
-    // Tonight = today's date (UTC midnight represents start of today)
-    const today = new Date(Date.UTC(currentYear, currentMonth, currentDate));
-    return today.toISOString();
-  }
-
-  // Handle time-of-day variants that all map to today
-  if (
-    lowerInput === 'this morning' ||
-    lowerInput === 'earlier today' ||
-    lowerInput === 'this afternoon' ||
-    lowerInput === 'this evening'
-  ) {
-    const today = new Date(Date.UTC(currentYear, currentMonth, currentDate));
-    return today.toISOString();
-  }
-
-  // Handle "N days ago" patterns (e.g., "3 days ago", "5 days ago")
-  const daysAgoMatch = lowerInput.match(/^(\d+)\s+days?\s+ago$/);
-  if (daysAgoMatch) {
-    const days = parseInt(daysAgoMatch[1], 10);
-
-    // Validate bounds
-    if (days === 0) {
-      throw new Error(
-        'Ambiguous date: "0 days ago" could mean today or yesterday. Use "today" or "yesterday" instead. Suggestions: today, yesterday'
-      );
-    }
-
-    if (days > 365) {
-      throw new Error(
-        `Date too far in past: ${days} days ago. Please use an ISO date (YYYY-MM-DD) for dates more than a year ago. Suggestions: Use ISO format like "2024-01-15", Maximum: "365 days ago"`
-      );
-    }
-
-    const targetDate = new Date(Date.UTC(currentYear, currentMonth, currentDate - days));
-    return targetDate.toISOString();
-  }
-
-  // Handle "N weeks ago" patterns (e.g., "2 weeks ago", "three weeks ago")
-  // Support both numeric and text numbers: "2 weeks ago", "two weeks ago"
-  const weeksAgoMatch = lowerInput.match(/^(\d+|one|two|three|four)\s+weeks?\s+ago$/);
-  if (weeksAgoMatch) {
-    const numberMap: { [key: string]: number } = {
-      one: 1,
-      two: 2,
-      three: 3,
-      four: 4,
-    };
-    const weeksStr = weeksAgoMatch[1];
-    const weeks = isNaN(Number(weeksStr)) ? numberMap[weeksStr] : parseInt(weeksStr, 10);
-
-    // Validate bounds
-    if (weeks === 0) {
-      throw new Error(
-        'Ambiguous date: "0 weeks ago" could mean this week or last week. Use "this week" or "last week" instead. Suggestions: last week, today'
-      );
-    }
-
-    if (weeks > 52) {
-      throw new Error(
-        `Date too far in past: ${weeks} weeks ago. Please use an ISO date (YYYY-MM-DD) for dates more than a year ago. Suggestions: Use ISO format like "2024-01-15", Maximum: "52 weeks ago"`
-      );
-    }
-
-    const daysAgo = weeks * 7;
-    const targetDate = new Date(Date.UTC(currentYear, currentMonth, currentDate - daysAgo));
-    return targetDate.toISOString();
-  }
-
-  if (lowerInput === 'last week') {
-    // Subtract 7 days in UTC
-    const lastWeek = new Date(Date.UTC(currentYear, currentMonth, currentDate - 7));
-    return lastWeek.toISOString();
-  }
-
-  // Handle "last weekend" - returns last Saturday
-  if (lowerInput === 'last weekend') {
-    const dayOfWeek = now.getUTCDay(); // 0=Sun, 6=Sat
-    let daysToLastSaturday: number;
-
-    if (dayOfWeek === 0) {
-      // If today is Sunday, last Saturday is 1 day ago
-      daysToLastSaturday = 1;
-    } else {
-      // Otherwise, calculate days back to last Saturday
-      daysToLastSaturday = dayOfWeek + 1;
-    }
-
-    const lastSaturday = new Date(
-      Date.UTC(currentYear, currentMonth, currentDate - daysToLastSaturday)
-    );
-    return lastSaturday.toISOString();
-  }
-
-  // Handle "last [weekday]" patterns - e.g., "last monday", "last tuesday"
-  const weekdayMatch = lowerInput.match(
-    /^last\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/
-  );
-  if (weekdayMatch) {
-    const targetWeekday = weekdayMatch[1];
-    const weekdayMap: { [key: string]: number } = {
-      sunday: 0,
-      monday: 1,
-      tuesday: 2,
-      wednesday: 3,
-      thursday: 4,
-      friday: 5,
-      saturday: 6,
-    };
-
-    const targetDay = weekdayMap[targetWeekday];
-    const currentDay = now.getUTCDay();
-
-    // Calculate days to go back
-    let daysBack: number;
-    if (currentDay === targetDay) {
-      // If today is the target day, go back a full week
-      daysBack = 7;
-    } else if (currentDay > targetDay) {
-      // Target day is earlier in the current week
-      daysBack = currentDay - targetDay;
-    } else {
-      // Target day is in the previous week
-      daysBack = 7 - (targetDay - currentDay);
-    }
-
-    const targetDate = new Date(Date.UTC(currentYear, currentMonth, currentDate - daysBack));
-    return targetDate.toISOString();
-  }
-
-  if (lowerInput === 'last month') {
-    // Subtract 1 month in UTC
-    const lastMonth = new Date(Date.UTC(currentYear, currentMonth - 1, currentDate));
-    return lastMonth.toISOString();
-  }
-
-  // Try parsing as ISO date
-  try {
-    const parsed = parseISO(input);
-    if (!isNaN(parsed.getTime())) {
-      // Convert to UTC midnight
-      const utcDate = new Date(Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()));
-      return utcDate.toISOString();
-    }
-  } catch {
-    // Fall through to error
-  }
-
-  throw new Error(
-    `Unable to parse date: "${input}". Use ISO format (YYYY-MM-DD) or natural language (today, tonight, yesterday, last night, this morning, earlier today, this afternoon, this evening, N days ago, N weeks ago, last week, last weekend, last monday, last month)`
-  );
-}
-
-/**
- * Parse date range from natural language
- */
-export function parseDateRange(start?: string, end?: string): { startAt?: string; endAt?: string } {
-  const result: { startAt?: string; endAt?: string } = {};
-
-  if (start) {
-    result.startAt = parseNaturalDate(start);
-  }
-
-  if (end) {
-    result.endAt = parseNaturalDate(end);
-  }
-
-  return result;
-}
-
-/**
- * Parse month range (e.g., "January 2025") into start and end dates
- * Returns the first and last day of the specified month
- */
-export function parseMonthRange(input: string): { startDate: string; endDate: string } {
-  const lowerInput = input.toLowerCase().trim();
-
-  // Parse "January 2025", "Jan. 2025", "Jan 2025"
-  const monthYearMatch = lowerInput.match(
-    /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{4})$/
-  );
-  if (monthYearMatch) {
-    const monthMap: { [key: string]: number } = {
-      jan: 0,
-      feb: 1,
-      mar: 2,
-      apr: 3,
-      may: 4,
-      jun: 5,
-      jul: 6,
-      aug: 7,
-      sep: 8,
-      oct: 9,
-      nov: 10,
-      dec: 11,
-    };
-    const monthIndex = monthMap[monthYearMatch[1].substring(0, 3)];
-    const year = parseInt(monthYearMatch[2], 10);
-
-    // First day of month at UTC midnight
-    const startDate = new Date(Date.UTC(year, monthIndex, 1));
-    // Last day of month at 23:59:59.999 UTC
-    const endDate = new Date(Date.UTC(year, monthIndex + 1, 0, 23, 59, 59, 999));
-
-    return {
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-    };
-  }
-
-  // Handle "this month"
-  if (lowerInput === 'this month') {
-    const now = new Date();
-    const year = now.getUTCFullYear();
-    const month = now.getUTCMonth();
-
-    const startDate = new Date(Date.UTC(year, month, 1));
-    const endDate = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999));
-
-    return {
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-    };
-  }
-
-  throw new Error(
-    `Unable to parse month range: "${input}". Use formats like "January 2025", "Jan. 2025", or "this month"`
-  );
-}
 
 /**
  * Generate episode range
@@ -418,6 +111,55 @@ export function validateNonEmptyString(value: string | undefined, paramName: str
   const trimmed = value?.trim();
   if (!trimmed || trimmed === '') {
     throw new Error(`${paramName} parameter cannot be empty or whitespace`);
+  }
+}
+
+/**
+ * Validate ISO 8601 date format
+ * Accepts two formats:
+ * - Date only: YYYY-MM-DD (e.g., "2025-12-08")
+ * - Full timestamp: YYYY-MM-DDTHH:MM:SS.sssZ (e.g., "2025-12-08T20:30:00.000Z")
+ */
+export function validateISO8601Date(value: string | undefined, paramName: string): void {
+  if (!value) return; // Optional parameter - skip if not provided
+
+  const iso8601Pattern = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?)?$/;
+
+  // Check format first
+  if (!iso8601Pattern.test(value)) {
+    throw new Error(
+      `${paramName} must be in ISO 8601 format (YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS.SSSZ). ` +
+        `Got invalid format: "${value}". Examples: "2025-12-08" or "2025-12-08T20:30:00.000Z"`
+    );
+  }
+
+  // Extract date parts for strict validation
+  const datePart = value.split('T')[0];
+  const [yearStr, monthStr, dayStr] = datePart.split('-');
+  const year = parseInt(yearStr, 10);
+  const month = parseInt(monthStr, 10);
+  const day = parseInt(dayStr, 10);
+
+  // Validate month range
+  if (month < 1 || month > 12) {
+    throw new Error(
+      `${paramName} has invalid month: ${monthStr}. Month must be between 01 and 12.`
+    );
+  }
+
+  // Validate day range for the specific month
+  const daysInMonth = new Date(year, month, 0).getDate();
+  if (day < 1 || day > daysInMonth) {
+    throw new Error(
+      `${paramName} has invalid day: ${dayStr} for month ${monthStr}. ` +
+        `${monthStr}/${year} has ${daysInMonth} days.`
+    );
+  }
+
+  // Final validation - ensure Date parsing succeeds
+  const date = new Date(value);
+  if (isNaN(date.getTime())) {
+    throw new Error(`${paramName} could not be parsed as a valid date: "${value}".`);
   }
 }
 

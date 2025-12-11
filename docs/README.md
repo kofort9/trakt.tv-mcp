@@ -224,6 +224,13 @@ docs/
 
 ## Recent Changes
 
+**2025-12-11: Observability & Security Updates**
+
+- Updated Langfuse documentation for class-based DI pattern
+- Added cache performance benchmarks to CACHE.md
+- Added OAuth security documentation (race condition guards)
+- Updated README with token storage security details
+
 **2025-11-25: Documentation Consolidation**
 
 - Reduced from ~30 files to 10 active files
@@ -238,6 +245,6 @@ docs/
 
 ---
 
-**Last Updated:** 2025-11-25
-**Documentation Version:** 2.0.0 (Consolidated)
+**Last Updated:** 2025-12-11
+**Documentation Version:** 2.1.0 (Observability & Security)
 **Maintained By:** Development Team

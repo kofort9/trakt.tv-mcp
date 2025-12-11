@@ -2,6 +2,21 @@
 # Pre-push hook: Skip tests for documentation-only changes
 # Runs full test suite when code files are modified
 
+# Verify Node version meets minimum requirements
+# Note: Developer is responsible for having correct Node version active
+NODE_VERSION=$(node -v 2>/dev/null | sed 's/v//')
+NODE_MAJOR=$(echo "$NODE_VERSION" | cut -d. -f1)
+if [ -z "$NODE_VERSION" ]; then
+  echo "❌ Error: Node.js not found in PATH"
+  echo "   Install Node 18+ and ensure it's in your PATH"
+  exit 1
+fi
+if [ "$NODE_MAJOR" -lt 18 ] 2>/dev/null; then
+  echo "❌ Error: Node $NODE_VERSION detected. This project requires Node 18.18+ or 20.x"
+  echo "   Run 'nvm use 18' or 'nvm use 20' to switch versions"
+  exit 1
+fi
+
 # Consume stdin to prevent interference with git commands
 # Git sends ref information via stdin during push, which we don't need
 # and which can interfere with commands that read stdin

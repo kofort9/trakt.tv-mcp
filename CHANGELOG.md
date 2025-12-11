@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Comprehensive natural language date parsing support
+- Langfuse observability integration (replacing OpenTelemetry/Honeycomb)
+- Cache telemetry with hit/miss tracking via Langfuse events
+- OAuth polling race condition guards with `isPollingInProgress()` and `cancelPolling()`
 - Time-of-day expressions ("tonight", "this morning", "this evening")
 - Relative date patterns ("N days ago", "N weeks ago", "last night")
 - Weekday references ("last Monday", "last Friday")
@@ -20,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Empty string validation for date parameters
 
 ### Changed
+- Refactored Langfuse from singleton to class-based dependency injection pattern
+- Improved ISO 8601 date validation with strict month/day range checks
+- Improved Husky hooks with nvm warning and Node version validation
 - Improved error messages with actionable suggestions
 - Enhanced disambiguation responses for ambiguous content
 - Standardized error response format across all tools
