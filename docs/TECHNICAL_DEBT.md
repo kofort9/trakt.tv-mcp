@@ -2,7 +2,7 @@
 
 This document tracks technical debt, deferred improvements, and enhancement opportunities for the Trakt.tv MCP server project.
 
-**Last Updated:** 2025-11-20
+**Last Updated:** 2025-12-11
 **Document Version:** 1.0.0
 
 ---
@@ -358,6 +358,36 @@ see [/docs/testing/](/docs/testing/).
 ---
 
 ## Testing & Quality
+
+### Vitest UI Major Version Alignment
+
+**Priority:** P2
+**Area:** Testing Tooling
+**Added:** 2025-12-11
+
+**Current State:**
+
+- `@vitest/ui` pinned at `3.2.4` while latest is `4.0.15`
+- Core `vitest` dependency also at `3.2.4` to keep tooling versions in sync
+
+**Problem:**
+
+- Upgrading `@vitest/ui` to `4.x` requires bumping `vitest` to `4.x` as well
+- Major version upgrade may introduce breaking changes in test runner behavior, configuration, and reporters
+
+**Proposed Solution:**
+
+- Plan a coordinated upgrade of both `vitest` and `@vitest/ui` to `4.x`
+- Review Vitest v4 migration notes and adjust `vitest.config.ts` plus any custom reporters/UI hooks
+- Run full test suite and CLI/UI workflows to catch regressions after the upgrade
+
+**Affected Files:**
+
+- `/Users/kofifort/Repos/trakt.tv-mcp/package.json` (`vitest`, `@vitest/ui`)
+- `/Users/kofifort/Repos/trakt.tv-mcp/package-lock.json`
+- `/Users/kofifort/Repos/trakt.tv-mcp/vitest.config.ts`
+
+**Estimated Effort:** 2-4 hours (depends on migration complexity)
 
 ### [Placeholder for Future Testing Improvements]
 

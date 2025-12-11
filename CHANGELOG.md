@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive natural language date parsing support
 - Langfuse observability integration (replacing OpenTelemetry/Honeycomb)
 - Cache telemetry with hit/miss tracking via Langfuse events
+- Langfuse startup health check to surface bad keys or network issues early
+- Langfuse trace flushing moved off request path with latency measurement
+- Async-local trace context to keep spans isolated when tool calls overlap
+- Shared input/output sanitization helpers to align redaction across tracing
+- Langfuse quickstart snippet for copy/paste setup (docs/observability.md)
+- Langfuse integration test with stub transport covering trace → span → flush
 - OAuth polling race condition guards with `isPollingInProgress()` and `cancelPolling()`
 - Time-of-day expressions ("tonight", "this morning", "this evening")
 - Relative date patterns ("N days ago", "N weeks ago", "last night")
@@ -25,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Refactored Langfuse from singleton to class-based dependency injection pattern
 - Improved ISO 8601 date validation with strict month/day range checks
-- Improved Husky hooks with nvm warning and Node version validation
+- Improved Husky hooks with Node version validation and guidance for nvm/fnm/asdf/volta
 - Improved error messages with actionable suggestions
 - Enhanced disambiguation responses for ambiguous content
 - Standardized error response format across all tools

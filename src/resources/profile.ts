@@ -29,3 +29,5 @@ export async function getProfile(client: TraktClient): Promise<string> {
     );
   }
 }
+
+

@@ -2,6 +2,22 @@
 
 The Trakt MCP server includes Langfuse tracing integration for monitoring, debugging, and optimizing the service. Langfuse provides AI-native observability specifically designed for LLM applications and MCP servers.
 
+## Langfuse Quickstart (copy/paste)
+
+```bash
+# 1) Grab keys from Langfuse (Settings → API Keys)
+export LANGFUSE_SECRET_KEY="sk-lf-..."
+export LANGFUSE_PUBLIC_KEY="pk-lf-..."
+# Optional if self-hosting (defaults to cloud):
+export LANGFUSE_BASE_URL="https://cloud.langfuse.com"
+
+# 2) Run anything that exercises the MCP tools to emit traces
+npm run build && node dist/index.js
+# or launch via your MCP host, e.g. in Claude Desktop's mcpServers config
+
+# 3) Open Langfuse → Traces to confirm entries like mcp.tool.search_show
+```
+
 ## Why Langfuse?
 
 After initially implementing OpenTelemetry with Honeycomb, the project migrated to Langfuse for several key reasons:

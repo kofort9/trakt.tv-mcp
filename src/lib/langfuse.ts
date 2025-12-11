@@ -5,14 +5,13 @@
  * Tracks tool calls, API requests, and NLP/ambiguity events.
  */
 
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { Langfuse } from 'langfuse';
 import type { LangfuseTraceClient } from 'langfuse';
+import { sanitizeOutput } from './sanitization.js';
 
 // Debug mode - set to true to see Langfuse logging
 const DEBUG = process.env.LANGFUSE_DEBUG === 'true';
-
-// Maximum length for string values in traces before truncation
-const MAX_TRACE_STRING_LENGTH = 500;
 
 /**
  * Log to stderr (MCP servers must use stderr for logs, stdout is for protocol)
@@ -43,6 +42,9 @@ export interface LangfuseTracerConfig {
 export class LangfuseTracer {
   private langfuse: Langfuse | null = null;
   private currentTrace: LangfuseTraceClient | null = null;
+  private healthCheckPromise: Promise<void> | null = null;
+  private traceContext = new AsyncLocalStorage<LangfuseTraceClient | null>();
+  private lastFlushDurationMs: number | null = null;
 
   constructor(config?: LangfuseTracerConfig) {
     this.initializeLangfuse(config);
@@ -76,8 +78,33 @@ export class LangfuseTracer {
         baseUrl,
       });
       log(`Initialized successfully (baseUrl: ${baseUrl})`);
+      this.healthCheckPromise = this.runHealthCheck();
     } catch (error) {
       log('Failed to initialize:', error);
+    }
+  }
+
+  /**
+   * Run an initialization-time health check so credential or network issues surface early
+   */
+  private async runHealthCheck(): Promise<void> {
+    if (!this.langfuse) return;
+
+    try {
+      debugLog('Running Langfuse health check...');
+
+      // Use authenticated request so bad keys or unreachable hosts fail fast
+      await this.langfuse.api.healthHealth({ secure: true });
+      await this.langfuse.api.traceList({ limit: 1 });
+
+      debugLog('Langfuse health check passed');
+    } catch (error) {
+      log(
+        'Langfuse health check failed - tracing disabled. Verify LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY, LANGFUSE_BASE_URL, and network connectivity.',
+        error
+      );
+      this.langfuse = null;
+      this.currentTrace = null;
     }
   }
 
@@ -86,6 +113,25 @@ export class LangfuseTracer {
    */
   isEnabled(): boolean {
     return this.langfuse !== null;
+  }
+
+  /**
+   * Get the last measured flush duration in milliseconds (if recorded)
+   */
+  getLastFlushDurationMs(): number | null {
+    return this.lastFlushDurationMs;
+  }
+
+  /**
+   * Resolve active trace using async context to avoid cross-request mixing
+   */
+  private getActiveTrace(): LangfuseTraceClient | null {
+    // If currentTrace is explicitly null, that takes precedence (trace was ended)
+    // Otherwise, check the async context for trace propagation
+    if (this.currentTrace === null) {
+      return null;
+    }
+    return this.traceContext.getStore() ?? this.currentTrace;
   }
 
   /**
@@ -101,6 +147,7 @@ export class LangfuseTracer {
       name,
       metadata,
     });
+    this.traceContext.enterWith(this.currentTrace);
 
     log(`Started trace: ${name}`);
     return this.currentTrace;
@@ -110,7 +157,7 @@ export class LangfuseTracer {
    * Get the current active trace
    */
   getCurrentTrace(): LangfuseTraceClient | null {
-    return this.currentTrace;
+    return this.getActiveTrace();
   }
 
   /**
@@ -126,8 +173,9 @@ export class LangfuseTracer {
     }
 
     // Create a span for this tool call
-    const span = this.currentTrace
-      ? this.currentTrace.span({
+    const activeTrace = this.getActiveTrace();
+    const span = activeTrace
+      ? activeTrace.span({
           name: `mcp.tool.${toolName}`,
           input: params,
         })
@@ -143,7 +191,7 @@ export class LangfuseTracer {
       const durationMs = Date.now() - startTime;
 
       span.update({
-        output: summarizeResult(result),
+        output: sanitizeOutput(result),
         metadata: {
           duration_ms: durationMs,
           success: true,
@@ -180,8 +228,9 @@ export class LangfuseTracer {
       return operation();
     }
 
-    const span = this.currentTrace
-      ? this.currentTrace.span({
+    const activeTrace = this.getActiveTrace();
+    const span = activeTrace
+      ? activeTrace.span({
           name: 'trakt.api',
           input: { method, endpoint },
         })
@@ -197,7 +246,7 @@ export class LangfuseTracer {
       const durationMs = Date.now() - startTime;
 
       span.update({
-        output: summarizeResult(result),
+        output: sanitizeOutput(result),
         metadata: {
           duration_ms: durationMs,
           http_method: method,
@@ -240,6 +289,7 @@ export class LangfuseTracer {
   ): void {
     if (!this.langfuse) return;
 
+    const activeTrace = this.getActiveTrace();
     const metadata = {
       match_count: matchCount,
       needs_clarification: needsClarification,
@@ -248,8 +298,8 @@ export class LangfuseTracer {
         matchCount === 0 ? 'none' : matchCount === 1 ? 'low' : matchCount <= 5 ? 'medium' : 'high',
     };
 
-    if (this.currentTrace) {
-      this.currentTrace.event({
+    if (activeTrace) {
+      activeTrace.event({
         name: 'nlp.ambiguity',
         input: { query },
         metadata,
@@ -269,8 +319,9 @@ export class LangfuseTracer {
   logCacheEvent(operation: 'hit' | 'miss', key: string, toolName?: string): void {
     if (!this.langfuse) return;
 
-    if (this.currentTrace) {
-      this.currentTrace.event({
+    const activeTrace = this.getActiveTrace();
+    if (activeTrace) {
+      activeTrace.event({
         name: `cache.${operation}`,
         metadata: {
           cache_key: key.length > 50 ? key.substring(0, 50) + '...' : key,
@@ -283,14 +334,15 @@ export class LangfuseTracer {
   /**
    * End the current trace
    */
-  async endTrace(): Promise<void> {
+  async endTrace(options?: { awaitFlush?: boolean }): Promise<void> {
     if (!this.langfuse) {
       debugLog('endTrace skipped - Langfuse not available');
       return;
     }
 
-    if (this.currentTrace) {
-      this.currentTrace.update({
+    const activeTrace = this.getActiveTrace();
+    if (activeTrace) {
+      activeTrace.update({
         metadata: {
           ended_at: new Date().toISOString(),
         },
@@ -298,14 +350,36 @@ export class LangfuseTracer {
     }
 
     // Flush events to Langfuse
-    log('Flushing trace to Langfuse...');
+    const flushPromise = this.flushAndMeasure(options?.awaitFlush ?? true);
+    if (options?.awaitFlush === false) {
+      flushPromise.catch((error) => log('Failed to flush trace (background):', error));
+    } else {
+      await flushPromise;
+    }
+    // Clear trace state - clear currentTrace first, then context
+    // This ensures getActiveTrace() returns null after endTrace()
+    this.currentTrace = null;
+    this.traceContext.enterWith(null);
+  }
+
+  private async flushAndMeasure(awaited: boolean): Promise<void> {
+    if (!this.langfuse) return;
+
+    const start = Date.now();
+    log(`Flushing trace to Langfuse...${awaited ? '' : ' (background)'}`);
     try {
       await this.langfuse.flushAsync();
-      log('Trace flushed successfully');
+      this.lastFlushDurationMs = Date.now() - start;
+      debugLog(
+        `Trace flushed successfully in ${this.lastFlushDurationMs}ms${awaited ? '' : ' (background)'}`
+      );
     } catch (error) {
-      log('Failed to flush trace:', error);
+      this.lastFlushDurationMs = Date.now() - start;
+      log(`Failed to flush trace after ${this.lastFlushDurationMs}ms:`, error);
+      if (awaited) {
+        throw error;
+      }
     }
-    this.currentTrace = null;
   }
 
   /**
@@ -317,46 +391,6 @@ export class LangfuseTracer {
       this.langfuse = null;
     }
   }
-}
-
-/**
- * Summarize a result for logging (truncate large objects)
- */
-function summarizeResult(result: unknown): unknown {
-  if (result === null || result === undefined) return result;
-
-  if (typeof result === 'string') {
-    return result.length > MAX_TRACE_STRING_LENGTH
-      ? result.substring(0, MAX_TRACE_STRING_LENGTH) + '...[truncated]'
-      : result;
-  }
-
-  if (Array.isArray(result)) {
-    return {
-      type: 'array',
-      length: result.length,
-      sample: result.slice(0, 3),
-    };
-  }
-
-  if (typeof result === 'object') {
-    const obj = result as Record<string, unknown>;
-    if ('success' in obj) {
-      return {
-        success: obj.success,
-        has_data: 'data' in obj,
-        message: obj.message,
-      };
-    }
-    if ('content' in obj && Array.isArray(obj.content)) {
-      return {
-        type: 'mcp_response',
-        content_count: obj.content.length,
-      };
-    }
-  }
-
-  return result;
 }
 
 /**
@@ -396,5 +430,5 @@ export const logAmbiguity = (
 ) => defaultTracer.logAmbiguity(query, matchCount, needsClarification, matchType);
 export const logCacheEvent = (operation: 'hit' | 'miss', key: string, toolName?: string) =>
   defaultTracer.logCacheEvent(operation, key, toolName);
-export const endTrace = () => defaultTracer.endTrace();
+export const endTrace = (options?: { awaitFlush?: boolean }) => defaultTracer.endTrace(options);
 export const shutdown = () => defaultTracer.shutdown();

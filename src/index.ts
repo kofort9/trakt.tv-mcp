@@ -15,48 +15,11 @@ import { PROFILE_RESOURCE, getProfile } from './resources/profile.js';
 import { WATCHLIST_RESOURCES, getWatchlist } from './resources/watchlist.js';
 import { HISTORY_RESOURCES, getHistory } from './resources/history.js';
 import { startTrace, traceToolCall, endTrace, shutdown } from './lib/langfuse.js';
+import { sanitizeInputArgs } from './lib/sanitization.js';
 
 // Server configuration
 const SERVER_NAME = 'trakt-mcp-server';
 const SERVER_VERSION = '1.0.0';
-
-/**
- * Sanitize tool arguments for trace logging to prevent PII exposure
- * Similar to summarizeResult() in langfuse.ts but for input arguments
- */
-function sanitizeArgs(args: Record<string, unknown> | undefined): Record<string, unknown> {
-  if (!args) return {};
-
-  const sanitized: Record<string, unknown> = {};
-  const MAX_STRING_LENGTH = 100;
-
-  for (const [key, value] of Object.entries(args)) {
-    if (value === null || value === undefined) {
-      sanitized[key] = value;
-    } else if (typeof value === 'string') {
-      // Truncate long strings that might contain sensitive show names, etc.
-      if (value.length > MAX_STRING_LENGTH) {
-        sanitized[key] = value.substring(0, MAX_STRING_LENGTH) + '...[truncated]';
-      } else {
-        sanitized[key] = value;
-      }
-    } else if (Array.isArray(value)) {
-      // For arrays, just show type and length, not actual content
-      sanitized[key] = {
-        type: 'array',
-        length: value.length,
-      };
-    } else if (typeof value === 'object') {
-      // For objects, show keys but truncate values
-      sanitized[key] = { type: 'object', keys: Object.keys(value) };
-    } else {
-      // Numbers, booleans, etc. are safe to include
-      sanitized[key] = value;
-    }
-  }
-
-  return sanitized;
-}
 
 // Load configuration and initialize clients
 const config = loadConfig();
@@ -483,8 +446,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
-  // Start a trace for this tool call (sanitize args to prevent PII exposure)
-  startTrace(`mcp.${name}`, { tool: name, args: sanitizeArgs(args as Record<string, unknown>) });
+  // Start a trace for this tool call (sanitize args to avoid logging full titles/queries/IDs)
+  startTrace(`mcp.${name}`, {
+    tool: name,
+    args: sanitizeInputArgs(args as Record<string, unknown>),
+  });
 
   try {
     if (name === 'authenticate') {
@@ -744,7 +710,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     };
   } finally {
     // End trace and flush to Langfuse
-    await endTrace();
+    await endTrace({ awaitFlush: false });
   }
 });
 

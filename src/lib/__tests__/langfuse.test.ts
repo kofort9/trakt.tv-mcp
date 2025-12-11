@@ -1,6 +1,36 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { LangfuseTracer, createLangfuseTracer } from '../langfuse.js';
 
+const createFetchResponse = (body: unknown, status = 200) => ({
+  ok: status >= 200 && status < 300,
+  status,
+  statusText: '',
+  json: vi.fn().mockResolvedValue(body),
+  clone() {
+    return createFetchResponse(body, status);
+  },
+});
+
+const originalFetch = global.fetch;
+const mockFetch = vi.fn();
+
+beforeEach(() => {
+  mockFetch.mockImplementation(() => Promise.resolve(createFetchResponse({ status: 'ok' })));
+
+  // @ts-expect-error - override fetch for tests to prevent real network calls
+  global.fetch = mockFetch;
+});
+
+afterEach(() => {
+  mockFetch.mockReset();
+  if (originalFetch) {
+    global.fetch = originalFetch;
+  } else {
+    // @ts-expect-error - restore to undefined when not available
+    delete global.fetch;
+  }
+});
+
 describe('langfuse integration', () => {
   describe('LangfuseTracer class', () => {
     describe('initialization', () => {
@@ -99,6 +129,44 @@ describe('langfuse integration', () => {
         const tracer = createLangfuseTracer({});
 
         expect(tracer.isEnabled()).toBe(false);
+      });
+    });
+
+    describe('health check', () => {
+      it('should disable tracer when health check fails', async () => {
+        mockFetch.mockRejectedValueOnce(new Error('network unreachable'));
+        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        const tracer = createLangfuseTracer({
+          secretKey: 'test-secret-key',
+          publicKey: 'test-public-key',
+          baseUrl: 'https://test.langfuse.com',
+        });
+
+        await (tracer as any).healthCheckPromise;
+
+        expect(tracer.isEnabled()).toBe(false);
+        expect(consoleSpy).toHaveBeenCalledWith(
+          expect.stringContaining(
+            '[LANGFUSE] Langfuse health check failed - tracing disabled. Verify LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY, LANGFUSE_BASE_URL, and network connectivity.'
+          ),
+          expect.any(Error)
+        );
+
+        consoleSpy.mockRestore();
+      });
+
+      it('should stay enabled when health check succeeds', async () => {
+        const tracer = createLangfuseTracer({
+          secretKey: 'test-secret-key',
+          publicKey: 'test-public-key',
+          baseUrl: 'https://test.langfuse.com',
+        });
+
+        await (tracer as any).healthCheckPromise;
+
+        expect(tracer.isEnabled()).toBe(true);
+        expect(mockFetch).toHaveBeenCalled();
       });
     });
 
@@ -334,6 +402,35 @@ describe('langfuse integration', () => {
 
         await expect(tracer.endTrace()).resolves.not.toThrow();
       });
+
+      it('should flush in the background when awaitFlush is false', async () => {
+        const tracer = createLangfuseTracer({
+          secretKey: 'test-secret-key',
+          publicKey: 'test-public-key',
+        });
+        await (tracer as any).healthCheckPromise;
+
+        const langfuseInstance = (tracer as any).langfuse;
+        let resolveFlush: (() => void) | null = null;
+        let flushResolved = false;
+        const flushPromise = new Promise<void>((resolve) => {
+          resolveFlush = () => {
+            flushResolved = true;
+            resolve();
+          };
+        });
+        const flushSpy = vi.spyOn(langfuseInstance, 'flushAsync').mockReturnValue(flushPromise);
+
+        tracer.startTrace('background-flush-test');
+
+        await expect(tracer.endTrace({ awaitFlush: false })).resolves.not.toThrow();
+        expect(flushSpy).toHaveBeenCalledTimes(1);
+        expect(flushResolved).toBe(false);
+
+        resolveFlush?.();
+        await flushPromise;
+        expect(tracer.getLastFlushDurationMs()).not.toBeNull();
+      });
     });
 
     describe('shutdown', () => {
@@ -398,6 +495,42 @@ describe('langfuse integration', () => {
         expect(tracer1.getCurrentTrace()).toBe(null);
         expect(tracer2.getCurrentTrace()).not.toBe(null);
       }, 15000); // Extended timeout for network operations
+
+      it('should keep trace context isolated across concurrent calls', async () => {
+        const tracer = createLangfuseTracer({
+          secretKey: 'test-secret-key',
+          publicKey: 'test-public-key',
+        });
+        await (tracer as any).healthCheckPromise;
+
+        const fakeSpan = () => ({
+          update: vi.fn(),
+          end: vi.fn(),
+        });
+
+        const traceA = { span: vi.fn().mockReturnValue(fakeSpan()), event: vi.fn(), update: vi.fn() };
+        const traceB = { span: vi.fn().mockReturnValue(fakeSpan()), event: vi.fn(), update: vi.fn() };
+        const langfuseInstance = (tracer as any).langfuse;
+
+        langfuseInstance.trace = vi.fn().mockReturnValueOnce(traceA).mockReturnValueOnce(traceB);
+        langfuseInstance.span = vi.fn(); // Should not be used when active trace exists
+        langfuseInstance.flushAsync = vi.fn().mockResolvedValue(undefined);
+        langfuseInstance.shutdownAsync = vi.fn().mockResolvedValue(undefined);
+
+        const runTrace = async (name: string, trace: any) => {
+          tracer.startTrace(name);
+          await tracer.traceToolCall(`tool_${name}`, {}, async () => `result-${name}`);
+          await tracer.endTrace({ awaitFlush: false });
+          expect(tracer.getCurrentTrace()).toBe(null);
+          return trace;
+        };
+
+        await Promise.all([runTrace('one', traceA), runTrace('two', traceB)]);
+
+        expect(traceA.span).toHaveBeenCalledTimes(1);
+        expect(traceB.span).toHaveBeenCalledTimes(1);
+        expect(langfuseInstance.span).not.toHaveBeenCalled();
+      });
     });
   });
 
