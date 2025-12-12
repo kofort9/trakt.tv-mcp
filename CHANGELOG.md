@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Public-facing community docs: CODE_OF_CONDUCT, SECURITY, SUPPORT, plus issue/PR templates
+- Manual E2E NL queue plan (offline capture → resolve/sync) with optional Slack append-to-queue flow
+- Node version enforcement helpers: `.nvmrc`, `engine-strict` (`.npmrc`), and preinstall version guard
 - Comprehensive natural language date parsing support
 - Langfuse observability integration (replacing OpenTelemetry/Honeycomb)
 - Cache telemetry with hit/miss tracking via Langfuse events
@@ -29,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Empty string validation for date parameters
 
 ### Changed
+- README refreshed with public repo links, support/security references, and Node 20 guidance; package metadata now includes repository, bugs, and homepage URLs
 - Refactored Langfuse from singleton to class-based dependency injection pattern
 - Improved ISO 8601 date validation with strict month/day range checks
 - Improved Husky hooks with Node version validation and guidance for nvm/fnm/asdf/volta
