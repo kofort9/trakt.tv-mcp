@@ -46,4 +46,3 @@ export async function getWatchlist(client: TraktClient, uri: string): Promise<st
     );
   }
 }
-

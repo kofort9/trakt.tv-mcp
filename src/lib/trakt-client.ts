@@ -91,25 +91,28 @@ export class TraktClient {
     });
 
     // Add request interceptor for authentication and logging
-    this.client.interceptors.request.use(async (config) => {
-      const enhancedConfig = config as TraktRequestConfig;
-      await this.rateLimiter.waitIfNeeded();
+    this.client.interceptors.request.use(
+      async (config) => {
+        const enhancedConfig = config as TraktRequestConfig;
+        await this.rateLimiter.waitIfNeeded();
 
-      if (this.oauth.isAuthenticated()) {
-        const token = await this.oauth.getAccessToken();
-        enhancedConfig.headers.Authorization = `Bearer ${token}`;
-      }
+        if (this.oauth.isAuthenticated()) {
+          const token = await this.oauth.getAccessToken();
+          enhancedConfig.headers.Authorization = `Bearer ${token}`;
+        }
 
-      // Generate correlation ID and log request initiation
-      const correlationId = logger.generateCorrelationId();
-      const startTime = Date.now();
+        // Generate correlation ID and log request initiation
+        const correlationId = logger.generateCorrelationId();
+        const startTime = Date.now();
 
-      // Store metadata in config for use in response interceptor
-      enhancedConfig._correlationId = correlationId;
-      enhancedConfig._startTime = startTime;
+        // Store metadata in config for use in response interceptor
+        enhancedConfig._correlationId = correlationId;
+        enhancedConfig._startTime = startTime;
 
-      return enhancedConfig;
-    }, (error) => Promise.reject(error));
+        return enhancedConfig;
+      },
+      (error) => Promise.reject(error)
+    );
 
     // Add response interceptor for logging and error handling with retry logic
     this.client.interceptors.response.use(
