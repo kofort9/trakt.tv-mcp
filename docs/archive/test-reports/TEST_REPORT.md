@@ -1066,19 +1066,19 @@ None - no blocking issues found
 
 ### Test Scripts Created
 
-1. **`test-mcp-server.mjs`**
+1. **`tests/manual/test-mcp-server.mjs`**
    - Tests MCP server initialization
    - Tests tool registration
    - Tests basic tool calling
    - Result: 2/3 tests passed
 
-2. **`test-api-integration.mjs`**
+2. **`tests/manual/test-api-integration.mjs`**
    - Tests OAuth device flow
    - Tests search API with various queries
    - Tests error handling
    - Result: 7/9 tests passed (2 expected failures due to API behavior)
 
-3. **`test-mcp-tools.mjs`**
+3. **`tests/manual/test-mcp-tools.mjs`**
    - Tests complete MCP tool integration
    - Tests search_show via MCP protocol
    - Tests parameter validation
@@ -1088,6 +1088,8 @@ None - no blocking issues found
 4. **`debug-tools.mjs`**
    - Utility to inspect registered tools
    - Used to discover extra tools beyond Phase 2
+
+Manual test scripts now live in `tests/manual/` (debug-tools remains at the project root).
 
 ### Test Data Files
 

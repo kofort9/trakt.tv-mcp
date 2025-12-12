@@ -1,9 +1,24 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
+import axios, {
+  AxiosInstance,
+  AxiosRequestConfig,
+  AxiosError,
+  InternalAxiosRequestConfig,
+} from 'axios';
 import { TraktConfig, TraktSettings } from '../types/trakt.js';
 import { TraktOAuth } from './oauth.js';
 import { logger } from './logger.js';
 import { LRUCache, generateSearchCacheKey, generateEpisodeCacheKey } from './cache.js';
 import { logCacheEvent } from './langfuse.js';
+import { logDebug, logInfo, logWarn } from './logging.js';
+
+type TraktRequestMetadata = {
+  _toolName?: string;
+  _correlationId?: string;
+  _startTime?: number;
+  _retryCount?: number;
+};
+
+type TraktRequestConfig = InternalAxiosRequestConfig & TraktRequestMetadata;
 
 /**
  * Rate limiter for API requests
@@ -45,6 +60,15 @@ export class TraktClient {
   private client: AxiosInstance;
   private rateLimiter: RateLimiter;
   private searchCache: LRUCache<string, unknown>;
+  private addToolName(
+    config: AxiosRequestConfig | undefined,
+    toolName?: string
+  ): AxiosRequestConfig & TraktRequestMetadata {
+    return {
+      ...(config || {}),
+      _toolName: toolName ?? (config as TraktRequestMetadata | undefined)?._toolName,
+    };
+  }
 
   constructor(config: TraktConfig, oauth: TraktOAuth) {
     this.oauth = oauth;
@@ -69,11 +93,12 @@ export class TraktClient {
     // Add request interceptor for authentication and logging
     this.client.interceptors.request.use(
       async (config) => {
+        const enhancedConfig = config as TraktRequestConfig;
         await this.rateLimiter.waitIfNeeded();
 
         if (this.oauth.isAuthenticated()) {
           const token = await this.oauth.getAccessToken();
-          config.headers.Authorization = `Bearer ${token}`;
+          enhancedConfig.headers.Authorization = `Bearer ${token}`;
         }
 
         // Generate correlation ID and log request initiation
@@ -81,22 +106,10 @@ export class TraktClient {
         const startTime = Date.now();
 
         // Store metadata in config for use in response interceptor
-        (
-          config as AxiosRequestConfig & {
-            _correlationId?: string;
-            _startTime?: number;
-            _toolName?: string;
-          }
-        )._correlationId = correlationId;
-        (
-          config as AxiosRequestConfig & {
-            _correlationId?: string;
-            _startTime?: number;
-            _toolName?: string;
-          }
-        )._startTime = startTime;
+        enhancedConfig._correlationId = correlationId;
+        enhancedConfig._startTime = startTime;
 
-        return config;
+        return enhancedConfig;
       },
       (error) => Promise.reject(error)
     );
@@ -105,10 +118,9 @@ export class TraktClient {
     this.client.interceptors.response.use(
       (response) => {
         // Log successful response
-        const config = response.config as AxiosRequestConfig & {
+        const config = response.config as TraktRequestConfig & {
           _correlationId?: string;
           _startTime?: number;
-          _toolName?: string;
         };
         const correlationId = config._correlationId || logger.generateCorrelationId();
         const startTime = config._startTime || Date.now();
@@ -120,11 +132,10 @@ export class TraktClient {
         return response;
       },
       async (error: AxiosError) => {
-        const config = error.config as AxiosRequestConfig & {
+        const config = error.config as TraktRequestConfig & {
           _retryCount?: number;
           _correlationId?: string;
           _startTime?: number;
-          _toolName?: string;
         };
 
         // Log error before handling (unless it's a retry)
@@ -150,7 +161,7 @@ export class TraktClient {
             // Calculate exponential backoff delay: 1s, 2s, 4s
             const backoffDelay = Math.pow(2, retryCount) * 1000;
 
-            console.warn(
+            logWarn(
               `Rate limit hit. Retrying in ${backoffDelay}ms (attempt ${retryCount + 1}/${maxRetries})`
             );
 
@@ -178,58 +189,72 @@ export class TraktClient {
   /**
    * Make a GET request to the Trakt API
    */
-  async get<T>(endpoint: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.get<T>(endpoint, config);
+  async get<T>(endpoint: string, config?: AxiosRequestConfig, toolName?: string): Promise<T> {
+    const response = await this.client.get<T>(endpoint, this.addToolName(config, toolName));
     return response.data;
   }
 
   /**
    * Make a POST request to the Trakt API
    */
-  async post<T>(endpoint: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.post<T>(endpoint, data, config);
+  async post<T>(
+    endpoint: string,
+    data?: unknown,
+    config?: AxiosRequestConfig,
+    toolName?: string
+  ): Promise<T> {
+    const response = await this.client.post<T>(endpoint, data, this.addToolName(config, toolName));
     return response.data;
   }
 
   /**
    * Make a PUT request to the Trakt API
    */
-  async put<T>(endpoint: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.put<T>(endpoint, data, config);
+  async put<T>(
+    endpoint: string,
+    data?: unknown,
+    config?: AxiosRequestConfig,
+    toolName?: string
+  ): Promise<T> {
+    const response = await this.client.put<T>(endpoint, data, this.addToolName(config, toolName));
     return response.data;
   }
 
   /**
    * Make a DELETE request to the Trakt API
    */
-  async delete<T>(endpoint: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.delete<T>(endpoint, config);
+  async delete<T>(endpoint: string, config?: AxiosRequestConfig, toolName?: string): Promise<T> {
+    const response = await this.client.delete<T>(endpoint, this.addToolName(config, toolName));
     return response.data;
   }
 
   /**
    * Search for shows and movies (with caching)
    */
-  async search(query: string, type?: 'show' | 'movie', year?: number) {
+  async search(
+    query: string,
+    type?: 'show' | 'movie',
+    year?: number,
+    options?: { toolName?: string }
+  ) {
     const cacheKey = generateSearchCacheKey(query, type, year);
 
     // Check cache first
     const cached = this.searchCache.get(cacheKey);
     if (cached !== undefined) {
       logCacheEvent('hit', cacheKey, 'search_content');
-      console.error(`[CACHE_HIT] Search: "${query}" (${type || 'all'}${year ? `, ${year}` : ''})`);
+      logDebug(`[CACHE_HIT] Search: "${query}" (${type || 'all'}${year ? `, ${year}` : ''})`);
       return cached;
     }
 
     // Cache miss - fetch from API
     logCacheEvent('miss', cacheKey, 'search_content');
-    console.error(`[CACHE_MISS] Search: "${query}" (${type || 'all'}${year ? `, ${year}` : ''})`);
+    logDebug(`[CACHE_MISS] Search: "${query}" (${type || 'all'}${year ? `, ${year}` : ''})`);
 
     const params: Record<string, string | number> = { query };
-    if (type) params.type = type;
     if (year) params.years = year;
 
-    const result = await this.get(`/search/${type || 'show,movie'}`, { params });
+    const result = await this.get(`/search/${type || 'show,movie'}`, { params }, options?.toolName);
 
     // Store in cache
     this.searchCache.set(cacheKey, result);
@@ -240,22 +265,31 @@ export class TraktClient {
   /**
    * Search for a specific episode (with caching)
    */
-  async searchEpisode(showId: string, season: number, episode: number) {
+  async searchEpisode(
+    showId: string,
+    season: number,
+    episode: number,
+    options?: { toolName?: string }
+  ) {
     const cacheKey = generateEpisodeCacheKey(showId, season, episode);
 
     // Check cache first
     const cached = this.searchCache.get(cacheKey);
     if (cached !== undefined) {
       logCacheEvent('hit', cacheKey, 'searchEpisode');
-      console.error(`[CACHE_HIT] Episode: ${showId} S${season}E${episode}`);
+      logDebug(`[CACHE_HIT] Episode: ${showId} S${season}E${episode}`);
       return cached;
     }
 
     // Cache miss - fetch from API
     logCacheEvent('miss', cacheKey, 'searchEpisode');
-    console.error(`[CACHE_MISS] Episode: ${showId} S${season}E${episode}`);
+    logDebug(`[CACHE_MISS] Episode: ${showId} S${season}E${episode}`);
 
-    const result = await this.get(`/shows/${showId}/seasons/${season}/episodes/${episode}`);
+    const result = await this.get(
+      `/shows/${showId}/seasons/${season}/episodes/${episode}`,
+      undefined,
+      options?.toolName
+    );
 
     // Store in cache
     this.searchCache.set(cacheKey, result);
@@ -266,92 +300,98 @@ export class TraktClient {
   /**
    * Get show information
    */
-  async getShow(id: string, extended?: 'full') {
+  async getShow(id: string, extended?: 'full', options?: { toolName?: string }) {
     const params = extended ? { extended } : {};
-    return this.get(`/shows/${id}`, { params });
+    return this.get(`/shows/${id}`, { params }, options?.toolName);
   }
 
   /**
    * Get episodes for a season
    */
-  async getSeasonEpisodes(showId: string, season: number) {
-    return this.get(`/shows/${showId}/seasons/${season}`);
+  async getSeasonEpisodes(showId: string, season: number, options?: { toolName?: string }) {
+    return this.get(`/shows/${showId}/seasons/${season}`, undefined, options?.toolName);
   }
 
   /**
    * Get user's settings (includes profile info)
    */
-  async getUserSettings(): Promise<TraktSettings> {
-    return this.get<TraktSettings>('/users/settings');
+  async getUserSettings(options?: { toolName?: string }): Promise<TraktSettings> {
+    return this.get<TraktSettings>('/users/settings', undefined, options?.toolName);
   }
 
   /**
    * Get user's watch history
    */
-  async getHistory(type?: 'shows' | 'movies', startAt?: string, endAt?: string, page = 1) {
+  async getHistory(
+    type?: 'shows' | 'movies',
+    startAt?: string,
+    endAt?: string,
+    page = 1,
+    options?: { toolName?: string }
+  ) {
     const params: Record<string, string | number> = { page, limit: 50 };
     if (startAt) params.start_at = startAt;
     if (endAt) params.end_at = endAt;
 
     const endpoint = type ? `/sync/history/${type}` : '/sync/history';
-    return this.get(endpoint, { params });
+    return this.get(endpoint, { params }, options?.toolName);
   }
 
   /**
    * Add items to watch history
    */
-  async addToHistory(items: unknown) {
-    return this.post('/sync/history', items);
+  async addToHistory(items: unknown, options?: { toolName?: string }) {
+    return this.post('/sync/history', items, undefined, options?.toolName);
   }
 
   /**
    * Get user's watchlist
    */
-  async getWatchlist(type?: 'shows' | 'movies') {
+  async getWatchlist(type?: 'shows' | 'movies', options?: { toolName?: string }) {
     const endpoint = type ? `/sync/watchlist/${type}` : '/sync/watchlist';
-    return this.get(endpoint);
+    return this.get(endpoint, undefined, options?.toolName);
   }
 
   /**
    * Add items to watchlist
    */
-  async addToWatchlist(items: unknown) {
-    return this.post('/sync/watchlist', items);
+  async addToWatchlist(items: unknown, options?: { toolName?: string }) {
+    return this.post('/sync/watchlist', items, undefined, options?.toolName);
   }
 
   /**
    * Remove items from watchlist
    */
-  async removeFromWatchlist(items: unknown) {
-    return this.post('/sync/watchlist/remove', items);
+  async removeFromWatchlist(items: unknown, options?: { toolName?: string }) {
+    return this.post('/sync/watchlist/remove', items, undefined, options?.toolName);
   }
 
   /**
    * Get calendar for user's shows
    */
-  async getCalendar(startDate: string, days = 7) {
-    return this.get(`/calendars/my/shows/${startDate}/${days}`);
+  async getCalendar(startDate: string, days = 7, options?: { toolName?: string }) {
+    return this.get(`/calendars/my/shows/${startDate}/${days}`, undefined, options?.toolName);
   }
 
   /**
    * Get watched progress for a show
    */
-  async getShowProgress(showId: string) {
-    return this.get(`/shows/${showId}/progress/watched`);
+  async getShowProgress(showId: string, options?: { toolName?: string }) {
+    return this.get(`/shows/${showId}/progress/watched`, undefined, options?.toolName);
   }
 
   /**
    * Get user's collected shows
    */
-  async getCollectedShows() {
-    return this.get('/sync/collection/shows');
+  async getCollectedShows(options?: { toolName?: string }) {
+    return this.get('/sync/collection/shows', undefined, options?.toolName);
   }
 
   /**
    * Remove items from history
    */
-  async removeFromHistory(items: unknown) {
-    return this.post('/sync/history/remove', items);
+  async removeFromHistory(items: unknown, options?: { toolName?: string }) {
+    return this.post('/sync/history/remove', items, undefined, options?.toolName);
   }
 
   /**
@@ -366,7 +406,7 @@ export class TraktClient {
    */
   clearSearchCache(): void {
     this.searchCache.clear();
-    console.error('[CACHE] Search cache cleared');
+    logInfo('[CACHE] Search cache cleared');
   }
 
   /**
@@ -376,7 +416,7 @@ export class TraktClient {
   pruneCache(): number {
     const removed = this.searchCache.prune();
     if (removed > 0) {
-      console.error(`[CACHE] Pruned ${removed} expired entries`);
+      logInfo(`[CACHE] Pruned ${removed} expired entries`);
     }
     return removed;
   }

@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, existsSync, chmodSync, mkdirSync } from 'f
 import { join, dirname } from 'path';
 import { homedir } from 'os';
 import { DeviceCodeResponse, TokenResponse, StoredToken, TraktConfig } from '../types/trakt.js';
+import { logError } from './logging.js';
 
 const TOKEN_FILE_PATH = join(homedir(), '.trakt-mcp', '.trakt-token.json');
 
@@ -218,7 +219,7 @@ export class TraktOAuth {
         }
       }
     } catch (error) {
-      console.error('Failed to load token:', error);
+      logError('Failed to load token:', error);
     }
   }
 
@@ -236,7 +237,7 @@ export class TraktOAuth {
       // Set file permissions to 0600 (user read/write only) for security
       chmodSync(TOKEN_FILE_PATH, 0o600);
     } catch (error) {
-      console.error('Failed to save token:', error);
+      logError('Failed to save token:', error);
     }
   }
 }

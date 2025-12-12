@@ -13,7 +13,7 @@ if [ -z "$NODE_VERSION" ]; then
 fi
 if [ "$NODE_MAJOR" -lt 18 ] 2>/dev/null; then
   echo "❌ Error: Node $NODE_VERSION detected. This project requires Node 18.18+ or 20.x"
-  echo "   Run 'nvm use 18' or 'nvm use 20' to switch versions"
+  echo "   Use nvm/fnm/asdf/volta to switch (e.g., 'nvm use 18', 'fnm use 18', 'volta pin node@18', 'asdf local nodejs 18.18.0')"
   exit 1
 fi
 

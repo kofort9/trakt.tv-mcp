@@ -15,48 +15,12 @@ import { PROFILE_RESOURCE, getProfile } from './resources/profile.js';
 import { WATCHLIST_RESOURCES, getWatchlist } from './resources/watchlist.js';
 import { HISTORY_RESOURCES, getHistory } from './resources/history.js';
 import { startTrace, traceToolCall, endTrace, shutdown } from './lib/langfuse.js';
+import { sanitizeInputArgs } from './lib/sanitization.js';
+import { logError, logInfo } from './lib/logging.js';
 
 // Server configuration
 const SERVER_NAME = 'trakt-mcp-server';
 const SERVER_VERSION = '1.0.0';
-
-/**
- * Sanitize tool arguments for trace logging to prevent PII exposure
- * Similar to summarizeResult() in langfuse.ts but for input arguments
- */
-function sanitizeArgs(args: Record<string, unknown> | undefined): Record<string, unknown> {
-  if (!args) return {};
-
-  const sanitized: Record<string, unknown> = {};
-  const MAX_STRING_LENGTH = 100;
-
-  for (const [key, value] of Object.entries(args)) {
-    if (value === null || value === undefined) {
-      sanitized[key] = value;
-    } else if (typeof value === 'string') {
-      // Truncate long strings that might contain sensitive show names, etc.
-      if (value.length > MAX_STRING_LENGTH) {
-        sanitized[key] = value.substring(0, MAX_STRING_LENGTH) + '...[truncated]';
-      } else {
-        sanitized[key] = value;
-      }
-    } else if (Array.isArray(value)) {
-      // For arrays, just show type and length, not actual content
-      sanitized[key] = {
-        type: 'array',
-        length: value.length,
-      };
-    } else if (typeof value === 'object') {
-      // For objects, show keys but truncate values
-      sanitized[key] = { type: 'object', keys: Object.keys(value) };
-    } else {
-      // Numbers, booleans, etc. are safe to include
-      sanitized[key] = value;
-    }
-  }
-
-  return sanitized;
-}
 
 // Load configuration and initialize clients
 const config = loadConfig();
@@ -169,7 +133,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     throw new Error(`Resource not found: ${uri}`);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`Error reading resource ${uri}:`, error);
+    logError(`Error reading resource ${uri}:`, error);
     throw new Error(`Failed to read resource: ${errorMessage}`);
   }
 });
@@ -483,8 +447,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
-  // Start a trace for this tool call (sanitize args to prevent PII exposure)
-  startTrace(`mcp.${name}`, { tool: name, args: sanitizeArgs(args as Record<string, unknown>) });
+  // Start a trace for this tool call (sanitize args to avoid logging full titles/queries/IDs)
+  startTrace(`mcp.${name}`, {
+    tool: name,
+    args: sanitizeInputArgs(args as Record<string, unknown>),
+  });
 
   try {
     if (name === 'authenticate') {
@@ -505,7 +472,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // Start polling in the background
       oauth.pollForToken(deviceCode.device_code, deviceCode.interval).catch((error) => {
-        console.error('Authentication failed:', error);
+        logError('Authentication failed:', error);
       });
 
       return {
@@ -527,7 +494,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           throw new Error('Query parameter is required');
         }
 
-        const results = await traktClient.search(query, type);
+        const results = await traktClient.search(query, type, undefined, {
+          toolName: 'search_show',
+        });
 
         if (Array.isArray(results) && results.length === 0) {
           const response = {
@@ -744,7 +713,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     };
   } finally {
     // End trace and flush to Langfuse
-    await endTrace();
+    await endTrace({ awaitFlush: false });
   }
 });
 
@@ -752,11 +721,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error(`${SERVER_NAME} v${SERVER_VERSION} running on stdio`);
+  logInfo(`${SERVER_NAME} v${SERVER_VERSION} running on stdio`);
 }
 
 main().catch((error) => {
-  console.error('Server error:', error);
+  logError('Server error:', error);
   process.exit(1);
 });
 

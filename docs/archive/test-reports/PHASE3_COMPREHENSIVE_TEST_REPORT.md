@@ -1009,7 +1009,7 @@ Tested the following range patterns in bulk_log:
 ## Test Artifacts
 
 **Test Runner:** `/Users/kofifort/Repos/trakt.tv-mcp/src/test-runner.ts`
-**Test Results:** `/Users/kofifort/Repos/trakt.tv-mcp/test-results.json`
+**Test Results:** `tests/results/test-results.json`
 **Test Guide:** `/Users/kofifort/Repos/trakt.tv-mcp/test-tools.md`
 
 ---

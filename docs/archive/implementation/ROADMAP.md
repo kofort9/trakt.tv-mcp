@@ -5,7 +5,7 @@ This document is historical and may contain outdated information.
 
 **Archived:** November 2025
 **Reason:** Implementation phases completed; active work tracked in TECHNICAL_DEBT.md
-**For current information, see:** [docs/TECHNICAL_DEBT.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/TECHNICAL_DEBT.md)
+**For current information, see:** [TECHNICAL_DEBT.md](../../../TECHNICAL_DEBT.md)
 
 ---
 

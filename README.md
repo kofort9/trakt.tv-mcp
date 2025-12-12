@@ -5,6 +5,12 @@
 
 MCP server for Trakt.tv API - enables AI assistants to track watched shows, movies, and anime using natural language
 
+## Project Links
+- Repository: https://github.com/kofifort/trakt.tv-mcp
+- Issues: https://github.com/kofifort/trakt.tv-mcp/issues
+- Security: see [SECURITY.md](SECURITY.md)
+- Code of Conduct: see [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+
 ## Features
 
 - **Natural Language Support**: Use conversational phrases like "watched yesterday", "tonight", "3 days ago", "last Monday"
@@ -50,6 +56,7 @@ This server is designed for AI assistant integration. See [Contributing Guide - 
 - [Contributing Guide](docs/guides/CONTRIBUTING.md) - For developers and AI assistants
 - [Testing Guide](docs/testing/TESTING_GUIDE.md) - Comprehensive testing documentation
 - [CHANGELOG](CHANGELOG.md) - Version history and release notes
+- [TECHNICAL_DEBT.md](TECHNICAL_DEBT.md) - Dependency pins and technical debt tracking
 
 ## Security
 
@@ -90,6 +97,10 @@ The OAuth device flow includes safeguards against race conditions:
 - Node.js 20.x or later
 - npm
 - Trakt.tv account and API credentials
+
+> The repo includes `.nvmrc` (20.19.6) and a `preinstall` guard that fails fast on Node <20. Use `nvm use` or `export PATH="/opt/homebrew/opt/node@20/bin:$PATH"` if you're on Homebrew.
+
+> The repo includes `.nvmrc` (20.19.6) and a `preinstall` guard that fails fast on Node <20. Use `nvm use` or `export PATH="/opt/homebrew/opt/node@20/bin:$PATH"` if you're on Homebrew.
 
 ### Setup
 
@@ -172,6 +183,12 @@ We welcome contributions! Before submitting changes:
 2. Review [Natural Language Guide](docs/guides/NATURAL_LANGUAGE_GUIDE.md) if adding date/time features
 3. See [Contributing Guide](docs/guides/CONTRIBUTING.md) for extending natural language support
 4. Ensure all tests pass and code quality checks succeed
+
+## Support
+
+- Usage questions and bugs: open an issue via the templates.
+- Security issues: follow [SECURITY.md](SECURITY.md).
+- See [SUPPORT.md](SUPPORT.md) for a quick summary.
 
 ## License
 

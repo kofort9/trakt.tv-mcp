@@ -1,111 +1,61 @@
 # Security Investigation Report
 
-**Date**: 2025-11-25
+**Date**: 2025-12-11
 **Phase**: Phase 3 - Stream 2
 **Investigator**: trakt-mcp-backend agent
 **Repository**: /Users/kofifort/Repos/trakt.tv-mcp
 
 ## Executive Summary
 
-- **Total vulnerabilities found**: 1 (moderate severity)
+- **Total vulnerabilities found**: 0
 - **Critical issues**: 0
-- **Security posture**: GOOD - Well-implemented security practices with minor dependency issue
-- **Immediate actions required**: 1 (update body-parser via @modelcontextprotocol/sdk)
+- **Security posture**: GOOD - Clean `npm audit` on Node 20 after SDK/body-parser patch
+- **Immediate actions required**: 0 (monitor)
 - **Overall risk level**: LOW
 
 **Key Findings**:
-- Single moderate vulnerability in transitive dependency (body-parser)
+- `npm audit` (Node 20.19.6) reports **0 known vulnerabilities** (prod 104, dev 265).
+- Transitive body-parser advisory resolved via `@modelcontextprotocol/sdk@1.24.x` (body-parser 2.2.1).
 - Excellent secrets management implementation
 - Strong file permissions enforcement (0600 for tokens, 0700 for logs)
 - Comprehensive input validation throughout
 - Good error handling without information leakage
-- No outdated dependencies in production code
+- No security-blocking updates pending in production dependencies
 - Proper authentication token handling
 
 ## 1. npm Audit Results
 
 ```
-# npm audit report
+# Ran with Node 20.19.6 (preinstall guard enforced)
+# Command: env PATH="/opt/homebrew/opt/node@20/bin:$PATH" npm audit --json
 
-body-parser  2.2.0
-Severity: moderate
-body-parser is vulnerable to denial of service when url encoding is used
-https://github.com/advisories/GHSA-wqch-xfxh-vrr4
-fix available via `npm audit fix`
-node_modules/body-parser
-
-1 moderate severity vulnerability
-
-To address all issues, run:
-  npm audit fix
+# Result: no vulnerabilities found
 ```
 
 ### Vulnerability Breakdown
 
-**Moderate**: 1 vulnerability
-- body-parser@2.2.0: DoS vulnerability when URL encoding is used (CVE pending)
-  - **Affected versions**: >=2.2.0 <2.2.1
-  - **Fix available**: Yes (body-parser@2.2.1)
-  - **Dependency path**: @modelcontextprotocol/sdk@1.22.0 → express@5.1.0 → body-parser@2.2.0
-  - **Impact**: CWE-400 (Uncontrolled Resource Consumption)
-  - **CVSS Score**: 5.3 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L)
-
-**High**: 0 vulnerabilities
-**Critical**: 0 vulnerabilities
-**Low**: 0 vulnerabilities
+**Moderate**: 0  
+**High**: 0  
+**Critical**: 0  
+**Low**: 0
 
 ### Total Dependencies
-- **Production**: 103 dependencies
-- **Development**: 239 dependencies
-- **Optional**: 49 dependencies
-- **Total**: 341 dependencies
+- **Production**: 104
+- **Development**: 265
+- **Optional**: 75
+- **Total**: 368
 
 ## 2. Dependency Analysis
 
-### Package: body-parser@2.2.0
+### Package: @modelcontextprotocol/sdk (transitive body-parser)
 
-- **Severity**: Moderate
-- **CVE**: GHSA-wqch-xfxh-vrr4
-- **Advisory**: https://github.com/advisories/GHSA-wqch-xfxh-vrr4
-- **Issue**: Denial of Service vulnerability when URL encoding is used. An attacker can craft malicious URL-encoded payloads that consume excessive resources during parsing.
-- **Exploitable in our context**: **NO** - This MCP server does NOT expose HTTP endpoints. The body-parser dependency is only used internally by the MCP SDK's optional SSE (Server-Sent Events) transport layer. Our server uses stdio transport exclusively, so body-parser is never invoked in the execution path.
-- **Fix available**: body-parser@2.2.1 (patched version)
-- **Breaking changes**: NO - Patch version update (2.2.0 → 2.2.1)
-- **Recommendation**: **Update @modelcontextprotocol/sdk to 1.23.0** - This will transitively update body-parser. The fix is non-breaking and should be applied as a precautionary measure even though the vulnerability is not exploitable in our configuration.
-
-**Priority**: P2 (Medium) - Not directly exploitable in our use case, but should be updated as a best practice.
+- **Current**: `@modelcontextprotocol/sdk@1.24.3` → `express@5.2.1` → `body-parser@2.2.1` (patched)
+- **Status**: Advisory GHSA-wqch-xfxh-vrr4 addressed (no DoS exposure in stdio transport).
+- **Action**: None required; keep quarterly audits to catch future advisories.
 
 ## 3. Outdated Dependencies
 
-```
-Package                           Current  Wanted  Latest  Type
-@modelcontextprotocol/sdk         1.22.0   1.23.0  1.23.0  Production
-@typescript-eslint/eslint-plugin  8.47.0   8.48.0  8.48.0  Development
-@typescript-eslint/parser         8.47.0   8.48.0  8.48.0  Development
-@vitest/ui                        4.0.10   4.0.14  4.0.14  Development
-vitest                            4.0.10   4.0.14  4.0.14  Development
-```
-
-### Analysis
-
-**Production Dependencies**:
-- **@modelcontextprotocol/sdk**: 1.22.0 → 1.23.0 (minor update)
-  - **Recommendation**: UPDATE - This will fix the body-parser vulnerability and include latest SDK improvements
-  - **Breaking changes**: None expected (minor version bump)
-  - **Priority**: P1 (High)
-
-**Development Dependencies**:
-- **@typescript-eslint/eslint-plugin & @typescript-eslint/parser**: 8.47.0 → 8.48.0
-  - **Recommendation**: UPDATE - Stay current with TypeScript ESLint rules
-  - **Breaking changes**: None (patch update)
-  - **Priority**: P3 (Low)
-
-- **@vitest/ui & vitest**: 4.0.10 → 4.0.14
-  - **Recommendation**: UPDATE - Bug fixes and improvements in testing framework
-  - **Breaking changes**: None (patch update)
-  - **Priority**: P3 (Low)
-
-**All other dependencies are current and well-maintained.**
+- Routine `npm outdated`/quarterly audits recommended; no security-blocking updates pending.
 
 ## 4. Security Best Practices Audit
 

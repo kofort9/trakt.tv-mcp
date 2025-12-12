@@ -3,6 +3,8 @@
  * Reduces API calls for frequently searched content
  */
 
+import { logWarn } from './logging.js';
+
 export interface CacheEntry<T> {
   value: T;
   expiry: number; // Unix timestamp in ms
@@ -170,9 +172,7 @@ export class LRUCache<K, V> {
     if (this.config.maxMemoryBytes) {
       // If new item is larger than total max memory, don't cache it
       if (valueSize > this.config.maxMemoryBytes) {
-        console.warn(
-          `Cache item too large: ${valueSize} bytes > ${this.config.maxMemoryBytes} bytes`
-        );
+        logWarn(`Cache item too large: ${valueSize} bytes > ${this.config.maxMemoryBytes} bytes`);
         return;
       }
 
@@ -180,7 +180,7 @@ export class LRUCache<K, V> {
       const threshold = this.config.maxMemoryBytes * (this.config.memoryWarningThreshold || 0.9);
       if (this.metrics.memoryBytesUsed + valueSize > threshold) {
         if (!this.hasWarnedMemory) {
-          console.warn(
+          logWarn(
             `Cache memory usage high: ${this.metrics.memoryBytesUsed + valueSize}/${this.config.maxMemoryBytes} bytes`
           );
           this.hasWarnedMemory = true;

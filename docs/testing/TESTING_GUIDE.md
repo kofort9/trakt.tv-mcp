@@ -82,13 +82,13 @@ http://localhost:6274/?MCP_PROXY_AUTH_TOKEN=<token>
 
 ### Test Scripts
 
-**Location:** Root directory
+**Location:** `tests/manual/`
 
-Historical test scripts (archived):
+Historical regression scripts (manual/archived):
 
-- `test-summarize-history.mjs` - Happy path testing for history queries
-- `test-edge-cases.mjs` - Edge case validation
-- `test-calculations.mjs` - Statistics accuracy verification
+- `tests/manual/test-summarize-history.mjs` - Happy path testing for history queries
+- `tests/manual/test-edge-cases.mjs` - Edge case validation
+- `tests/manual/test-calculations.mjs` - Statistics accuracy verification
 
 **Note:** These scripts are preserved for regression testing but are now superseded by Vitest tests.
 

@@ -281,7 +281,7 @@ describe('parallelSearchMovies', () => {
 
     await parallelSearchMovies(mockClient, ['Dune'], 2021);
 
-    expect(mockClient.search).toHaveBeenCalledWith('Dune', 'movie', 2021);
+    expect(mockClient.search).toHaveBeenCalledWith('Dune', 'movie', 2021, undefined);
   });
 
   it('should handle empty movie list', async () => {
