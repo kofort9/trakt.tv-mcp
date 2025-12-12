@@ -664,7 +664,7 @@ Add support for new episode range pattern: "E1-E5,E10"
 - **[NATURAL_LANGUAGE_GUIDE.md](./NATURAL_LANGUAGE_GUIDE.md)** - Comprehensive NL pattern reference
 - **[docs/DEBUGGING.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/DEBUGGING.md)** - Debugging and troubleshooting
 - **[docs/testing/TESTING_GUIDE.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/testing/TESTING_GUIDE.md)** - Testing documentation
-- **[docs/TECHNICAL_DEBT.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/TECHNICAL_DEBT.md)** - Future improvements and known issues
+- **[TECHNICAL_DEBT.md](../../TECHNICAL_DEBT.md)** - Future improvements and known issues
 - **[CLAUDE.md](/Users/kofifort/Repos/trakt.tv-mcp/CLAUDE.md)** - Project architecture and guidelines
 
 ---

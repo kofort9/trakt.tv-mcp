@@ -28,7 +28,7 @@ Welcome to the Trakt.tv MCP server documentation. This directory contains all pr
 - **[Testing Guide](testing/TESTING_GUIDE.md)** - Comprehensive testing documentation
 - **[Test Quick Reference](testing/TEST_QUICK_REFERENCE.md)** - Quick testing cheat sheet
 - **[Debugging Guide](DEBUGGING.md)** - How to use debug tools and analyze logs
-- **[Technical Debt](TECHNICAL_DEBT.md)** - Tracked improvements and future enhancements
+- **[Technical Debt](../TECHNICAL_DEBT.md)** - Dependency pins and technical debt tracking
 
 ### Historical Documentation
 
@@ -43,7 +43,6 @@ Welcome to the Trakt.tv MCP server documentation. This directory contains all pr
 docs/
 ├── README.md                           # This file - navigation index
 ├── DEBUGGING.md                        # Debugging guide
-├── TECHNICAL_DEBT.md                   # Technical debt and future improvements
 ├── guides/                             # User and developer guides
 │   ├── CONTRIBUTING.md                 # Contributing guide (AI + developers)
 │   └── NATURAL_LANGUAGE_GUIDE.md       # Complete NL pattern reference
@@ -54,9 +53,12 @@ docs/
     ├── README.md                       # Archive index
     ├── implementation/                 # Implementation phase docs
     └── test-reports/                   # Historical test reports
+
+Root-level documentation:
+├── TECHNICAL_DEBT.md                   # Dependency pins and technical debt
 ```
 
-**Total Active Documentation:** 10 files (down from ~30)
+**Total Active Documentation:** 11 files (down from ~30)
 
 ---
 
@@ -125,11 +127,11 @@ docs/
 
 ### Project Management
 
-- [Technical Debt](TECHNICAL_DEBT.md)
-  - Performance optimizations
-  - Security hardening
-  - Documentation improvements
-  - Future features
+- [Technical Debt](../TECHNICAL_DEBT.md)
+  - Dependency pins and rationale
+  - Migration planning
+  - Update strategies
+  - Resolved technical debt items
 - [CHANGELOG](../CHANGELOG.md) - Version history
 
 ### Historical Records
@@ -173,10 +175,12 @@ docs/
 
 **Update Technical Debt when:**
 
+- Pinning or unpinning dependency versions
 - Identifying performance bottlenecks
 - Discovering security concerns
 - Planning future features that are deferred
 - Finding code that needs refactoring
+- Resolving previously tracked technical debt items
 
 ### Documentation Standards
 
@@ -224,8 +228,9 @@ docs/
 
 ## Recent Changes
 
-**2025-12-11: Observability & Security Updates**
+**2025-12-11: Dependency Documentation & Security Updates**
 
+- Added TECHNICAL_DEBT.md with dependency pin documentation (ora 8.2.0, vitest 3.2.4)
 - Updated Langfuse documentation for class-based DI pattern
 - Added cache performance benchmarks to CACHE.md
 - Added OAuth security documentation (race condition guards)

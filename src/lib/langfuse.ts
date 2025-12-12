@@ -9,15 +9,20 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { Langfuse } from 'langfuse';
 import type { LangfuseTraceClient } from 'langfuse';
 import { sanitizeOutput } from './sanitization.js';
+import { logError as baseLogError } from './logging.js';
 
 // Debug mode - set to true to see Langfuse logging
 const DEBUG = process.env.LANGFUSE_DEBUG === 'true';
+
+// Flush resilience thresholds
+const MAX_CONSECUTIVE_FLUSH_FAILURES = 3;
+const SLOW_FLUSH_THRESHOLD_MS = 5000;
 
 /**
  * Log to stderr (MCP servers must use stderr for logs, stdout is for protocol)
  */
 function log(message: string, ...args: unknown[]) {
-  console.error(`[LANGFUSE] ${message}`, ...args);
+  baseLogError(`[LANGFUSE] ${message}`, ...args);
 }
 
 function debugLog(message: string, ...args: unknown[]) {
@@ -50,9 +55,11 @@ export class LangfuseTracer {
   private langfuse: Langfuse | null = null;
   private currentTrace: LangfuseTraceClient | null = null;
   private activeTraces = new Set<LangfuseTraceClient>();
+  private endedTraces = new WeakSet<LangfuseTraceClient>();
   private healthCheckPromise: Promise<void> = Promise.resolve();
   private traceContext = new AsyncLocalStorage<LangfuseTraceClient | null>();
   private lastFlushDurationMs: number | null = null;
+  private consecutiveFlushFailures: number = 0;
 
   constructor(config?: LangfuseTracerConfig) {
     this.initializeLangfuse(config);
@@ -87,7 +94,6 @@ export class LangfuseTracer {
         baseUrl,
       });
       this.healthCheckPromise = this.runHealthCheck();
-      log(`Initialized successfully (baseUrl: ${baseUrl})`);
     } catch (error) {
       log('Failed to initialize:', error);
       this.healthCheckPromise = Promise.resolve();
@@ -103,6 +109,7 @@ export class LangfuseTracer {
     // Skip network calls in test environments to avoid flakiness
     if (shouldSkipHealthCheck()) {
       debugLog('Skipping Langfuse health check (test env or override)');
+      log('Initialized successfully (health check skipped in test environment)');
       return;
     }
 
@@ -114,6 +121,7 @@ export class LangfuseTracer {
       await this.langfuse.api.traceList({ limit: 1 });
 
       debugLog('Langfuse health check passed');
+      log('Initialized successfully (health check passed)');
     } catch (error) {
       log(
         'Langfuse health check failed - tracing disabled. Verify LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY, LANGFUSE_BASE_URL, and network connectivity.',
@@ -137,6 +145,13 @@ export class LangfuseTracer {
    */
   getLastFlushDurationMs(): number | null {
     return this.lastFlushDurationMs;
+  }
+
+  /**
+   * Get the current count of consecutive flush failures
+   */
+  getConsecutiveFlushFailures(): number {
+    return this.consecutiveFlushFailures;
   }
 
   /**
@@ -391,12 +406,14 @@ export class LangfuseTracer {
     }
 
     const activeTrace = this.getActiveTrace();
-    if (activeTrace) {
+    // Guard against repeated endTrace calls on the same trace
+    if (activeTrace && !this.endedTraces.has(activeTrace)) {
       activeTrace.update({
         metadata: {
           ended_at: new Date().toISOString(),
         },
       });
+      this.endedTraces.add(activeTrace);
     }
 
     // Flush events to Langfuse
@@ -427,12 +444,39 @@ export class LangfuseTracer {
     try {
       await this.langfuse.flushAsync();
       this.lastFlushDurationMs = Date.now() - start;
-      debugLog(
-        `Trace flushed successfully in ${this.lastFlushDurationMs}ms${awaited ? '' : ' (background)'}`
-      );
+
+      // Reset consecutive failure counter on success
+      this.consecutiveFlushFailures = 0;
+
+      // Check for slow flush and warn if threshold exceeded
+      if (this.lastFlushDurationMs >= SLOW_FLUSH_THRESHOLD_MS) {
+        log(
+          `WARNING: Slow flush detected - took ${this.lastFlushDurationMs}ms (threshold: ${SLOW_FLUSH_THRESHOLD_MS}ms)`
+        );
+      } else {
+        debugLog(
+          `Trace flushed successfully in ${this.lastFlushDurationMs}ms${awaited ? '' : ' (background)'}`
+        );
+      }
     } catch (error) {
       this.lastFlushDurationMs = Date.now() - start;
-      log(`Failed to flush trace after ${this.lastFlushDurationMs}ms:`, error);
+      this.consecutiveFlushFailures++;
+
+      log(
+        `Failed to flush trace after ${this.lastFlushDurationMs}ms (consecutive failures: ${this.consecutiveFlushFailures}):`,
+        error
+      );
+
+      // Disable tracer after repeated failures to prevent silent error accumulation
+      if (this.consecutiveFlushFailures >= MAX_CONSECUTIVE_FLUSH_FAILURES) {
+        log(
+          `CRITICAL: Disabling Langfuse tracer after ${this.consecutiveFlushFailures} consecutive flush failures. Tracing will be disabled until server restart.`
+        );
+        this.langfuse = null;
+        this.activeTraces.clear();
+        this.currentTrace = null;
+      }
+
       if (awaited) {
         throw error;
       }

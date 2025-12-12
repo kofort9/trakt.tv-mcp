@@ -86,6 +86,16 @@ Check latency and success rates:
 
 ## Common Troubleshooting Scenarios
 
+### 0. Node version mismatch
+
+Symptoms:
+- `npm install` fails with engine errors
+- Vitest/Vite throws `node:fs/promises` import errors on Node 16.x
+
+Fix:
+1. Use the pinned version: `nvm use` (repo ships `.nvmrc`) or `export PATH="/opt/homebrew/opt/node@20/bin:$PATH"` if using Homebrew.
+2. Re-run `npm install` and `npm test`. The `preinstall` guard will stop installs on Node <20.
+
 ### 1. Rate Limit Issues
 
 Trakt.tv enforces a rate limit of 1000 requests per 5 minutes. To check your status:

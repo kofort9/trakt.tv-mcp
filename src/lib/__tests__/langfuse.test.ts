@@ -19,7 +19,6 @@ const mockFetch = vi.fn();
 beforeEach(() => {
   mockFetch.mockImplementation(() => Promise.resolve(createFetchResponse({ status: 'ok' })));
 
-  // @ts-expect-error - override fetch for tests to prevent real network calls
   // eslint-disable-next-line no-undef
   global.fetch = mockFetch;
   process.env.LANGFUSE_HEALTH_CHECK = 'force';
@@ -418,7 +417,7 @@ describe('langfuse integration', () => {
         await (tracer as any).healthCheckPromise;
 
         const langfuseInstance = (tracer as any).langfuse;
-        let resolveFlush: (() => void) | null = null;
+        let resolveFlush!: () => void;
         let flushResolved = false;
         const flushPromise = new Promise<void>((resolve) => {
           resolveFlush = () => {
@@ -434,7 +433,7 @@ describe('langfuse integration', () => {
         expect(flushSpy).toHaveBeenCalledTimes(1);
         expect(flushResolved).toBe(false);
 
-        resolveFlush?.();
+        resolveFlush();
         await flushPromise;
         expect(tracer.getLastFlushDurationMs()).not.toBeNull();
       });

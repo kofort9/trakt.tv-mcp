@@ -41,6 +41,12 @@ export default [
           varsIgnorePattern: '^_',
         },
       ],
+      'no-console': 'error',
+    },
+  },
+  {
+    files: ['src/lib/logging.ts', 'src/lib/__tests__/**', 'src/test-runner.ts'],
+    rules: {
       'no-console': 'off',
     },
   },

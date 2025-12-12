@@ -8,6 +8,7 @@ import { loadConfig } from './lib/config.js';
 import { TraktOAuth } from './lib/oauth.js';
 import { TraktClient } from './lib/trakt-client.js';
 import * as tools from './lib/tools.js';
+import { resolve } from 'node:path';
 
 // Test results tracking
 interface TestResult {
@@ -716,11 +717,13 @@ async function main() {
       });
   }
 
-  console.log('\nTest results saved to test-results.json');
-
   // Save detailed results to file
   const fs = await import('fs');
-  fs.writeFileSync('test-results.json', JSON.stringify(results, null, 2));
+  const resultsDir = resolve(process.cwd(), 'tests', 'results');
+  const resultsPath = resolve(resultsDir, 'test-results.json');
+  fs.mkdirSync(resultsDir, { recursive: true });
+  fs.writeFileSync(resultsPath, JSON.stringify(results, null, 2));
+  console.log(`\nTest results saved to ${resultsPath}`);
 
   process.exit(failed > 0 ? 1 : 0);
 }

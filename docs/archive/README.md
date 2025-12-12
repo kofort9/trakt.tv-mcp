@@ -34,7 +34,7 @@ Documents tracking implementation phases and feature rollout:
 | ------------------------------------------------------------------------------------- | --------------------------------- | ------------- | ------------------------------------------------------------------------------ |
 | [IMPLEMENTATION_CHECKLIST.md](implementation/IMPLEMENTATION_CHECKLIST.md)             | Phase 3 implementation tracking   | Nov 2025      | Phase completed                                                                |
 | [PHASE2_IMPLEMENTATION_SUMMARY.md](implementation/PHASE2_IMPLEMENTATION_SUMMARY.md)   | Phase 2 completion summary        | Nov 2025      | Phase completed                                                                |
-| [ROADMAP.md](implementation/ROADMAP.md)                                               | Original project roadmap          | Nov 2025      | [TECHNICAL_DEBT.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/TECHNICAL_DEBT.md) |
+| [ROADMAP.md](implementation/ROADMAP.md)                                               | Original project roadmap          | Nov 2025      | [TECHNICAL_DEBT.md](../../TECHNICAL_DEBT.md) |
 | [scripts-IMPLEMENTATION_SUMMARY.md](implementation/scripts-IMPLEMENTATION_SUMMARY.md) | Bulk import script implementation | Nov 2025      | [scripts/README.md](/Users/kofifort/Repos/trakt.tv-mcp/scripts/README.md)      |
 
 ### Test Reports (10 files)
@@ -119,7 +119,7 @@ Information from archived documents has been migrated to:
 ### Implementation Tracking
 
 - **From:** IMPLEMENTATION_CHECKLIST.md, ROADMAP.md
-- **To:** [TECHNICAL_DEBT.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/TECHNICAL_DEBT.md)
+- **To:** [TECHNICAL_DEBT.md](../../TECHNICAL_DEBT.md)
 
 ### Testing Documentation
 
@@ -129,7 +129,7 @@ Information from archived documents has been migrated to:
 ### Bug Tracking
 
 - **From:** BUG_FIX_REPORT.md, CRITICAL_BUGS_AND_PLAN.md
-- **To:** Resolved; current issues tracked in [TECHNICAL_DEBT.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/TECHNICAL_DEBT.md)
+- **To:** Resolved; current issues tracked in [TECHNICAL_DEBT.md](../../TECHNICAL_DEBT.md)
 
 ### Natural Language Patterns
 

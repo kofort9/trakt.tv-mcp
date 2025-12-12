@@ -11,7 +11,10 @@ describe('Logger', () => {
 
   beforeEach(() => {
     // Create a unique test log directory
-    testLogDir = path.join(os.tmpdir(), `trakt-mcp-test-logs-${Date.now()}`);
+    testLogDir = path.join(
+      os.tmpdir(),
+      `trakt-mcp-test-logs-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`
+    );
     logger = new Logger({
       maxBufferSize: 10,
       enableFileLogging: true,
@@ -22,13 +25,7 @@ describe('Logger', () => {
   afterEach(() => {
     // Clean up test logs
     logger.clear();
-    if (fs.existsSync(testLogDir)) {
-      const files = fs.readdirSync(testLogDir);
-      files.forEach((file) => {
-        fs.unlinkSync(path.join(testLogDir, file));
-      });
-      fs.rmdirSync(testLogDir);
-    }
+    fs.rmSync(testLogDir, { recursive: true, force: true });
   });
 
   describe('generateCorrelationId', () => {
@@ -457,6 +454,7 @@ describe('Logger', () => {
 
       // Directory should not be created when file logging is disabled
       expect(fs.existsSync(noFileLogDir)).toBe(false);
+      fs.rmSync(noFileLogDir, { recursive: true, force: true });
     });
   });
 

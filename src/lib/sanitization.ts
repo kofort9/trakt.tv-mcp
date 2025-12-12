@@ -5,6 +5,7 @@
 
 const DEFAULT_INPUT_STRING_LIMIT = 100;
 const DEFAULT_OUTPUT_STRING_LIMIT = 500;
+const TRUNCATION_SUFFIX = '...[truncated]';
 
 /**
  * Sanitize tool input arguments before logging/trace metadata.
@@ -24,11 +25,31 @@ export function sanitizeInputArgs(
       sanitized[key] = value;
     } else if (typeof value === 'string') {
       sanitized[key] =
-        value.length > maxStringLength ? value.substring(0, maxStringLength) + '...[truncated]' : value;
+        value.length > maxStringLength
+          ? value.substring(0, maxStringLength - TRUNCATION_SUFFIX.length) + TRUNCATION_SUFFIX
+          : value;
     } else if (Array.isArray(value)) {
+      // Privacy tradeoff: Include small sample for debugging while limiting exposure.
+      // Sample items are recursively sanitized to avoid leaking nested sensitive data.
+      const sample = value.slice(0, 2).map((item) => {
+        if (item === null || item === undefined) return item;
+        if (typeof item === 'string') {
+          return item.length > maxStringLength
+            ? item.substring(0, maxStringLength - TRUNCATION_SUFFIX.length) + TRUNCATION_SUFFIX
+            : item;
+        }
+        if (Array.isArray(item)) {
+          return { type: 'array', length: item.length };
+        }
+        if (typeof item === 'object') {
+          return { type: 'object', keys: Object.keys(item) };
+        }
+        return item;
+      });
       sanitized[key] = {
         type: 'array',
         length: value.length,
+        sample,
       };
     } else if (typeof value === 'object') {
       sanitized[key] = { type: 'object', keys: Object.keys(value) };
@@ -52,7 +73,7 @@ export function sanitizeOutput(
 
   if (typeof result === 'string') {
     return result.length > maxStringLength
-      ? result.substring(0, maxStringLength) + '...[truncated]'
+      ? result.substring(0, maxStringLength - TRUNCATION_SUFFIX.length) + TRUNCATION_SUFFIX
       : result;
   }
 

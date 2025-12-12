@@ -2,6 +2,7 @@ import { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { logError } from './logging.js';
 
 /**
  * Request log entry with full details for debugging
@@ -292,7 +293,7 @@ export class Logger {
         }
       }
     } catch (error) {
-      console.error('Failed to create log directory:', error);
+      logError('Failed to create log directory:', error);
       this.enableFileLogging = false;
     }
   }
@@ -330,7 +331,7 @@ export class Logger {
             fs.unlinkSync(file.path);
             return false; // Remove from list
           } catch (err) {
-            console.error(`Failed to cleanup old log file ${file.name}:`, err);
+            logError(`Failed to cleanup old log file ${file.name}:`, err);
             return true; // Keep in list if failed to delete
           }
         }
@@ -346,12 +347,12 @@ export class Logger {
           try {
             fs.unlinkSync(file.path);
           } catch (err) {
-            console.error(`Failed to delete excess log file ${file.name}:`, err);
+            logError(`Failed to delete excess log file ${file.name}:`, err);
           }
         }
       }
     } catch (error) {
-      console.error('Failed to cleanup old logs:', error);
+      logError('Failed to cleanup old logs:', error);
     }
   }
 
@@ -403,7 +404,7 @@ export class Logger {
 
       this.currentFileSize += logSize;
     } catch (error) {
-      console.error('Failed to write to log file:', error);
+      logError('Failed to write to log file:', error);
     }
   }
 

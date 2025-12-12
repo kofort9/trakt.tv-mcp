@@ -7,6 +7,12 @@
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = resolve(__dirname, '..', '..');
+const SERVER_PATH = resolve(REPO_ROOT, 'dist/index.js');
 
 // Test configuration
 const TEST_CASES = [
@@ -52,7 +58,7 @@ async function runTests() {
   // Create MCP client
   const transport = new StdioClientTransport({
     command: 'node',
-    args: ['/Users/kofifort/Repos/trakt.tv-mcp/dist/index.js']
+    args: [SERVER_PATH]
   });
 
   const client = new Client(

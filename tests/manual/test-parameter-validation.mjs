@@ -5,11 +5,12 @@
  */
 
 import { spawn } from 'child_process';
-import { join, dirname } from 'path';
+import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SERVER_PATH = join(__dirname, 'dist/index.js');
+const REPO_ROOT = resolve(__dirname, '..', '..');
+const SERVER_PATH = resolve(REPO_ROOT, 'dist/index.js');
 
 let requestId = 1;
 

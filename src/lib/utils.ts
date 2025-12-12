@@ -3,6 +3,7 @@ import type {
   DisambiguationResponse,
   DisambiguationOption,
 } from '../types/trakt.js';
+import { logError } from './logging.js';
 
 /**
  * Generate episode range
@@ -169,7 +170,7 @@ export function validateISO8601Date(value: string | undefined, paramName: string
  */
 export function sanitizeError(error: unknown, context?: string): string {
   // Log the full error server-side for debugging
-  console.error('[Error]', context || 'Unknown context', error);
+  logError(`[Error] ${context || 'Unknown context'}`, error);
 
   if (error instanceof Error) {
     const message = error.message;

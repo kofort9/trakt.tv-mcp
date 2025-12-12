@@ -79,12 +79,12 @@
 
 Created test scripts:
 
-- `test-mcp-server.mjs` - MCP protocol tests
-- `test-api-integration.mjs` - Live API tests
-- `test-mcp-tools.mjs` - Tool integration tests
+- `tests/manual/test-mcp-server.mjs` - MCP protocol tests
+- `tests/manual/test-api-integration.mjs` - Live API tests
+- `tests/manual/test-mcp-tools.mjs` - Tool integration tests
 - `debug-tools.mjs` - Tool inspection utility
 
-All scripts are in the repository root.
+Manual test scripts now live in `tests/manual/` (debug-tools remains at the project root).
 
 ## Manual Testing Required
 

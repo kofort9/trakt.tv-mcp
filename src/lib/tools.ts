@@ -47,7 +47,8 @@ export async function searchEpisode(
     validateEpisodeNumber(episode);
 
     // First, search for the show
-    const searchResults = await client.search(showName, 'show');
+    const toolName = 'search_episode';
+    const searchResults = await client.search(showName, 'show', year, { toolName });
 
     if (!Array.isArray(searchResults) || searchResults.length === 0) {
       return createToolError('NOT_FOUND', `No show found matching "${showName}"`, undefined, [
@@ -77,7 +78,7 @@ export async function searchEpisode(
     }
 
     // Get the specific episode
-    const episodeData = await client.searchEpisode(show.ids.slug, season, episode);
+    const episodeData = await client.searchEpisode(show.ids.slug, season, episode, { toolName });
 
     return createToolSuccess<TraktEpisode>(episodeData as TraktEpisode);
   } catch (error) {
@@ -114,6 +115,7 @@ export async function logWatch(
 ): Promise<ToolSuccess<TraktHistoryAddResponse> | ToolError | DisambiguationResponse> {
   try {
     const { type, showName, movieName, season, episode, watchedAt, year, traktId } = args;
+    const toolName = 'log_watch';
 
     // Validate ISO 8601 format for watchedAt
     validateISO8601Date(watchedAt, 'watchedAt');
@@ -135,7 +137,7 @@ export async function logWatch(
       validateEpisodeNumber(episode);
 
       // Search for the show
-      const searchResults = await client.search(showName, 'show');
+      const searchResults = await client.search(showName, 'show', year, { toolName });
       if (!Array.isArray(searchResults) || searchResults.length === 0) {
         return createToolError('NOT_FOUND', `No show found matching "${showName}"`, undefined, [
           'Check the spelling of the show name',
@@ -163,7 +165,7 @@ export async function logWatch(
 
       // Add to history
       const historyData = {
-        episodes: [
+        shows: [
           {
             watched_at,
             ids: { trakt: show.ids.trakt },
@@ -177,7 +179,7 @@ export async function logWatch(
         ],
       };
 
-      const response = await client.addToHistory(historyData);
+      const response = await client.addToHistory(historyData, { toolName });
       return createToolSuccess<TraktHistoryAddResponse>(response as TraktHistoryAddResponse);
     } else {
       // Movie
@@ -188,7 +190,7 @@ export async function logWatch(
       validateNonEmptyString(movieName, 'movieName');
 
       // Search for the movie
-      const searchResults = await client.search(movieName, 'movie');
+      const searchResults = await client.search(movieName, 'movie', year, { toolName });
       if (!Array.isArray(searchResults) || searchResults.length === 0) {
         return createToolError('NOT_FOUND', `No movie found matching "${movieName}"`, undefined, [
           'Check the spelling of the movie name',
@@ -224,7 +226,7 @@ export async function logWatch(
         ],
       };
 
-      const response = await client.addToHistory(historyData);
+      const response = await client.addToHistory(historyData, { toolName });
       return createToolSuccess<TraktHistoryAddResponse>(response as TraktHistoryAddResponse);
     }
   } catch (error) {
@@ -258,6 +260,7 @@ export async function bulkLog(
 ): Promise<ToolSuccess<TraktHistoryAddResponse> | ToolError | DisambiguationResponse> {
   try {
     const { type, showName, movieNames, season, episodes, watchedAt, year, traktId } = args;
+    const toolName = 'bulk_log';
 
     // Validate ISO 8601 format for watchedAt
     validateISO8601Date(watchedAt, 'watchedAt');
@@ -286,7 +289,7 @@ export async function bulkLog(
       }
 
       // Search for the show
-      const searchResults = await client.search(showName, 'show');
+      const searchResults = await client.search(showName, 'show', year, { toolName });
       if (!Array.isArray(searchResults) || searchResults.length === 0) {
         return createToolError('NOT_FOUND', `No show found matching "${showName}"`, undefined, [
           'Check the spelling of the show name',
@@ -314,7 +317,7 @@ export async function bulkLog(
 
       // Build history data
       const historyData = {
-        episodes: [
+        shows: [
           {
             watched_at,
             ids: { trakt: show.ids.trakt },
@@ -328,7 +331,7 @@ export async function bulkLog(
         ],
       };
 
-      const response = await client.addToHistory(historyData);
+      const response = await client.addToHistory(historyData, { toolName });
       return createToolSuccess<TraktHistoryAddResponse>(response as TraktHistoryAddResponse);
     } else {
       // Movies
@@ -345,7 +348,8 @@ export async function bulkLog(
       const { results: searchResults, errors: searchErrors } = await parallelSearchMovies(
         client,
         movieNames,
-        year
+        year,
+        { toolName }
       );
 
       // Handle search errors
@@ -403,7 +407,7 @@ export async function bulkLog(
       }
 
       const historyData = { movies: movieData };
-      const response = await client.addToHistory(historyData);
+      const response = await client.addToHistory(historyData, { toolName });
       return createToolSuccess<TraktHistoryAddResponse>(response as TraktHistoryAddResponse);
     }
   } catch (error) {
@@ -430,6 +434,7 @@ export async function getHistory(
 ): Promise<ToolSuccess<TraktWatchedItem[]> | ToolError> {
   try {
     const { type, startDate, endDate, limit } = args;
+    const toolName = 'get_history';
 
     // Validate ISO 8601 format for date parameters
     validateISO8601Date(startDate, 'startDate');
@@ -439,7 +444,7 @@ export async function getHistory(
     // Claude handles natural language → ISO conversion
 
     // Fetch history
-    const history = await client.getHistory(type, startDate, endDate);
+    const history = await client.getHistory(type, startDate, endDate, undefined, { toolName });
 
     // Apply limit if specified
     let results = Array.isArray(history) ? history : [];
@@ -489,6 +494,7 @@ export async function summarizeHistory(
 ): Promise<ToolSuccess<TraktHistorySummary> | ToolError> {
   try {
     const { startDate, endDate } = args;
+    const toolName = 'summarize_history';
 
     // Validate ISO 8601 format for date parameters
     validateISO8601Date(startDate, 'startDate');
@@ -498,7 +504,9 @@ export async function summarizeHistory(
     // Claude handles natural language → ISO conversion
 
     // Fetch full history
-    const history = await client.getHistory(undefined, startDate, endDate);
+    const history = await client.getHistory(undefined, startDate, endDate, undefined, {
+      toolName,
+    });
 
     if (!Array.isArray(history)) {
       return createToolError('TRAKT_API_ERROR', 'Invalid history response format');
@@ -582,6 +590,7 @@ export async function getUpcoming(
 ): Promise<ToolSuccess<TraktCalendarItem[]> | ToolError> {
   try {
     const days = args.days || 7;
+    const toolName = 'get_upcoming';
 
     if (days < 1 || days > 30) {
       return createToolError('VALIDATION_ERROR', 'Days must be between 1 and 30');
@@ -589,7 +598,7 @@ export async function getUpcoming(
 
     // Get calendar starting from today
     const today = new Date().toISOString().split('T')[0];
-    const calendar = await client.getCalendar(today, days);
+    const calendar = await client.getCalendar(today, days, { toolName });
 
     const results = Array.isArray(calendar) ? calendar : [];
 
@@ -621,11 +630,12 @@ export async function followShow(
 ): Promise<ToolSuccess<{ show: TraktShow; added: boolean }> | ToolError | DisambiguationResponse> {
   try {
     const { showName, year, traktId } = args;
+    const toolName = 'follow_show';
 
     validateNonEmptyString(showName, 'showName');
 
     // Search for the show
-    const searchResults = await client.search(showName, 'show');
+    const searchResults = await client.search(showName, 'show', year, { toolName });
     if (!Array.isArray(searchResults) || searchResults.length === 0) {
       return createToolError('NOT_FOUND', `No show found matching "${showName}"`, undefined, [
         'Check the spelling of the show name',
@@ -658,7 +668,7 @@ export async function followShow(
       shows: [{ ids: { trakt: show.ids.trakt } }],
     };
 
-    await client.addToWatchlist(watchlistData);
+    await client.addToWatchlist(watchlistData, { toolName });
 
     return createToolSuccess({
       show,
@@ -685,11 +695,12 @@ export async function unfollowShow(
 > {
   try {
     const { showName, year, traktId } = args;
+    const toolName = 'unfollow_show';
 
     validateNonEmptyString(showName, 'showName');
 
     // Search for the show
-    const searchResults = await client.search(showName, 'show');
+    const searchResults = await client.search(showName, 'show', year, { toolName });
     if (!Array.isArray(searchResults) || searchResults.length === 0) {
       return createToolError('NOT_FOUND', `No show found matching "${showName}"`, undefined, [
         'Check the spelling of the show name',
@@ -722,7 +733,7 @@ export async function unfollowShow(
       shows: [{ ids: { trakt: show.ids.trakt } }],
     };
 
-    await client.removeFromWatchlist(watchlistData);
+    await client.removeFromWatchlist(watchlistData, { toolName });
 
     return createToolSuccess({
       show,

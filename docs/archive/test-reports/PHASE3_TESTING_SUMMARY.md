@@ -115,7 +115,7 @@ All 5 Phase 3 MCP tools have been systematically tested and validated.
   - Systematic validation of all 5 tools
   - Usage: `npm run build && node dist/test-runner.js`
 
-- **Test Results JSON:** `/Users/kofifort/Repos/trakt.tv-mcp/test-results.json`
+- **Test Results JSON:** `tests/results/test-results.json`
   - Machine-readable test results
   - Complete input/output for each test case
 

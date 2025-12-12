@@ -115,7 +115,8 @@ export interface ParallelSearchResult {
 export async function parallelSearchMovies(
   client: TraktClient,
   movieNames: string[],
-  year?: number
+  year?: number,
+  options?: { toolName?: string }
 ): Promise<{
   results: Map<string, TraktSearchResult[]>;
   errors: Map<string, string>;
@@ -138,7 +139,12 @@ export async function parallelSearchMovies(
     uniqueMovies,
     async (movieName): Promise<ParallelSearchResult> => {
       try {
-        const searchResults = await client.search(movieName, 'movie', year);
+        const searchArgs =
+          options?.toolName !== undefined
+            ? ([movieName, 'movie', year, { toolName: options.toolName }] as const)
+            : ([movieName, 'movie', year] as const);
+
+        const searchResults = await client.search(...searchArgs);
         if (!Array.isArray(searchResults)) {
           throw new Error('Invalid search results format');
         }

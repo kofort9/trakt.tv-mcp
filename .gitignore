@@ -32,6 +32,8 @@ build/
 # Test coverage
 coverage/
 .nyc_output/
+tests/results/
+test-results.*
 
 # Logs
 logs/

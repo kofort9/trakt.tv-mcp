@@ -515,17 +515,17 @@ if (results.length > 1 && hasMultipleYears(results)) {
    - Natural language workflow test
    - 9 tests covering complete flow
    - Edge case discovery
-   - File: `/Users/kofifort/Repos/trakt.tv-mcp/test-princess-mononoke.mjs`
+   - File: `tests/manual/test-princess-mononoke.mjs`
 
 2. **test-additional-edge-cases.mjs**
    - 11 edge case tests
    - Covers TV episodes, ambiguous titles, special characters, etc.
-   - File: `/Users/kofifort/Repos/trakt.tv-mcp/test-additional-edge-cases.mjs`
+   - File: `tests/manual/test-additional-edge-cases.mjs`
 
 3. **test-parameter-validation.mjs**
    - Parameter validation testing
    - Error message validation
-   - File: `/Users/kofifort/Repos/trakt.tv-mcp/test-parameter-validation.mjs`
+   - File: `tests/manual/test-parameter-validation.mjs`
 
 ### Documentation Created
 

@@ -13,7 +13,42 @@ type FakeState = {
   instances: Array<{ secretKey?: string; publicKey?: string; baseUrl?: string }>;
 };
 
-// Create state inside the mock factory to avoid hoisting issues
+/**
+ * Stub Transport Pattern for Langfuse Testing
+ *
+ * This test suite uses a "stub transport" pattern to test Langfuse integration without
+ * making actual network calls. Here's how it works:
+ *
+ * 1. **Mock Factory**: We use vi.mock() to replace the entire 'langfuse' module with fake
+ *    classes (FakeLangfuse, FakeTrace, FakeSpan) that implement the same API surface as
+ *    the real Langfuse SDK.
+ *
+ * 2. **State Tracking**: All fake classes write to a shared `fakeState` object that tracks
+ *    every operation (traces created, spans started/ended, flush calls, etc.). This gives
+ *    us complete visibility into what the tracer is doing without network I/O.
+ *
+ * 3. **Test Helper Accessor**: Instead of exporting the internal state directly, we expose
+ *    a `getTestHelpers()` function that provides controlled access to state inspection and
+ *    reset functionality. This encapsulates the implementation details.
+ *
+ * 4. **Why This Pattern**: This approach allows us to:
+ *    - Test tracer behavior in complete isolation (no network, no external dependencies)
+ *    - Verify exact API call sequences and parameters
+ *    - Test error scenarios and edge cases that are hard to reproduce with a real service
+ *    - Run tests instantly without HTTP latency
+ *    - Avoid test flakiness from network conditions or service availability
+ *
+ * The stub transport is ONLY used in tests. Production code uses the real Langfuse SDK
+ * which makes actual HTTP requests to Langfuse servers.
+ */
+
+/**
+ * Creates the Langfuse mock with stub transport.
+ *
+ * This factory must be defined inside vi.mock() to avoid Vitest hoisting issues.
+ * The mock provides a complete fake implementation of Langfuse that captures all
+ * operations in an in-memory state object for test assertions.
+ */
 vi.mock('langfuse', () => {
   const fakeState: FakeState = {
     traces: [],
@@ -107,30 +142,64 @@ vi.mock('langfuse', () => {
     });
   }
 
-  return { Langfuse: FakeLangfuse, __fakeState: fakeState };
+  /**
+   * Test helper accessor for inspecting and resetting mock state.
+   *
+   * This function provides controlled access to the internal fake state without
+   * exposing it directly. It returns both the current state (for assertions) and
+   * a reset function (for cleanup between tests).
+   */
+  const getTestHelpers = () => ({
+    /**
+     * Read-only access to the current state for test assertions.
+     */
+    getState: (): Readonly<FakeState> => fakeState,
+
+    /**
+     * Resets all state to initial empty values between tests.
+     */
+    reset: () => {
+      fakeState.traces.length = 0;
+      fakeState.traceUpdates.length = 0;
+      fakeState.spans.length = 0;
+      fakeState.spanUpdates.length = 0;
+      fakeState.endedSpans.length = 0;
+      fakeState.events.length = 0;
+      fakeState.flushes = 0;
+      fakeState.shutdowns = 0;
+      fakeState.instances.length = 0;
+    },
+  });
+
+  return { Langfuse: FakeLangfuse, getTestHelpers };
 });
 
-const resetFakeState = async () => {
-  const state = await getFakeState();
-  state.traces.length = 0;
-  state.traceUpdates.length = 0;
-  state.spans.length = 0;
-  state.spanUpdates.length = 0;
-  state.endedSpans.length = 0;
-  state.events.length = 0;
-  state.flushes = 0;
-  state.shutdowns = 0;
-  state.instances.length = 0;
-};
-
-const getFakeState = async (): Promise<FakeState> => {
-  const module = (await import('langfuse')) as unknown as { __fakeState: FakeState };
-  return module.__fakeState;
+/**
+ * Accesses the test helpers exposed by the Langfuse mock.
+ *
+ * This function retrieves the test helpers via dynamic import, which is necessary
+ * because the mock is defined with vi.mock() and its exports are only available
+ * after the module is imported at runtime.
+ *
+ * @returns Promise resolving to test helpers for state inspection and reset
+ */
+const getTestHelpers = async () => {
+  const module = (await import('langfuse')) as unknown as {
+    getTestHelpers: () => {
+      getState: () => Readonly<FakeState>;
+      reset: () => void;
+    };
+  };
+  return module.getTestHelpers();
 };
 
 describe('langfuse tracer integration (stub transport)', () => {
   beforeEach(async () => {
-    await resetFakeState();
+    const helpers = await getTestHelpers();
+    helpers.reset();
+    // Note: LANGFUSE_HEALTH_CHECK is intentionally NOT set here.
+    // The stub transport doesn't require health checks, and we rely on the default
+    // behavior (health check skipped in NODE_ENV === 'test') for faster test execution.
   });
 
   it('emits a trace, span, and flushes via the stub transport', async () => {
@@ -140,11 +209,16 @@ describe('langfuse tracer integration (stub transport)', () => {
       baseUrl: 'https://stub.langfuse.local',
     });
     await (tracer as any).healthCheckPromise;
-    const state = await getFakeState();
+    const helpers = await getTestHelpers();
+    const state = helpers.getState();
 
     expect(tracer.isEnabled()).toBe(true);
     expect(state.instances).toEqual([
-      { secretKey: 'stub-secret', publicKey: 'stub-public', baseUrl: 'https://stub.langfuse.local' },
+      {
+        secretKey: 'stub-secret',
+        publicKey: 'stub-public',
+        baseUrl: 'https://stub.langfuse.local',
+      },
     ]);
 
     tracer.startTrace('session-langfuse', { userId: 'abc123' });
@@ -192,7 +266,8 @@ describe('langfuse tracer integration (stub transport)', () => {
       publicKey: 'stub-public',
     });
     await (tracer as any).healthCheckPromise;
-    const state = await getFakeState();
+    const helpers = await getTestHelpers();
+    const state = helpers.getState();
 
     let fastDone: () => void = () => {};
     const fastFinished = new Promise<void>((resolve) => {
@@ -225,5 +300,118 @@ describe('langfuse tracer integration (stub transport)', () => {
       name: 'mcp.tool.fast_tool',
       input: {},
     });
+  });
+
+  it('tracks consecutive flush failures and disables tracer after threshold', async () => {
+    const tracer = createLangfuseTracer({
+      secretKey: 'stub-secret',
+      publicKey: 'stub-public',
+    });
+    await (tracer as any).healthCheckPromise;
+
+    const langfuseInstance = (tracer as any).langfuse;
+    expect(tracer.isEnabled()).toBe(true);
+    expect(tracer.getConsecutiveFlushFailures()).toBe(0);
+
+    // Mock flushAsync to fail
+    langfuseInstance.flushAsync.mockRejectedValue(new Error('Network timeout'));
+
+    // First failure
+    tracer.startTrace('trace-1');
+    await tracer.endTrace({ awaitFlush: false });
+    // Wait for background flush to complete
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(tracer.getConsecutiveFlushFailures()).toBe(1);
+    expect(tracer.isEnabled()).toBe(true);
+
+    // Second failure
+    tracer.startTrace('trace-2');
+    await tracer.endTrace({ awaitFlush: false });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(tracer.getConsecutiveFlushFailures()).toBe(2);
+    expect(tracer.isEnabled()).toBe(true);
+
+    // Third failure - should disable tracer
+    tracer.startTrace('trace-3');
+    await tracer.endTrace({ awaitFlush: false });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(tracer.getConsecutiveFlushFailures()).toBe(3);
+    expect(tracer.isEnabled()).toBe(false);
+
+    // Subsequent operations should be no-ops
+    const result = tracer.startTrace('trace-4');
+    expect(result).toBeNull();
+  });
+
+  it('resets consecutive failure counter on successful flush', async () => {
+    const tracer = createLangfuseTracer({
+      secretKey: 'stub-secret',
+      publicKey: 'stub-public',
+    });
+    await (tracer as any).healthCheckPromise;
+
+    const langfuseInstance = (tracer as any).langfuse;
+
+    // First failure
+    langfuseInstance.flushAsync.mockRejectedValueOnce(new Error('Temporary error'));
+    tracer.startTrace('trace-1');
+    await tracer.endTrace({ awaitFlush: false });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(tracer.getConsecutiveFlushFailures()).toBe(1);
+
+    // Successful flush resets counter
+    langfuseInstance.flushAsync.mockResolvedValueOnce(undefined);
+    tracer.startTrace('trace-2');
+    await tracer.endTrace({ awaitFlush: false });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(tracer.getConsecutiveFlushFailures()).toBe(0);
+    expect(tracer.isEnabled()).toBe(true);
+  });
+
+  it('logs warning for slow flushes', async () => {
+    vi.useFakeTimers();
+    const tracer = createLangfuseTracer({
+      secretKey: 'stub-secret',
+      publicKey: 'stub-public',
+    });
+    await (tracer as any).healthCheckPromise;
+
+    const langfuseInstance = (tracer as any).langfuse;
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    // Mock slow flush (6 seconds)
+    langfuseInstance.flushAsync.mockImplementation(
+      () => new Promise((resolve) => setTimeout(resolve, 6000))
+    );
+
+    tracer.startTrace('slow-trace');
+    const endTracePromise = tracer.endTrace({ awaitFlush: true });
+
+    // Advance timers to simulate the 6 second flush
+    await vi.advanceTimersByTimeAsync(6000);
+    await endTracePromise;
+
+    expect(tracer.getLastFlushDurationMs()).toBeGreaterThanOrEqual(5000);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('[LANGFUSE] WARNING: Slow flush detected')
+    );
+
+    consoleErrorSpy.mockRestore();
+    vi.useRealTimers();
+  });
+
+  it('handles awaited flush failures by throwing error', async () => {
+    const tracer = createLangfuseTracer({
+      secretKey: 'stub-secret',
+      publicKey: 'stub-public',
+    });
+    await (tracer as any).healthCheckPromise;
+
+    const langfuseInstance = (tracer as any).langfuse;
+    langfuseInstance.flushAsync.mockRejectedValue(new Error('Critical flush error'));
+
+    tracer.startTrace('trace-error');
+    await expect(tracer.endTrace({ awaitFlush: true })).rejects.toThrow('Critical flush error');
+    expect(tracer.getConsecutiveFlushFailures()).toBe(1);
   });
 });

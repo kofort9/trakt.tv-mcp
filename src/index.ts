@@ -16,6 +16,7 @@ import { WATCHLIST_RESOURCES, getWatchlist } from './resources/watchlist.js';
 import { HISTORY_RESOURCES, getHistory } from './resources/history.js';
 import { startTrace, traceToolCall, endTrace, shutdown } from './lib/langfuse.js';
 import { sanitizeInputArgs } from './lib/sanitization.js';
+import { logError, logInfo } from './lib/logging.js';
 
 // Server configuration
 const SERVER_NAME = 'trakt-mcp-server';
@@ -132,7 +133,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     throw new Error(`Resource not found: ${uri}`);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`Error reading resource ${uri}:`, error);
+    logError(`Error reading resource ${uri}:`, error);
     throw new Error(`Failed to read resource: ${errorMessage}`);
   }
 });
@@ -471,7 +472,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // Start polling in the background
       oauth.pollForToken(deviceCode.device_code, deviceCode.interval).catch((error) => {
-        console.error('Authentication failed:', error);
+        logError('Authentication failed:', error);
       });
 
       return {
@@ -493,7 +494,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           throw new Error('Query parameter is required');
         }
 
-        const results = await traktClient.search(query, type);
+        const results = await traktClient.search(query, type, undefined, {
+          toolName: 'search_show',
+        });
 
         if (Array.isArray(results) && results.length === 0) {
           const response = {
@@ -718,11 +721,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error(`${SERVER_NAME} v${SERVER_VERSION} running on stdio`);
+  logInfo(`${SERVER_NAME} v${SERVER_VERSION} running on stdio`);
 }
 
 main().catch((error) => {
-  console.error('Server error:', error);
+  logError('Server error:', error);
   process.exit(1);
 });
 
