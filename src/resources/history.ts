@@ -46,3 +46,4 @@ export async function getHistory(client: TraktClient, uri: string): Promise<stri
     );
   }
 }
+

@@ -139,12 +139,8 @@ export async function parallelSearchMovies(
     uniqueMovies,
     async (movieName): Promise<ParallelSearchResult> => {
       try {
-        const searchArgs =
-          options?.toolName !== undefined
-            ? ([movieName, 'movie', year, { toolName: options.toolName }] as const)
-            : ([movieName, 'movie', year] as const);
-
-        const searchResults = await client.search(...searchArgs);
+        const searchOptions = options?.toolName ? { toolName: options.toolName } : undefined;
+        const searchResults = await client.search(movieName, 'movie', year, searchOptions);
         if (!Array.isArray(searchResults)) {
           throw new Error('Invalid search results format');
         }
