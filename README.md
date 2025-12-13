@@ -37,6 +37,16 @@ MCP server for Trakt.tv API - enables AI assistants to track watched shows, movi
 
 See [Natural Language Guide](docs/guides/NATURAL_LANGUAGE_GUIDE.md) for complete usage documentation.
 
+### Offline capture with `logwatch`
+
+When Claude/AI isn't reachable, queue the note locally and reconcile later. We store only the raw text you provide-no parsing or summaries.
+
+- `logwatch "yesterday watched The Bear S2E5"` - appends the raw note to `~/.trakt-mcp/pending-logs.jsonl`
+- `logwatch list` - inspect the queue
+- Duplicate raw notes are skipped automatically; rerunning the same input will point you to the already queued entry.
+
+Install the CLI globally with `npm install -g` in this repo or run `npm link` while developing. The queue uses owner-only permissions (600) and follows the [manual E2E plan](docs/manual-e2e-plan.md) for offline capture.
+
 ### For AI Assistants (Claude)
 
 This server is designed for AI assistant integration. See [Contributing Guide - AI Assistants Section](docs/guides/CONTRIBUTING.md#for-ai-assistants-integration-guidelines) for:
