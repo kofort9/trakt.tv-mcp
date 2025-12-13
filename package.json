@@ -5,6 +5,9 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "logwatch": "dist/logwatch.js"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/kofifort/trakt.tv-mcp.git"
