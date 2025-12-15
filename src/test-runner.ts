@@ -4,10 +4,10 @@
  * Tests all 5 remaining tools systematically
  */
 
-import { loadConfig } from './lib/config.js';
-import { TraktOAuth } from './lib/oauth.js';
-import { TraktClient } from './lib/trakt-client.js';
-import * as tools from './lib/tools.js';
+import { loadConfig } from './core/config.js';
+import { TraktOAuth } from './domain/trakt/oauth.js';
+import { TraktClient } from './domain/trakt/trakt-client.js';
+import * as tools from './domain/trakt/tools.js';
 import { resolve } from 'node:path';
 
 // Test results tracking

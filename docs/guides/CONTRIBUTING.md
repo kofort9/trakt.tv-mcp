@@ -45,10 +45,10 @@ For natural language pattern details, see [NATURAL_LANGUAGE_GUIDE.md](./NATURAL_
 
 | File                               | Purpose                                           | Key Functions                                              |
 | ---------------------------------- | ------------------------------------------------- | ---------------------------------------------------------- |
-| `/src/lib/utils.ts`                | Validation, error formatting, episode parsing     | `parseEpisodeRange()`, `validateEpisodeNumber()`, `createToolError()` |
-| `/src/lib/tools.ts`                | Tool implementations with parameter normalization | `logWatch()`, `bulkLog()`, `searchEpisode()`               |
-| `/src/lib/__tests__/utils.test.ts` | Unit tests for utilities                          | Test suites for validation, episode parsing                |
-| `/src/lib/__tests__/tools.test.ts` | Integration tests for tools                       | End-to-end tool behavior tests                             |
+| `/src/shared/utils.ts`             | Validation, error formatting, episode parsing     | `parseEpisodeRange()`, `validateEpisodeNumber()`, `createToolError()` |
+| `/src/domain/trakt/tools.ts`       | Tool implementations with parameter normalization | `logWatch()`, `bulkLog()`, `searchEpisode()`               |
+| `/tests/unit/utils.test.ts`        | Unit tests for utilities                          | Test suites for validation, episode parsing                |
+| `/tests/unit/tools.test.ts`        | Integration tests for tools                       | End-to-end tool behavior tests                             |
 
 ---
 
@@ -256,7 +256,7 @@ The tools currently support episode range parsing for patterns like:
 
 If you need to add new episode range formats:
 
-**Location:** `/src/lib/utils.ts` - `parseEpisodeRange()` function
+**Location:** `/src/shared/utils.ts` - `parseEpisodeRange()` function
 
 **Pattern:** Extend the existing regex or add new parsing logic
 
@@ -272,7 +272,7 @@ if (range.toLowerCase() === 'all') {
 
 ### Step 1: Add Unit Tests
 
-**Location:** `/src/lib/__tests__/utils.test.ts`
+**Location:** `/tests/unit/utils.test.ts`
 
 ```typescript
 describe('parseEpisodeRange', () => {
@@ -300,7 +300,7 @@ describe('parseEpisodeRange', () => {
 
 ### Step 2: Add Integration Tests
 
-**Location:** `/src/lib/__tests__/tools.test.ts`
+**Location:** `/tests/unit/tools.test.ts`
 
 ```typescript
 describe('bulkLog with new episode pattern', () => {
@@ -634,8 +634,8 @@ Add support for new episode range pattern: "E1-E5,E10"
 
 **Questions about implementation?**
 
-- Review existing patterns in `/src/lib/utils.ts`
-- Check test files for examples: `/src/lib/__tests__/utils.test.ts`
+- Review existing patterns in `/src/shared/utils.ts`
+- Check test files for examples: `/tests/unit/utils.test.ts`
 - Read [NATURAL_LANGUAGE_GUIDE.md](./NATURAL_LANGUAGE_GUIDE.md) for context
 
 **Found a bug?**

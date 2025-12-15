@@ -21,7 +21,7 @@ MCP server for Trakt.tv API - enables AI assistants to track watched shows, movi
 - **Search**: Find movies, TV shows, and anime on Trakt.tv
 - **Smart Disambiguation**: Automatically handles content with multiple versions or years
 - **OAuth 2.0 Authentication**: Secure integration with your Trakt.tv account
-- **Langfuse Observability**: Comprehensive AI-native tracing and monitoring ([see docs](docs/observability.md))
+- **Langfuse Observability**: Comprehensive AI-native tracing and monitoring ([see docs](docs/operations/observability.md))
 
 ## Quick Start
 
@@ -45,7 +45,7 @@ When Claude/AI isn't reachable, queue the note locally and reconcile later. We s
 - `logwatch list` - inspect the queue
 - Duplicate raw notes are skipped automatically; rerunning the same input will point you to the already queued entry.
 
-Install the CLI globally with `npm install -g` in this repo or run `npm link` while developing. The queue uses owner-only permissions (600) and follows the [manual E2E plan](docs/manual-e2e-plan.md) for offline capture.
+Install the CLI globally with `npm install -g` in this repo or run `npm link` while developing. The queue uses owner-only permissions (600) and follows the [manual E2E plan](docs/operations/manual-e2e-plan.md) for offline capture.
 
 ### For AI Assistants (Claude)
 
@@ -62,9 +62,10 @@ This server is designed for AI assistant integration. See [Contributing Guide - 
 **Quick Links:**
 - [Setup Instructions](#setup) (below)
 - [Natural Language Guide](docs/guides/NATURAL_LANGUAGE_GUIDE.md) - Complete guide to natural language patterns
-- [Observability Guide](docs/observability.md) - OpenTelemetry instrumentation and Honeycomb integration
+- [Observability Guide](docs/operations/observability.md) - OpenTelemetry instrumentation and Honeycomb integration
 - [Contributing Guide](docs/guides/CONTRIBUTING.md) - For developers and AI assistants
 - [Testing Guide](docs/testing/TESTING_GUIDE.md) - Comprehensive testing documentation
+- [E2E Runs](docs/testing/TESTING_GUIDE.md#live-e2e-trakt-api) - Live Trakt API tests (opt-in) and GitHub Action workflow
 - [CHANGELOG](CHANGELOG.md) - Version history and release notes
 - [TECHNICAL_DEBT.md](TECHNICAL_DEBT.md) - Dependency pins and technical debt tracking
 

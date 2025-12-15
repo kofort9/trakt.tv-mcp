@@ -318,8 +318,8 @@ Tools validate that dates are in ISO 8601 format:
 
 **Implementation:**
 
-- `validateEpisodeNumber()` in `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/utils.ts`
-- `validateSeasonNumber()` in `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/utils.ts`
+- `validateEpisodeNumber()` in `/Users/kofifort/Repos/trakt.tv-mcp/src/shared/utils.ts`
+- `validateSeasonNumber()` in `/Users/kofifort/Repos/trakt.tv-mcp/src/shared/utils.ts`
 
 ---
 
@@ -341,7 +341,7 @@ Tools validate that dates are in ISO 8601 format:
 | Non-empty strings | `"Breaking Bad"` | `""`, `"   "`       |
 | Must be provided  | `"Dune"`         | `undefined`, `null` |
 
-**Implementation:** See `validateNonEmptyString()` in `/Users/kofifort/Repos/trakt.tv-mcp/src/lib/utils.ts`.
+**Implementation:** See `validateNonEmptyString()` in `/Users/kofifort/Repos/trakt.tv-mcp/src/shared/utils.ts`.
 
 ---
 
@@ -518,19 +518,19 @@ Which one did you watch? You can tell me by year (e.g., "the 2021 movie") or I c
 
 | Function                       | Location                    | Purpose                                    |
 | ------------------------------ | --------------------------- | ------------------------------------------ |
-| `parseEpisodeRange()`          | `/src/lib/utils.ts`         | Parse episode range strings to arrays      |
-| `validateEpisodeNumber()`      | `/src/lib/utils.ts`         | Validate episode numbers                   |
-| `validateSeasonNumber()`       | `/src/lib/utils.ts`         | Validate season numbers                    |
-| `validateNonEmptyString()`     | `/src/lib/utils.ts`         | Validate string parameters                 |
-| `handleSearchDisambiguation()` | `/src/lib/utils.ts`         | Handle ambiguous search results            |
+| `parseEpisodeRange()`          | `/src/shared/utils.ts`      | Parse episode range strings to arrays      |
+| `validateEpisodeNumber()`      | `/src/shared/utils.ts`      | Validate episode numbers                   |
+| `validateSeasonNumber()`       | `/src/shared/utils.ts`      | Validate season numbers                    |
+| `validateNonEmptyString()`     | `/src/shared/utils.ts`      | Validate string parameters                 |
+| `handleSearchDisambiguation()` | `/src/shared/utils.ts`      | Handle ambiguous search results            |
 
 ### Tool Implementations
 
 | Tool              | Location            | Purpose                         |
 | ----------------- | ------------------- | ------------------------------- |
-| `logWatch()`      | `/src/lib/tools.ts` | Log single episode or movie     |
-| `bulkLog()`       | `/src/lib/tools.ts` | Log multiple episodes or movies |
-| `searchEpisode()` | `/src/lib/tools.ts` | Search for specific episode     |
+| `logWatch()`      | `/src/domain/trakt/tools.ts` | Log single episode or movie     |
+| `bulkLog()`       | `/src/domain/trakt/tools.ts` | Log multiple episodes or movies |
+| `searchEpisode()` | `/src/domain/trakt/tools.ts` | Search for specific episode     |
 
 ---
 

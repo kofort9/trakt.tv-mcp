@@ -1,6 +1,14 @@
-# Trakt Bulk Import Script
+# Scripts
 
-A TypeScript script to bulk import historical watch data from CSV files directly to the Trakt API. This bypasses the MCP server for efficiency with large historical datasets (100+ movies/episodes).
+Layout:
+- `dev/` — build wrapper and Node version guard
+- `data/` — bulk import script; sample CSVs live in `data/samples/`
+- `ops/` — benchmarks and security checks
+- `tools/` — local debugging helpers
+
+## Bulk Import Script
+
+TypeScript script to bulk import historical watch data from CSV files directly to the Trakt API. This bypasses the MCP server for efficiency with large historical datasets (100+ movies/episodes).
 
 ## Features
 

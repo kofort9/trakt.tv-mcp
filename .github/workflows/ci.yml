@@ -51,7 +51,7 @@ jobs:
         run: npm run lint
 
       - name: Check Prettier formatting
-        run: npx prettier --check "src/**/*.ts"
+        run: npx prettier --check "src/**/*.ts" "tests/**/*.ts" "scripts/**/*.ts"
 
   pr-test:
     name: Test
@@ -117,7 +117,7 @@ jobs:
         run: npm run lint
 
       - name: Check Prettier formatting
-        run: npx prettier --check "src/**/*.ts"
+        run: npx prettier --check "src/**/*.ts" "tests/**/*.ts" "scripts/**/*.ts"
 
       - name: Run tests
         run: npm test
