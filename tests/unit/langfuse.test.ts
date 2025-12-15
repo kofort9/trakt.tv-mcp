@@ -587,9 +587,8 @@ describe('langfuse integration', () => {
       process.env.LANGFUSE_PUBLIC_KEY = 'test-public-key';
       process.env.LANGFUSE_BASE_URL = 'https://test.langfuse.com';
 
-      const { isLangfuseEnabled, startTrace, getCurrentTrace } = await import(
-        '../../src/core/langfuse.js'
-      );
+      const { isLangfuseEnabled, startTrace, getCurrentTrace } =
+        await import('../../src/core/langfuse.js');
 
       expect(isLangfuseEnabled()).toBe(true);
 

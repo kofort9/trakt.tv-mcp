@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { LRUCache, generateSearchCacheKey, generateEpisodeCacheKey } from '../../src/domain/trakt/cache.js';
+import {
+  LRUCache,
+  generateSearchCacheKey,
+  generateEpisodeCacheKey,
+} from '../../src/domain/trakt/cache.js';
 
 describe('LRUCache', () => {
   describe('basic operations', () => {
