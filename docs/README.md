@@ -21,7 +21,6 @@ Quick links by topic. All paths are relative to `docs/`.
 
 ## Architecture
 - `architecture/IMPLEMENTATION_REPORT.md` — Observability implementation report
-- `architecture/gpt5_2-reporeview.md` — Repo review & UX ideas
 - `architecture/adrs/README.md` — ADR index and template
 - `architecture/future-work.md` — Forward-looking UX/features plan
 
@@ -34,6 +33,7 @@ Quick links by topic. All paths are relative to `docs/`.
 ## Archive (Historical)
 - `archive/README.md` — Historical docs index
 - `archive/TECHNICAL_DEBT.md` — Legacy technical debt log
+- `archive/gpt5_2-reporeview-2025-12-14.md` — Archived repo review & UX ideas (superseded by future-work)
 - `archive/` subfolders: implementation notes, past reports, and scripts
 
 If you add a new doc, drop a link in the relevant section above and keep the title descriptive.
@@ -90,6 +90,6 @@ If you add a new doc, drop a link in the relevant section above and keep the tit
 
 ---
 
-**Last Updated:** 2025-12-11
-**Documentation Version:** 2.1.0 (Observability & Security)
+**Last Updated:** 2025-12-14
+**Documentation Version:** 2.2.0 (Reorg & E2E)
 **Maintained By:** Development Team

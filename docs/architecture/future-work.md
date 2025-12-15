@@ -9,6 +9,7 @@ This document captures forward-looking feature and UX tasks that are out of scop
 - Return clear failure reasons with refinement tips (add year/season/episode, check spelling).
 - Add “preview before logging” (title/season/episode/date) and confirmation prior to submit.
 - Expand date parsing synonyms (“last night”, “two days ago”) and display interpreted timezone.
+- Support optional ratings/moods on log entries for future analytics.
 
 ## Bulk Logging & Undo
 - Bulk confirmation summary table highlighting unresolved/ambiguous items; allow proceed-with-valid-subset.
@@ -23,6 +24,7 @@ This document captures forward-looking feature and UX tasks that are out of scop
 ## Additional Input Patterns
 - Season/series-level logging (“finished season 2 of X”, “watched The Bear S1”) → expanded episode logs.
 - Accept natural range phrasing (“episodes 1 through 5 of season 2”) and document in quick start.
+- Add voice/chat capture integrations (e.g., Slack or voice assistant) for quick note intake.
 
 ## Onboarding & Docs
 - Expand README examples: ambiguity, partial seasons, rewatches, ratings/moods; use tables for supported commands.

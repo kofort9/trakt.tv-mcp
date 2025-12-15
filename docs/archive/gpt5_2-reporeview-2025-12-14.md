@@ -1,4 +1,5 @@
-Review of trakt.tv-mcp and UX improvement ideas
+Review of trakt.tv-mcp and UX improvement ideas  
+**Archived:** 2025-12-14 (superseded by docs/architecture/future-work.md and TECHNICAL_DEBT.md backlog)
 1. Current user experience
 
 Rich natural‑language logging and search:
