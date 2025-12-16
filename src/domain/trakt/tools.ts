@@ -1,7 +1,7 @@
 import { TraktClient } from './trakt-client.js';
 import { CacheMetrics } from './cache.js';
 import { DuplicateDetector } from './duplicate-detector.js';
-import { WatchLogQueue, WatchQueueEntry } from './watch-queue.js';
+import { WatchLogQueue } from './watch-queue.js';
 import { BulkSummaryBuilder } from './bulk-summary.js';
 import { parseWatchNote } from '../../shared/nl-parser.js';
 import {
@@ -27,6 +27,7 @@ import {
   TraktCalendarItem,
   TraktHistorySummary,
   DisambiguationResponse,
+  LogPreviewResponse,
 } from '../../types/trakt.js';
 
 /**
@@ -118,7 +119,7 @@ export async function logWatch(
     preview?: boolean;
     allowDuplicates?: boolean;
   }
-): Promise<ToolSuccess<TraktHistoryAddResponse> | ToolError | DisambiguationResponse> {
+): Promise<ToolSuccess<TraktHistoryAddResponse> | ToolSuccess<LogPreviewResponse> | ToolError | DisambiguationResponse> {
   try {
     const { type, showName, movieName, season, episode, watchedAt, year, traktId, preview, allowDuplicates } = args;
     const toolName = 'log_watch';
@@ -414,7 +415,7 @@ export async function bulkLog(
     traktId?: number;
     preview?: boolean;
   }
-): Promise<ToolSuccess<TraktHistoryAddResponse> | ToolError | DisambiguationResponse> {
+): Promise<ToolSuccess<TraktHistoryAddResponse> | ToolSuccess<LogPreviewResponse> | ToolError | DisambiguationResponse> {
   try {
     const { type, showName, movieNames, season, episodes, watchedAt, year, traktId, preview } = args;
     const toolName = 'bulk_log';
@@ -1158,6 +1159,8 @@ export async function syncLogwatchQueue(
         }
 
         // Log to Trakt
+        let resolvedType: 'episode' | 'movie' | null = null;
+        
         if (parsed.type === 'episode' && parsed.season && parsed.episode) {
           const historyData = {
             shows: [{
@@ -1170,6 +1173,7 @@ export async function syncLogwatchQueue(
             }],
           };
           await client.addToHistory(historyData, { toolName });
+          resolvedType = 'episode';
         } else if (parsed.type === 'movie') {
           const historyData = {
             movies: [{
@@ -1178,20 +1182,27 @@ export async function syncLogwatchQueue(
             }],
           };
           await client.addToHistory(historyData, { toolName });
+          resolvedType = 'movie';
         }
 
-        // Mark as synced
-        await queue.markSynced(entry.id, {
-          type: parsed.type,
-          traktId: content.ids.trakt,
-          title: content.title,
-          year: content.year,
-          season: parsed.season,
-          episode: parsed.episode,
-        });
-        
-        synced++;
-        results.push({ id: entry.id, status: 'synced', title: content.title });
+        // Mark as synced (only if we actually logged something)
+        if (resolvedType) {
+          await queue.markSynced(entry.id, {
+            type: resolvedType,
+            traktId: content.ids.trakt,
+            title: content.title,
+            year: content.year,
+            season: parsed.season,
+            episode: parsed.episode,
+          });
+          
+          synced++;
+          results.push({ id: entry.id, status: 'synced', title: content.title });
+        } else {
+          await queue.markFailed(entry.id, 'Could not determine content type');
+          failed++;
+          results.push({ id: entry.id, status: 'failed', reason: 'Unknown content type' });
+        }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
         await queue.markFailed(entry.id, errorMsg);

@@ -1,4 +1,4 @@
-import { appendFile, mkdir, readFile, writeFile, chmod, rename } from 'fs/promises';
+import { appendFile, mkdir, readFile, writeFile, chmod } from 'fs/promises';
 import { existsSync } from 'fs';
 import { randomUUID } from 'crypto';
 import { dirname, join } from 'path';

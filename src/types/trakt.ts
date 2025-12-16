@@ -77,6 +77,24 @@ export interface TraktHistoryAddResponse {
   };
 }
 
+// Preview response for log_watch and bulk_log preview mode
+export interface LogPreviewResponse {
+  action_required: 'confirm';
+  preview: {
+    type: string;
+    title?: string;
+    year?: number;
+    season?: number;
+    episode?: number;
+    episodes?: number[];
+    movies?: string[];
+    watchedAt: string;
+    traktId?: number;
+    count?: number;
+  };
+  message: string;
+}
+
 export interface TraktCalendarItem {
   first_aired: string;
   episode: TraktEpisode;
