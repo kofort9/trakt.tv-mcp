@@ -178,21 +178,21 @@ function extractDateExpression(
           'saturday',
         ];
         const targetDay = weekdays.indexOf(weekdayName);
-        
+
         // Boundary check: if weekday not found or invalid, skip this pattern
         if (targetDay === -1 || targetDay < 0 || targetDay > 6) {
           continue;
         }
-        
+
         const currentDay = targetDate.getDay();
         let daysBack = currentDay - targetDay;
         if (daysBack <= 0) daysBack += 7; // Go to previous week
-        
+
         // Sanity check: daysBack should be between 1-7
         if (daysBack < 1 || daysBack > 7) {
           continue;
         }
-        
+
         targetDate.setDate(targetDate.getDate() - daysBack);
       }
 

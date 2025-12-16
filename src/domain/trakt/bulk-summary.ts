@@ -35,7 +35,7 @@ export interface BulkSummary {
  * - ambiguous: Multiple matches found (requires user selection)
  * - not_found: No matches found
  * - error: Search failed
- * 
+ *
  * Recommended batch sizes:
  * - Small batches (<= 50 entries): Optimal balance of speed and API limits
  * - Medium batches (50-100 entries): Acceptable with rate limit awareness
@@ -44,13 +44,16 @@ export interface BulkSummary {
 export class BulkSummaryBuilder {
   private concurrencyLimit: number;
 
-  constructor(private client: TraktClient, concurrencyLimit: number = DEFAULT_CONCURRENCY_LIMIT) {
+  constructor(
+    private client: TraktClient,
+    concurrencyLimit: number = DEFAULT_CONCURRENCY_LIMIT
+  ) {
     this.concurrencyLimit = concurrencyLimit;
   }
 
   /**
    * Build summary by searching for all entries
-   * 
+   *
    * Uses controlled concurrency to respect API rate limits and avoid overwhelming the server.
    */
   async buildSummary(
@@ -66,9 +69,7 @@ export class BulkSummaryBuilder {
     };
 
     // Process entries with controlled concurrency
-    const results = await this.processConcurrent(
-      entries.map((entry, index) => ({ entry, index }))
-    );
+    const results = await this.processConcurrent(entries.map((entry, index) => ({ entry, index })));
 
     // Collect results
     for (const result of results) {
@@ -116,7 +117,7 @@ export class BulkSummaryBuilder {
 
   /**
    * Process entries with controlled concurrency to respect rate limits
-   * 
+   *
    * Chunks items into batches and processes each batch in parallel,
    * but processes batches sequentially to avoid overwhelming the API.
    */

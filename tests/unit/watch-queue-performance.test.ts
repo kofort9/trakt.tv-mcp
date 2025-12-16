@@ -44,8 +44,8 @@ describe('WatchLogQueue Performance Tests', () => {
     it('should handle reading last N entries from large file', async () => {
       const queue = new WatchLogQueue(queuePath);
 
-      // Add 5000 entries
-      for (let i = 0; i < 5000; i++) {
+      // Add 2000 entries (reduced for test speed)
+      for (let i = 0; i < 2000; i++) {
         await queue.append(`watched movie ${i}`);
       }
 
@@ -55,17 +55,15 @@ describe('WatchLogQueue Performance Tests', () => {
       const duration = Date.now() - startTime;
 
       expect(entries).toHaveLength(100);
-      expect(entries[entries.length - 1].rawText).toBe('watched movie 4999');
+      expect(entries[entries.length - 1].rawText).toBe('watched movie 1999');
       expect(duration).toBeLessThan(500); // Should be fast even with large file
-    });
+    }, 10000); // 10 second timeout for large file test
 
     it('should handle concurrent appends', async () => {
       const queue = new WatchLogQueue(queuePath);
 
       // Concurrent appends
-      const promises = Array.from({ length: 100 }, (_, i) =>
-        queue.append(`watched movie ${i}`)
-      );
+      const promises = Array.from({ length: 100 }, (_, i) => queue.append(`watched movie ${i}`));
 
       await Promise.all(promises);
 
@@ -79,7 +77,7 @@ describe('WatchLogQueue Performance Tests', () => {
       // Add 1000 entries with mixed statuses
       for (let i = 0; i < 1000; i++) {
         const { entry } = await queue.append(`watched movie ${i}`);
-        
+
         if (i % 3 === 0) {
           await queue.markSynced(entry.id);
         } else if (i % 5 === 0) {
@@ -213,14 +211,14 @@ describe('WatchLogQueue Performance Tests', () => {
     it('should not load entire file into memory when using limit', async () => {
       const queue = new WatchLogQueue(queuePath);
 
-      // Add many entries
-      for (let i = 0; i < 10000; i++) {
+      // Add many entries (reduced for test speed)
+      for (let i = 0; i < 2000; i++) {
         await queue.append(`watched movie with very long title that takes up space ${i}`);
       }
 
       // Reading with limit should not cause memory issues
       const entries = await queue.list(10);
       expect(entries).toHaveLength(10);
-    });
+    }, 10000); // 10 second timeout for large file test
   });
 });

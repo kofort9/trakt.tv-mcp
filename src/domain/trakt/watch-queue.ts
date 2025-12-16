@@ -42,20 +42,20 @@ export interface AppendResult {
  */
 function isValidWatchQueueEntry(obj: unknown): obj is WatchQueueEntry {
   if (!obj || typeof obj !== 'object') return false;
-  
+
   const entry = obj as Record<string, unknown>;
-  
+
   // Required fields
   if (typeof entry.id !== 'string' || !entry.id) return false;
   if (typeof entry.rawText !== 'string') return false;
   if (typeof entry.capturedAt !== 'string' || !entry.capturedAt) return false;
   if (!['pending', 'synced', 'failed', 'skipped'].includes(entry.status as string)) return false;
   if (!['cli', 'api', 'slack', 'system'].includes(entry.source as string)) return false;
-  
+
   // Optional fields type checks
   if (entry.syncedAt !== undefined && typeof entry.syncedAt !== 'string') return false;
   if (entry.failureReason !== undefined && typeof entry.failureReason !== 'string') return false;
-  
+
   if (entry.resolvedContent !== undefined) {
     const resolved = entry.resolvedContent as Record<string, unknown>;
     if (!['episode', 'movie'].includes(resolved.type as string)) return false;
@@ -65,7 +65,7 @@ function isValidWatchQueueEntry(obj: unknown): obj is WatchQueueEntry {
     if (resolved.season !== undefined && typeof resolved.season !== 'number') return false;
     if (resolved.episode !== undefined && typeof resolved.episode !== 'number') return false;
   }
-  
+
   return true;
 }
 
