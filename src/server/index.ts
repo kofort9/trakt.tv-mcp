@@ -455,6 +455,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: 'boolean',
               description: 'Auto-process all entries without confirmation (default: false)',
             },
+            showSummary: {
+              type: 'boolean',
+              description: 'Show pre-sync summary table with status of all entries (resolved/ambiguous/not found)',
+            },
           },
         },
       },
@@ -754,6 +758,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         queuePath: args?.queuePath as string | undefined,
         dryRun: args?.dryRun as boolean | undefined,
         autoConfirm: args?.autoConfirm as boolean | undefined,
+        showSummary: args?.showSummary as boolean | undefined,
       });
 
       return {

@@ -2,6 +2,7 @@ import { TraktClient } from './trakt-client.js';
 import { CacheMetrics } from './cache.js';
 import { DuplicateDetector } from './duplicate-detector.js';
 import { WatchLogQueue, WatchQueueEntry } from './watch-queue.js';
+import { BulkSummaryBuilder } from './bulk-summary.js';
 import { parseWatchNote } from '../../shared/nl-parser.js';
 import {
   parseEpisodeRange,
@@ -1053,10 +1054,11 @@ export async function syncLogwatchQueue(
     queuePath?: string;
     dryRun?: boolean;
     autoConfirm?: boolean;
+    showSummary?: boolean;
   }
 ): Promise<ToolSuccess | ToolError> {
   try {
-    const { queuePath, dryRun = false, autoConfirm = false } = args;
+    const { queuePath, dryRun = false, autoConfirm = false, showSummary = false } = args;
     const toolName = 'sync_logwatch_queue';
     
     const queue = queuePath ? new WatchLogQueue(queuePath) : new WatchLogQueue();
@@ -1079,13 +1081,19 @@ export async function syncLogwatchQueue(
       parsed: parseWatchNote(entry.rawText, entry.capturedAt),
     }));
 
-    // In dry-run mode, return parsed entries for review
-    if (dryRun) {
+    // Show summary if requested or in dry-run mode
+    if (showSummary || dryRun) {
+      const summaryBuilder = new BulkSummaryBuilder(client);
+      const summary = await summaryBuilder.buildSummary(parsedEntries);
+      const table = summaryBuilder.formatTable(summary);
+
       return createToolSuccess({
         action_required: 'review',
+        summary,
+        formattedTable: table,
         totalEntries: pending.length,
-        entries: parsedEntries,
-        message: `Dry run: ${pending.length} entries ready to sync. Review and call again without dryRun to proceed.`,
+        canProceed: summary.errors === 0,
+        message: `Summary: ${summary.resolved} resolved, ${summary.ambiguous} ambiguous, ${summary.notFound} not found, ${summary.errors} errors`,
       });
     }
 
