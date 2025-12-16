@@ -1,0 +1,50 @@
+name: E2E Trakt (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Why run E2E? (e.g., pre-merge, regression check)'
+        required: false
+        type: string
+
+jobs:
+  e2e:
+    name: Trakt E2E (opt-in)
+    runs-on: ubuntu-latest
+    env:
+      TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
+      TRAKT_CLIENT_SECRET: ${{ secrets.TRAKT_CLIENT_SECRET }}
+      TRAKT_TOKEN_JSON: ${{ secrets.TRAKT_TOKEN_JSON }}
+      E2E_TESTS_ENABLED: "true"
+    steps:
+      - name: Fail fast if secrets are missing
+        run: |
+          missing=0
+          for var in TRAKT_CLIENT_ID TRAKT_CLIENT_SECRET TRAKT_TOKEN_JSON; do
+            if [ -z "${!var}" ]; then
+              echo "Missing secret: $var"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run Trakt E2E suite
+        run: npm run test:e2e

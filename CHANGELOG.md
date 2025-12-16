@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Langfuse trace flushing moved off request path with latency measurement
 - Async-local trace context to keep spans isolated when tool calls overlap
 - Shared input/output sanitization helpers to align redaction across tracing
-- Langfuse quickstart snippet for copy/paste setup (docs/observability.md)
+- Langfuse quickstart snippet for copy/paste setup (docs/operations/observability.md)
 - Langfuse integration test with stub transport covering trace → span → flush
 - OAuth polling race condition guards with `isPollingInProgress()` and `cancelPolling()`
 - Time-of-day expressions ("tonight", "this morning", "this evening")

@@ -36,13 +36,13 @@ The Trakt.tv MCP server has undergone comprehensive testing across:
 
 ### Vitest (Unit & Integration Tests)
 
-**Location:** `/src/lib/__tests__/`
+**Location:** `/tests/unit`, `/tests/integration`
 
-**Files:**
+**Examples:**
 
-- `utils.test.ts` - Date parsing, validation, utility functions
-- `tools.test.ts` - MCP tool implementations
-- `logger.test.ts` - Logging infrastructure
+- `tests/unit/utils.test.ts` - Date parsing, validation, utility functions
+- `tests/unit/tools.test.ts` - MCP tool implementations
+- `tests/unit/logger.test.ts` - Logging infrastructure
 
 **Run tests:**
 
@@ -91,6 +91,25 @@ Historical regression scripts (manual/archived):
 - `tests/manual/test-calculations.mjs` - Statistics accuracy verification
 
 **Note:** These scripts are preserved for regression testing but are now superseded by Vitest tests.
+
+---
+
+### Live E2E (Trakt API)
+
+These tests hit the real Trakt API and should only run with a dedicated test account.
+
+```bash
+# Seed/refresh token via device code flow (prints URL + code to approve)
+npm run auth:trakt
+
+# Run live E2E (requires token + Trakt creds)
+E2E_TESTS_ENABLED=true npm run test:e2e
+```
+
+Requirements:
+- `TRAKT_CLIENT_ID` and `TRAKT_CLIENT_SECRET` set (e.g., via `.env`).
+- Token available at `~/.trakt-mcp/.trakt-token.json` (created by `npm run auth:trakt`), or set `TRAKT_TOKEN_JSON` with the token JSON.
+- Node 20 runtime. Run on demand or pre-merge, not on every commit, to avoid rate limits.
 
 ---
 
