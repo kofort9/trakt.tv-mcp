@@ -190,6 +190,32 @@ export async function logWatch(
         return createToolError('NOT_FOUND', `Show data not found in search results`);
       }
 
+      // Check for duplicates unless explicitly allowed
+      if (!allowDuplicates) {
+        const duplicateCheck = await duplicateDetector.checkRecent({
+          type: 'episode',
+          traktId: show.ids.trakt,
+          season,
+          episode,
+        });
+
+        if (duplicateCheck.isDuplicate) {
+          const watchedDate = duplicateCheck.watchedAt
+            ? new Date(duplicateCheck.watchedAt).toLocaleDateString()
+            : 'recently';
+          return createToolError(
+            'DUPLICATE_ENTRY',
+            `Already logged ${show.title}${show.year ? ` (${show.year})` : ''} S${season}E${episode} on ${watchedDate}`,
+            { existingEntry: duplicateCheck.existingEntry },
+            [
+              'This appears to be a duplicate entry',
+              'Use allowDuplicates: true to log it again (for rewatches)',
+              'Check your history with get_history tool to verify',
+            ]
+          );
+        }
+      }
+
       // Preview mode: return formatted preview without syncing
       if (preview) {
         return createToolSuccess<LogPreviewResponse>({

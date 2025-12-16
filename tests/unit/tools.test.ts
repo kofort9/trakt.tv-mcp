@@ -753,6 +753,105 @@ describe('tools', () => {
           true
         );
       });
+
+      it('should detect duplicate episodes', async () => {
+        // Mock search returning a show
+        vi.spyOn(mockClient, 'search').mockResolvedValue([
+          {
+            show: {
+              title: 'The Bear',
+              year: 2022,
+              ids: { trakt: 54321, slug: 'the-bear', imdb: 'tt456', tmdb: 789 },
+            },
+          },
+        ]);
+
+        // Mock duplicate detection finding a duplicate episode
+        vi.spyOn(mockClient, 'getHistory').mockResolvedValue([
+          {
+            id: 1,
+            watched_at: new Date().toISOString(),
+            action: 'watch',
+            type: 'episode',
+            show: {
+              title: 'The Bear',
+              year: 2022,
+              ids: { trakt: 54321, slug: 'the-bear', imdb: 'tt456', tmdb: 789 },
+            },
+            episode: {
+              title: 'Episode Title',
+              season: 2,
+              number: 5,
+              ids: { trakt: 999 },
+            },
+          },
+        ]);
+
+        const result = await tools.logWatch(mockClient, {
+          type: 'episode',
+          showName: 'The Bear',
+          season: 2,
+          episode: 5,
+        });
+
+        expect(result.error?.message).toContain('Already logged');
+        expect(result.error?.message).toContain('The Bear');
+        expect(result.error?.message).toContain('S2E5');
+        expect(result.error?.suggestions?.some((s: string) => s.includes('allowDuplicates'))).toBe(
+          true
+        );
+      });
+
+      it('should allow duplicate episodes when allowDuplicates is true', async () => {
+        // Mock search returning a show
+        vi.spyOn(mockClient, 'search').mockResolvedValue([
+          {
+            show: {
+              title: 'The Bear',
+              year: 2022,
+              ids: { trakt: 54321, slug: 'the-bear', imdb: 'tt456', tmdb: 789 },
+            },
+          },
+        ]);
+
+        // Mock duplicate detection finding a duplicate episode
+        vi.spyOn(mockClient, 'getHistory').mockResolvedValue([
+          {
+            id: 1,
+            watched_at: new Date().toISOString(),
+            action: 'watch',
+            type: 'episode',
+            show: {
+              title: 'The Bear',
+              year: 2022,
+              ids: { trakt: 54321, slug: 'the-bear', imdb: 'tt456', tmdb: 789 },
+            },
+            episode: {
+              title: 'Episode Title',
+              season: 2,
+              number: 5,
+              ids: { trakt: 999 },
+            },
+          },
+        ]);
+
+        // Mock addToHistory
+        vi.spyOn(mockClient, 'addToHistory').mockResolvedValue({
+          added: { episodes: 1 },
+          not_found: { episodes: [] },
+        });
+
+        const result = await tools.logWatch(mockClient, {
+          type: 'episode',
+          showName: 'The Bear',
+          season: 2,
+          episode: 5,
+          allowDuplicates: true,
+        });
+
+        expect(result.success).toBe(true);
+        expect(mockClient.addToHistory).toHaveBeenCalled();
+      });
     });
   });
 });
