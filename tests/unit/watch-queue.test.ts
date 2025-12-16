@@ -84,7 +84,7 @@ describe('WatchLogQueue', () => {
     describe('Status Management', () => {
       it('should mark entry as synced with resolved content', async () => {
         const { entry } = await queue.append('watched Dune 2021');
-        
+
         await queue.markSynced(entry.id, {
           type: 'movie',
           traktId: 12345,
@@ -105,7 +105,7 @@ describe('WatchLogQueue', () => {
 
       it('should mark entry as failed with reason', async () => {
         const { entry } = await queue.append('watched something');
-        
+
         await queue.markFailed(entry.id, 'No search results found');
 
         const listed = await queue.list();
@@ -115,7 +115,7 @@ describe('WatchLogQueue', () => {
 
       it('should mark entry as skipped', async () => {
         const { entry } = await queue.append('watched something');
-        
+
         await queue.markSkipped(entry.id);
 
         const listed = await queue.list();
@@ -128,11 +128,11 @@ describe('WatchLogQueue', () => {
 
       it('should update status multiple times', async () => {
         const { entry } = await queue.append('watched Dune');
-        
+
         await queue.markFailed(entry.id, 'First failure');
         let listed = await queue.list();
         expect(listed[0].status).toBe('failed');
-        
+
         await queue.markSynced(entry.id);
         listed = await queue.list();
         expect(listed[0].status).toBe('synced');
@@ -144,7 +144,7 @@ describe('WatchLogQueue', () => {
         const { entry: entry1 } = await queue.append('entry 1');
         const { entry: entry2 } = await queue.append('entry 2');
         const { entry: entry3 } = await queue.append('entry 3');
-        
+
         await queue.markSynced(entry1.id);
         await queue.markFailed(entry2.id, 'Failed');
 
@@ -156,7 +156,7 @@ describe('WatchLogQueue', () => {
       it('should filter out synced entries', async () => {
         const { entry: entry1 } = await queue.append('entry 1');
         const { entry: entry2 } = await queue.append('entry 2');
-        
+
         await queue.markSynced(entry1.id);
 
         const pending = await queue.getPending();
@@ -167,7 +167,7 @@ describe('WatchLogQueue', () => {
       it('should filter out failed entries', async () => {
         const { entry: entry1 } = await queue.append('entry 1');
         const { entry: entry2 } = await queue.append('entry 2');
-        
+
         await queue.markFailed(entry1.id, 'Failed');
 
         const pending = await queue.getPending();
@@ -178,7 +178,7 @@ describe('WatchLogQueue', () => {
       it('should filter out skipped entries', async () => {
         const { entry: entry1 } = await queue.append('entry 1');
         const { entry: entry2 } = await queue.append('entry 2');
-        
+
         await queue.markSkipped(entry1.id);
 
         const pending = await queue.getPending();
@@ -198,9 +198,9 @@ describe('WatchLogQueue', () => {
     describe('archive', () => {
       it('should create timestamped archive file', async () => {
         await queue.append('entry 1');
-        
+
         const archivePath = await queue.archive();
-        
+
         expect(fs.existsSync(archivePath)).toBe(true);
         expect(archivePath).toContain('archive');
         expect(archivePath).toContain('pending-logs-');
@@ -209,10 +209,10 @@ describe('WatchLogQueue', () => {
       it('should keep failed entries in active queue', async () => {
         const { entry: entry1 } = await queue.append('entry 1');
         const { entry: entry2 } = await queue.append('entry 2');
-        
+
         await queue.markSynced(entry1.id);
         await queue.markFailed(entry2.id, 'Failed');
-        
+
         await queue.archive();
 
         const remaining = await queue.list();
@@ -224,10 +224,10 @@ describe('WatchLogQueue', () => {
       it('should keep skipped entries in active queue', async () => {
         const { entry: entry1 } = await queue.append('entry 1');
         const { entry: entry2 } = await queue.append('entry 2');
-        
+
         await queue.markSynced(entry1.id);
         await queue.markSkipped(entry2.id);
-        
+
         await queue.archive();
 
         const remaining = await queue.list();
@@ -239,10 +239,10 @@ describe('WatchLogQueue', () => {
       it('should keep pending entries in active queue', async () => {
         const { entry: entry1 } = await queue.append('entry 1');
         const { entry: entry2 } = await queue.append('entry 2');
-        
+
         await queue.markSynced(entry1.id);
         // entry2 remains pending
-        
+
         await queue.archive();
 
         const remaining = await queue.list();
@@ -254,10 +254,10 @@ describe('WatchLogQueue', () => {
       it('should remove synced entries from active queue', async () => {
         const { entry: entry1 } = await queue.append('entry 1');
         const { entry: entry2 } = await queue.append('entry 2');
-        
+
         await queue.markSynced(entry1.id);
         await queue.markSynced(entry2.id);
-        
+
         await queue.archive();
 
         const remaining = await queue.list();
@@ -272,11 +272,11 @@ describe('WatchLogQueue', () => {
       it('should handle empty queue', async () => {
         await queue.append('entry 1');
         // Immediately archive without processing
-        
+
         const archivePath = await queue.archive();
-        
+
         expect(fs.existsSync(archivePath)).toBe(true);
-        
+
         // Should keep pending entry
         const remaining = await queue.list();
         expect(remaining).toHaveLength(1);
@@ -285,15 +285,15 @@ describe('WatchLogQueue', () => {
       it('should preserve original queue content in archive', async () => {
         const { entry: entry1 } = await queue.append('entry 1');
         const { entry: entry2 } = await queue.append('entry 2');
-        
+
         await queue.markSynced(entry1.id);
-        
+
         const archivePath = await queue.archive();
-        
+
         // Read archive file
         const archiveContent = fs.readFileSync(archivePath, 'utf8');
         const archiveLines = archiveContent.trim().split('\n');
-        
+
         // Archive should have both entries
         expect(archiveLines).toHaveLength(2);
       });

@@ -230,7 +230,7 @@ export class TraktClient {
 
   /**
    * Search for shows and movies (with caching)
-   * 
+   *
    * @param extended - Request extended data (genres, overview) for better disambiguation
    */
   async search(

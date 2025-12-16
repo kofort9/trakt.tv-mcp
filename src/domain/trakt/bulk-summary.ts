@@ -24,7 +24,7 @@ export interface BulkSummary {
 
 /**
  * Builds summary tables for bulk operations
- * 
+ *
  * Performs parallel searches for all entries and classifies them as:
  * - resolved: Exactly 1 match found
  * - ambiguous: Multiple matches found (requires user selection)
@@ -59,7 +59,7 @@ export class BulkSummaryBuilder {
       if (result.status === 'fulfilled') {
         const entry = result.value;
         summary.entries.push(entry);
-        
+
         // Update counts
         switch (entry.searchStatus) {
           case 'resolved':
@@ -211,7 +211,9 @@ export class BulkSummaryBuilder {
         for (let i = 0; i < entry.matches.length; i++) {
           const match = entry.matches[i];
           const genres = match.genres?.slice(0, 2).join(', ') || '';
-          lines.push(`    ${i + 1}. ${match.title} (${match.year || 'N/A'})${genres ? ` - ${genres}` : ''}`);
+          lines.push(
+            `    ${i + 1}. ${match.title} (${match.year || 'N/A'})${genres ? ` - ${genres}` : ''}`
+          );
         }
       }
 
@@ -227,9 +229,7 @@ export class BulkSummaryBuilder {
     lines.push('='.repeat(80));
     const canProceed = summary.errors === 0;
     lines.push(
-      canProceed
-        ? '✅ Ready to proceed (no errors)'
-        : '❌ Cannot proceed - resolve errors first'
+      canProceed ? '✅ Ready to proceed (no errors)' : '❌ Cannot proceed - resolve errors first'
     );
     lines.push('='.repeat(80));
 

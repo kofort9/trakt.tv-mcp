@@ -351,7 +351,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             confirm: {
               type: 'boolean',
-              description: 'Must be true to actually remove. If false/undefined, returns preview only',
+              description:
+                'Must be true to actually remove. If false/undefined, returns preview only',
             },
           },
         },
@@ -445,7 +446,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {
             queuePath: {
               type: 'string',
-              description: 'Optional: Custom path to queue file (default: ~/.trakt-mcp/pending-logs.jsonl)',
+              description:
+                'Optional: Custom path to queue file (default: ~/.trakt-mcp/pending-logs.jsonl)',
             },
             dryRun: {
               type: 'boolean',
@@ -457,7 +459,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             showSummary: {
               type: 'boolean',
-              description: 'Show pre-sync summary table with status of all entries (resolved/ambiguous/not found)',
+              description:
+                'Show pre-sync summary table with status of all entries (resolved/ambiguous/not found)',
             },
           },
         },

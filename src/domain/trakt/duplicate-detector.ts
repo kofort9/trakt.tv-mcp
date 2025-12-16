@@ -9,7 +9,7 @@ export interface DuplicateCheckResult {
 
 /**
  * Duplicate detection for watch history to prevent accidental re-logs
- * 
+ *
  * Checks recent history (default: 48 hours) to prevent logging the same
  * episode/movie multiple times unless explicitly allowed.
  */
@@ -18,7 +18,7 @@ export class DuplicateDetector {
 
   /**
    * Check if content has been logged recently
-   * 
+   *
    * @param content - Content to check (type, traktId, season, episode)
    * @param windowHours - Look-back window in hours (default: 48)
    * @returns DuplicateCheckResult with duplicate status and existing entry if found
@@ -40,13 +40,9 @@ export class DuplicateDetector {
 
       // Fetch recent history for the content type
       const historyType = content.type === 'episode' ? 'shows' : 'movies';
-      const history = await this.client.getHistory(
-        historyType,
-        startDateISO,
-        undefined,
-        1,
-        { toolName: 'duplicate_detector' }
-      );
+      const history = await this.client.getHistory(historyType, startDateISO, undefined, 1, {
+        toolName: 'duplicate_detector',
+      });
 
       if (!Array.isArray(history) || history.length === 0) {
         return { isDuplicate: false };
@@ -58,7 +54,7 @@ export class DuplicateDetector {
         const entryDate = new Date(entry.watched_at);
         const windowStart = new Date();
         windowStart.setHours(windowStart.getHours() - windowHours);
-        
+
         if (entryDate < windowStart) {
           // Entry is outside the window
           continue;
@@ -68,7 +64,7 @@ export class DuplicateDetector {
           // Check episode match
           const show = entry.show;
           const episode = entry.episode;
-          
+
           if (
             show?.ids.trakt === content.traktId &&
             episode?.season === content.season &&
@@ -83,7 +79,7 @@ export class DuplicateDetector {
         } else {
           // Check movie match
           const movie = entry.movie;
-          
+
           if (movie?.ids.trakt === content.traktId) {
             return {
               isDuplicate: true,

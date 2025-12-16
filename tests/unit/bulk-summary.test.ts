@@ -44,9 +44,7 @@ describe('BulkSummaryBuilder', () => {
 
       mockClient.search.mockResolvedValue(mockSearchResult);
 
-      const entries = [
-        { rawText: 'watched Dune', parsed: createParsedEntry({ title: 'Dune' }) },
-      ];
+      const entries = [{ rawText: 'watched Dune', parsed: createParsedEntry({ title: 'Dune' }) }];
 
       const summary = await builder.buildSummary(entries);
 
@@ -83,9 +81,7 @@ describe('BulkSummaryBuilder', () => {
 
       mockClient.search.mockResolvedValue(mockSearchResult);
 
-      const entries = [
-        { rawText: 'watched Dune', parsed: createParsedEntry({ title: 'Dune' }) },
-      ];
+      const entries = [{ rawText: 'watched Dune', parsed: createParsedEntry({ title: 'Dune' }) }];
 
       const summary = await builder.buildSummary(entries);
 
@@ -113,9 +109,7 @@ describe('BulkSummaryBuilder', () => {
     it('should handle search errors', async () => {
       mockClient.search.mockRejectedValue(new Error('API Error'));
 
-      const entries = [
-        { rawText: 'watched Dune', parsed: createParsedEntry({ title: 'Dune' }) },
-      ];
+      const entries = [{ rawText: 'watched Dune', parsed: createParsedEntry({ title: 'Dune' }) }];
 
       const summary = await builder.buildSummary(entries);
 
@@ -167,9 +161,7 @@ describe('BulkSummaryBuilder', () => {
     });
 
     it('should skip entries with missing title', async () => {
-      const entries = [
-        { rawText: 'watched', parsed: createParsedEntry({ title: '' }) },
-      ];
+      const entries = [{ rawText: 'watched', parsed: createParsedEntry({ title: '' }) }];
 
       const summary = await builder.buildSummary(entries);
 
@@ -200,9 +192,7 @@ describe('BulkSummaryBuilder', () => {
 
       mockClient.search.mockResolvedValue(mockSearchResult);
 
-      const entries = [
-        { rawText: 'watched Movie', parsed: createParsedEntry({ title: 'Movie' }) },
-      ];
+      const entries = [{ rawText: 'watched Movie', parsed: createParsedEntry({ title: 'Movie' }) }];
 
       const summary = await builder.buildSummary(entries);
 
@@ -258,9 +248,7 @@ describe('BulkSummaryBuilder', () => {
 
       mockClient.search.mockResolvedValue(mockSearchResult);
 
-      const entries = [
-        { rawText: 'watched Dune', parsed: createParsedEntry({ title: 'Dune' }) },
-      ];
+      const entries = [{ rawText: 'watched Dune', parsed: createParsedEntry({ title: 'Dune' }) }];
 
       const summary = await builder.buildSummary(entries);
 
@@ -389,8 +377,9 @@ describe('BulkSummaryBuilder', () => {
     });
 
     it('should truncate long titles', () => {
-      const longTitle = 'The Lord of the Rings: The Fellowship of the Ring Extended Edition Special Edition';
-      
+      const longTitle =
+        'The Lord of the Rings: The Fellowship of the Ring Extended Edition Special Edition';
+
       const summary = {
         totalEntries: 1,
         resolved: 1,

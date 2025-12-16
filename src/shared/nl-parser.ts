@@ -1,6 +1,6 @@
 /**
  * Natural Language Parser for Watch Notes
- * 
+ *
  * Parses natural language watch notes from offline queue into structured data.
  * Handles date expressions, temporal modifiers, recall patterns, and content identification.
  */
@@ -12,25 +12,22 @@ export interface ParsedWatchEntry {
   year?: number;
   season?: number;
   episode?: number;
-  watchedAt?: string;          // ISO format - parsed from text or fallback
-  dateSource: 'parsed' | 'fallback';  // Track if date came from text or capturedAt
-  dateExpression?: string;     // Original expression like "last night"
-  isRecallPattern: boolean;    // true if "I've seen"/"seen" pattern detected
+  watchedAt?: string; // ISO format - parsed from text or fallback
+  dateSource: 'parsed' | 'fallback'; // Track if date came from text or capturedAt
+  dateExpression?: string; // Original expression like "last night"
+  isRecallPattern: boolean; // true if "I've seen"/"seen" pattern detected
 }
 
 /**
  * Parse natural language watch note into structured data
- * 
+ *
  * @param rawText - The natural language note (e.g., "watched Dune 2021 yesterday")
  * @param capturedAt - Fallback timestamp if no date in text (ISO format)
  * @returns Parsed watch entry with extracted information
  */
-export function parseWatchNote(
-  rawText: string,
-  capturedAt: string
-): ParsedWatchEntry {
+export function parseWatchNote(rawText: string, capturedAt: string): ParsedWatchEntry {
   let text = rawText.trim();
-  
+
   // Initialize result
   const result: ParsedWatchEntry = {
     title: '',
@@ -52,7 +49,8 @@ export function parseWatchNote(
   }
 
   // 2. Check for recall patterns (indefinite past)
-  const recallPatterns = /\b(I['']ve\s+seen|I\s+have\s+seen|seen|I['']ve\s+watched|I\s+have\s+watched)\b/i;
+  const recallPatterns =
+    /\b(I['']ve\s+seen|I\s+have\s+seen|seen|I['']ve\s+watched|I\s+have\s+watched)\b/i;
   const recallMatch = text.match(recallPatterns);
   if (recallMatch && !temporalMatch) {
     result.isRecallPattern = true;
@@ -143,20 +141,23 @@ function extractDateExpression(
     { regex: /\bthis\s+morning\b/i, days: 0, time: 'morning' },
     { regex: /\bthis\s+afternoon\b/i, days: 0, time: 'afternoon' },
     { regex: /\bthis\s+evening\b/i, days: 0, time: 'evening' },
-    
+
     // Relative days
     { regex: /\b(\d+)\s+days?\s+ago\b/i, daysFromMatch: true },
     { regex: /\b(\d+)\s+weeks?\s+ago\b/i, weeksFromMatch: true },
-    
+
     // Weekdays
-    { regex: /\blast\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i, weekday: true },
+    {
+      regex: /\blast\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i,
+      weekday: true,
+    },
   ];
 
   for (const pattern of patterns) {
     const match = text.match(pattern.regex);
     if (match) {
       let targetDate = new Date(capturedDate);
-      
+
       if (pattern.days !== undefined) {
         targetDate.setDate(targetDate.getDate() + pattern.days);
       } else if (pattern.daysFromMatch) {
@@ -164,10 +165,18 @@ function extractDateExpression(
         targetDate.setDate(targetDate.getDate() - days);
       } else if (pattern.weeksFromMatch) {
         const weeks = parseInt(match[1], 10);
-        targetDate.setDate(targetDate.getDate() - (weeks * 7));
+        targetDate.setDate(targetDate.getDate() - weeks * 7);
       } else if (pattern.weekday) {
         const weekdayName = match[1].toLowerCase();
-        const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const weekdays = [
+          'sunday',
+          'monday',
+          'tuesday',
+          'wednesday',
+          'thursday',
+          'friday',
+          'saturday',
+        ];
         const targetDay = weekdays.indexOf(weekdayName);
         const currentDay = targetDate.getDay();
         let daysBack = currentDay - targetDay;
@@ -190,9 +199,12 @@ function extractDateExpression(
 /**
  * Extract season/episode information from text
  */
-function extractEpisodeInfo(
-  text: string
-): { found: boolean; season?: number; episode?: number; remainingText: string } {
+function extractEpisodeInfo(text: string): {
+  found: boolean;
+  season?: number;
+  episode?: number;
+  remainingText: string;
+} {
   // Patterns for season/episode (ordered by specificity)
   const patterns = [
     // S2E5, S02E05, s2e5
@@ -223,9 +235,7 @@ function extractEpisodeInfo(
 /**
  * Extract year from text
  */
-function extractYear(
-  text: string
-): { found: boolean; year?: number; remainingText: string } {
+function extractYear(text: string): { found: boolean; year?: number; remainingText: string } {
   // Year patterns
   const patterns = [
     // In parentheses: (2021), (2020)

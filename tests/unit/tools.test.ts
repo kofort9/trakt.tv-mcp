@@ -749,7 +749,9 @@ describe('tools', () => {
 
         expect(result.error?.message).toContain('Already logged');
         expect(result.error?.message).toContain('Dune');
-        expect(result.error?.suggestions?.some((s: string) => s.includes('allowDuplicates'))).toBe(true);
+        expect(result.error?.suggestions?.some((s: string) => s.includes('allowDuplicates'))).toBe(
+          true
+        );
       });
     });
   });

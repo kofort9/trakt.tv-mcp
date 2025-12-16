@@ -119,9 +119,25 @@ export async function logWatch(
     preview?: boolean;
     allowDuplicates?: boolean;
   }
-): Promise<ToolSuccess<TraktHistoryAddResponse> | ToolSuccess<LogPreviewResponse> | ToolError | DisambiguationResponse> {
+): Promise<
+  | ToolSuccess<TraktHistoryAddResponse>
+  | ToolSuccess<LogPreviewResponse>
+  | ToolError
+  | DisambiguationResponse
+> {
   try {
-    const { type, showName, movieName, season, episode, watchedAt, year, traktId, preview, allowDuplicates } = args;
+    const {
+      type,
+      showName,
+      movieName,
+      season,
+      episode,
+      watchedAt,
+      year,
+      traktId,
+      preview,
+      allowDuplicates,
+    } = args;
     const toolName = 'log_watch';
     const duplicateDetector = new DuplicateDetector(client);
 
@@ -173,7 +189,7 @@ export async function logWatch(
 
       // Preview mode: return formatted preview without syncing
       if (preview) {
-        return createToolSuccess({
+        return createToolSuccess<LogPreviewResponse>({
           action_required: 'confirm',
           preview: {
             type: 'episode',
@@ -249,7 +265,7 @@ export async function logWatch(
         });
 
         if (duplicateCheck.isDuplicate) {
-          const watchedDate = duplicateCheck.watchedAt 
+          const watchedDate = duplicateCheck.watchedAt
             ? new Date(duplicateCheck.watchedAt).toLocaleDateString()
             : 'recently';
           return createToolError(
@@ -267,7 +283,7 @@ export async function logWatch(
 
       // Preview mode: return formatted preview without syncing
       if (preview) {
-        return createToolSuccess({
+        return createToolSuccess<LogPreviewResponse>({
           action_required: 'confirm',
           preview: {
             type: 'movie',
@@ -303,7 +319,7 @@ export async function logWatch(
  * Undo recent watch history entries.
  *
  * Removes the last N entries from watch history with preview and confirmation support.
- * 
+ *
  * @param limit - Number of entries to remove (default: 1, max: 10)
  * @param confirm - Must be true to actually remove. If false/undefined, returns preview only
  */
@@ -325,7 +341,7 @@ export async function undoLastLog(
 
     // Fetch recent history
     const history = await client.getHistory(undefined, undefined, undefined, 1, { toolName });
-    
+
     if (!Array.isArray(history) || history.length === 0) {
       return createToolError('NOT_FOUND', 'No recent watch history found');
     }
@@ -334,15 +350,17 @@ export async function undoLastLog(
     const entriesToRemove = history.slice(0, limit);
 
     // Format preview of entries
-    const previewEntries = entriesToRemove.map((entry) => {
-      const watchedAt = new Date(entry.watched_at).toLocaleDateString();
-      if (entry.type === 'episode' && entry.show && entry.episode) {
-        return `- ${entry.show.title} S${entry.episode.season}E${entry.episode.number} (watched ${watchedAt})`;
-      } else if (entry.type === 'movie' && entry.movie) {
-        return `- ${entry.movie.title}${entry.movie.year ? ` (${entry.movie.year})` : ''} (watched ${watchedAt})`;
-      }
-      return `- Unknown entry (watched ${watchedAt})`;
-    }).join('\n');
+    const previewEntries = entriesToRemove
+      .map((entry) => {
+        const watchedAt = new Date(entry.watched_at).toLocaleDateString();
+        if (entry.type === 'episode' && entry.show && entry.episode) {
+          return `- ${entry.show.title} S${entry.episode.season}E${entry.episode.number} (watched ${watchedAt})`;
+        } else if (entry.type === 'movie' && entry.movie) {
+          return `- ${entry.movie.title}${entry.movie.year ? ` (${entry.movie.year})` : ''} (watched ${watchedAt})`;
+        }
+        return `- Unknown entry (watched ${watchedAt})`;
+      })
+      .join('\n');
 
     // Preview mode - return what would be removed
     if (!confirm) {
@@ -381,11 +399,14 @@ export async function undoLastLog(
     // Remove from history
     const response = await client.removeFromHistory(removeData, { toolName });
 
-    return createToolSuccess({
-      removed: entriesToRemove.length,
-      details: previewEntries,
-      response,
-    }, `Successfully removed ${entriesToRemove.length} entr${entriesToRemove.length === 1 ? 'y' : 'ies'} from history`);
+    return createToolSuccess(
+      {
+        removed: entriesToRemove.length,
+        details: previewEntries,
+        response,
+      },
+      `Successfully removed ${entriesToRemove.length} entr${entriesToRemove.length === 1 ? 'y' : 'ies'} from history`
+    );
   } catch (error) {
     const message = sanitizeError(error, 'undoLastLog');
     return createToolError('TRAKT_API_ERROR', message);
@@ -415,9 +436,15 @@ export async function bulkLog(
     traktId?: number;
     preview?: boolean;
   }
-): Promise<ToolSuccess<TraktHistoryAddResponse> | ToolSuccess<LogPreviewResponse> | ToolError | DisambiguationResponse> {
+): Promise<
+  | ToolSuccess<TraktHistoryAddResponse>
+  | ToolSuccess<LogPreviewResponse>
+  | ToolError
+  | DisambiguationResponse
+> {
   try {
-    const { type, showName, movieNames, season, episodes, watchedAt, year, traktId, preview } = args;
+    const { type, showName, movieNames, season, episodes, watchedAt, year, traktId, preview } =
+      args;
     const toolName = 'bulk_log';
 
     // Validate ISO 8601 format for watchedAt
@@ -475,7 +502,7 @@ export async function bulkLog(
 
       // Preview mode: return formatted preview without syncing
       if (preview) {
-        return createToolSuccess({
+        return createToolSuccess<LogPreviewResponse>({
           action_required: 'confirm',
           preview: {
             type: 'episodes',
@@ -585,7 +612,7 @@ export async function bulkLog(
       // Preview mode: return formatted preview without syncing
       if (preview) {
         const movieTitles = movieNames.join(', ');
-        return createToolSuccess({
+        return createToolSuccess<LogPreviewResponse>({
           action_required: 'confirm',
           preview: {
             type: 'movies',
@@ -1042,10 +1069,10 @@ export async function debugLastRequest(
 
 /**
  * Sync offline watch queue to Trakt
- * 
+ *
  * Processes pending entries from the local queue, searches for matches,
  * and logs them to Trakt. Supports dry-run for preview.
- * 
+ *
  * Note: Interactive confirmation is handled by Claude, not in this tool.
  * The tool returns parsed entries that Claude presents to the user.
  */
@@ -1061,7 +1088,7 @@ export async function syncLogwatchQueue(
   try {
     const { queuePath, dryRun = false, autoConfirm = false, showSummary = false } = args;
     const toolName = 'sync_logwatch_queue';
-    
+
     const queue = queuePath ? new WatchLogQueue(queuePath) : new WatchLogQueue();
     const pending = await queue.getPending();
 
@@ -1075,7 +1102,7 @@ export async function syncLogwatchQueue(
     }
 
     // Parse all entries
-    const parsedEntries = pending.map(entry => ({
+    const parsedEntries = pending.map((entry) => ({
       id: entry.id,
       rawText: entry.rawText,
       capturedAt: entry.capturedAt,
@@ -1120,17 +1147,22 @@ export async function syncLogwatchQueue(
     for (const entry of parsedEntries) {
       try {
         const parsed = entry.parsed;
-        
+
         // Skip entries with low confidence or no title
         if (parsed.confidence === 'low' || !parsed.title) {
           await queue.markSkipped(entry.id);
           skipped++;
-          results.push({ id: entry.id, status: 'skipped', reason: 'Low confidence or missing title' });
+          results.push({
+            id: entry.id,
+            status: 'skipped',
+            reason: 'Low confidence or missing title',
+          });
           continue;
         }
 
         // Search for content
-        const searchType = parsed.type === 'episode' ? 'show' : parsed.type === 'movie' ? 'movie' : undefined;
+        const searchType =
+          parsed.type === 'episode' ? 'show' : parsed.type === 'movie' ? 'movie' : undefined;
         if (!searchType) {
           await queue.markFailed(entry.id, 'Unknown content type');
           failed++;
@@ -1138,8 +1170,10 @@ export async function syncLogwatchQueue(
           continue;
         }
 
-        const searchResults = await client.search(parsed.title, searchType, parsed.year, { toolName });
-        
+        const searchResults = await client.search(parsed.title, searchType, parsed.year, {
+          toolName,
+        });
+
         if (!Array.isArray(searchResults) || searchResults.length === 0) {
           await queue.markFailed(entry.id, 'No search results');
           failed++;
@@ -1150,7 +1184,7 @@ export async function syncLogwatchQueue(
         // Auto-select first result (simplified - full version would need disambiguation)
         const firstResult = searchResults[0];
         const content = searchType === 'show' ? firstResult.show : firstResult.movie;
-        
+
         if (!content) {
           await queue.markFailed(entry.id, 'Missing content data');
           failed++;
@@ -1160,26 +1194,32 @@ export async function syncLogwatchQueue(
 
         // Log to Trakt
         let resolvedType: 'episode' | 'movie' | null = null;
-        
+
         if (parsed.type === 'episode' && parsed.season && parsed.episode) {
           const historyData = {
-            shows: [{
-              watched_at: parsed.watchedAt || new Date().toISOString(),
-              ids: { trakt: content.ids.trakt },
-              seasons: [{
-                number: parsed.season,
-                episodes: [{ number: parsed.episode }],
-              }],
-            }],
+            shows: [
+              {
+                watched_at: parsed.watchedAt || new Date().toISOString(),
+                ids: { trakt: content.ids.trakt },
+                seasons: [
+                  {
+                    number: parsed.season,
+                    episodes: [{ number: parsed.episode }],
+                  },
+                ],
+              },
+            ],
           };
           await client.addToHistory(historyData, { toolName });
           resolvedType = 'episode';
         } else if (parsed.type === 'movie') {
           const historyData = {
-            movies: [{
-              watched_at: parsed.watchedAt || new Date().toISOString(),
-              ids: { trakt: content.ids.trakt },
-            }],
+            movies: [
+              {
+                watched_at: parsed.watchedAt || new Date().toISOString(),
+                ids: { trakt: content.ids.trakt },
+              },
+            ],
           };
           await client.addToHistory(historyData, { toolName });
           resolvedType = 'movie';
@@ -1195,7 +1235,7 @@ export async function syncLogwatchQueue(
             season: parsed.season,
             episode: parsed.episode,
           });
-          
+
           synced++;
           results.push({ id: entry.id, status: 'synced', title: content.title });
         } else {
@@ -1214,14 +1254,17 @@ export async function syncLogwatchQueue(
     // Archive queue
     const archivePath = await queue.archive();
 
-    return createToolSuccess({
-      synced,
-      failed,
-      skipped,
-      totalProcessed: parsedEntries.length,
-      archivePath,
-      results,
-    }, `Synced ${synced}/${parsedEntries.length} entries. Failed: ${failed}, Skipped: ${skipped}. Archived to ${archivePath}`);
+    return createToolSuccess(
+      {
+        synced,
+        failed,
+        skipped,
+        totalProcessed: parsedEntries.length,
+        archivePath,
+        results,
+      },
+      `Synced ${synced}/${parsedEntries.length} entries. Failed: ${failed}, Skipped: ${skipped}. Archived to ${archivePath}`
+    );
   } catch (error) {
     const message = sanitizeError(error, 'syncLogwatchQueue');
     return createToolError('SYNC_ERROR', message);

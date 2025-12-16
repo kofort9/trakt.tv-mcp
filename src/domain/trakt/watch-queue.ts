@@ -154,13 +154,16 @@ export class WatchLogQueue {
    */
   async getPending(): Promise<WatchQueueEntry[]> {
     const allEntries = await this.list();
-    return allEntries.filter(entry => entry.status === 'pending');
+    return allEntries.filter((entry) => entry.status === 'pending');
   }
 
   /**
    * Mark an entry as successfully synced
    */
-  async markSynced(id: string, resolvedContent?: WatchQueueEntry['resolvedContent']): Promise<void> {
+  async markSynced(
+    id: string,
+    resolvedContent?: WatchQueueEntry['resolvedContent']
+  ): Promise<void> {
     await this.updateEntryStatus(id, 'synced', {
       syncedAt: new Date().toISOString(),
       resolvedContent,
@@ -185,7 +188,7 @@ export class WatchLogQueue {
 
   /**
    * Archive current queue file and rewrite with only failed/skipped entries
-   * 
+   *
    * @returns Path to archived file
    */
   async archive(): Promise<string> {
@@ -206,14 +209,17 @@ export class WatchLogQueue {
 
     // Get all entries
     const allEntries = await this.list();
-    
+
     // Keep only failed and skipped entries
     const entriesToKeep = allEntries.filter(
-      entry => entry.status === 'failed' || entry.status === 'skipped' || entry.status === 'pending'
+      (entry) =>
+        entry.status === 'failed' || entry.status === 'skipped' || entry.status === 'pending'
     );
 
     // Rewrite queue with only entries to keep
-    const newContent = entriesToKeep.map(entry => JSON.stringify(entry)).join('\n') + (entriesToKeep.length > 0 ? '\n' : '');
+    const newContent =
+      entriesToKeep.map((entry) => JSON.stringify(entry)).join('\n') +
+      (entriesToKeep.length > 0 ? '\n' : '');
     await writeFile(this.queueFilePath, newContent, { encoding: 'utf8', mode: 0o600 });
 
     return archivePath;
@@ -233,9 +239,9 @@ export class WatchLogQueue {
 
     const content = await readFile(this.queueFilePath, 'utf8');
     const lines = content.split(/\r?\n/).filter(Boolean);
-    
+
     let found = false;
-    const updatedLines = lines.map(line => {
+    const updatedLines = lines.map((line) => {
       try {
         const entry = JSON.parse(line) as WatchQueueEntry;
         if (entry.id === id) {
