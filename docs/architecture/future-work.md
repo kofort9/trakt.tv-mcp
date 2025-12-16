@@ -14,6 +14,7 @@ This document captures forward-looking feature and UX tasks that are out of scop
 ### Bulk Logging & Undo
 - ✅ Idempotent logging: check recent history to avoid duplicates with opt-in rewatches
 - ✅ Add undo support via `undo_last_log` tool with preview and confirmation
+- ✅ Bulk confirmation summary table highlighting unresolved/ambiguous items
 
 ### Logwatch (Offline) Core
 - ✅ Enhanced queue with status tracking (pending/synced/failed/skipped)
@@ -30,7 +31,6 @@ This document captures forward-looking feature and UX tasks that are out of scop
 - Add poster/tagline to disambiguation (requires additional API calls)
 
 ### Bulk Logging & Undo
-- Bulk confirmation summary table highlighting unresolved/ambiguous items
 - Allow proceed-with-valid-subset for partially resolved bulk operations
 
 ### Logwatch (Offline) Enhancements
