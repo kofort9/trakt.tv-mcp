@@ -18,6 +18,8 @@ export interface TraktShow {
     imdb?: string;
     tmdb?: number;
   };
+  genres?: string[];
+  overview?: string;
 }
 
 export interface TraktMovie {
@@ -29,6 +31,8 @@ export interface TraktMovie {
     imdb?: string;
     tmdb?: number;
   };
+  genres?: string[];
+  overview?: string;
 }
 
 export interface TraktEpisode {
@@ -112,6 +116,9 @@ export interface DisambiguationOption {
   year?: number;
   traktId: number;
   type: 'show' | 'movie';
+  genres?: string[];
+  overview?: string;
+  score?: number;
 }
 
 export interface DisambiguationResponse {

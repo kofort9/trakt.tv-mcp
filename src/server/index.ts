@@ -244,6 +244,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description:
                 'Optional: Trakt ID for exact identification (obtained from search_show)',
             },
+            preview: {
+              type: 'boolean',
+              description:
+                'Optional: Preview mode - performs all search/disambiguation and returns formatted preview without logging to Trakt',
+            },
+            allowDuplicates: {
+              type: 'boolean',
+              description:
+                'Optional: Allow logging duplicate entries (for rewatches). Default: false - prevents duplicate logs within 48 hours',
+            },
           },
           required: ['type'],
         },
@@ -292,6 +302,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description:
                 'Optional: Trakt ID for exact identification (obtained from search_show)',
             },
+            preview: {
+              type: 'boolean',
+              description:
+                'Optional: Preview mode - performs all search/disambiguation and returns formatted preview without logging to Trakt',
+            },
           },
           required: ['type'],
         },
@@ -319,6 +334,24 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             limit: {
               type: 'number',
               description: 'Maximum number of items to return',
+            },
+          },
+        },
+      },
+      {
+        name: 'undo_last_log',
+        description:
+          'Remove recent watch history entries. Supports preview mode and confirmation. Use to undo accidental logs.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            limit: {
+              type: 'number',
+              description: 'Number of entries to remove (default: 1, max: 10)',
+            },
+            confirm: {
+              type: 'boolean',
+              description: 'Must be true to actually remove. If false/undefined, returns preview only',
             },
           },
         },
@@ -401,6 +434,28 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
           },
           required: ['showName'],
+        },
+      },
+      {
+        name: 'sync_logwatch_queue',
+        description:
+          'Sync offline watch queue to Trakt. Processes pending entries, searches for matches, and logs them. Supports dry-run and auto-confirm modes.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            queuePath: {
+              type: 'string',
+              description: 'Optional: Custom path to queue file (default: ~/.trakt-mcp/pending-logs.jsonl)',
+            },
+            dryRun: {
+              type: 'boolean',
+              description: 'Preview entries without syncing (default: false)',
+            },
+            autoConfirm: {
+              type: 'boolean',
+              description: 'Auto-process all entries without confirmation (default: false)',
+            },
+          },
         },
       },
       {
@@ -608,6 +663,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
+    if (name === 'undo_last_log') {
+      const result = await tools.undoLastLog(traktClient, {
+        limit: args?.limit as number | undefined,
+        confirm: args?.confirm as boolean | undefined,
+      });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+        isError: !result.success,
+      };
+    }
+
     if (name === 'summarize_history') {
       const result = await tools.summarizeHistory(traktClient, {
         startDate: args?.startDate as string | undefined,
@@ -664,6 +736,24 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         showName: args?.showName as string,
         year: args?.year as number | undefined,
         traktId: args?.traktId as number | undefined,
+      });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+        isError: !result.success,
+      };
+    }
+
+    if (name === 'sync_logwatch_queue') {
+      const result = await tools.syncLogwatchQueue(traktClient, {
+        queuePath: args?.queuePath as string | undefined,
+        dryRun: args?.dryRun as boolean | undefined,
+        autoConfirm: args?.autoConfirm as boolean | undefined,
       });
 
       return {

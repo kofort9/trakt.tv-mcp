@@ -4,9 +4,10 @@ Source of truth for temporary dependency pins, workarounds, and technical debt i
 
 ## Active Backlog
 
-- **Logging UX & disambiguation debt:** Ambiguous searches still require manual retry; add multi-match shortlists, failure refinement hints, and pre-log preview/confirm flows.
-- **Bulk/undo parity:** Bulk operations lack confirmation/undo; add summary tables, idempotent duplicate checks, and undo/remove support via Trakt history API.
-- **Offline logwatch maturity:** Current queue is raw-text only; add parse-on-capture with guesses, enriched queue fields, fix/drop/sync commands, and dry-run sync with per-entry status.
+- **Interactive CLI for logwatch sync:** Current sync is MCP-only; add full interactive CLI with prompts, date correction, and progress display
+- **Test coverage for new features:** Add unit tests for NL parser, duplicate detector, queue operations; integration tests for sync workflow
+- **Enhanced disambiguation UX:** Add poster images and taglines (requires additional API calls)
+- **Bulk operation summary tables:** Pre-sync summary showing all entries with ambiguous/unresolved highlighting
 
 
 ## Dependency Pins
@@ -53,4 +54,4 @@ To prevent future dependency pin accumulation:
 
 ---
 
-**Last Updated**: 2025-12-14
+**Last Updated**: 2025-12-16

@@ -1,5 +1,8 @@
 import { TraktClient } from './trakt-client.js';
 import { CacheMetrics } from './cache.js';
+import { DuplicateDetector } from './duplicate-detector.js';
+import { WatchLogQueue, WatchQueueEntry } from './watch-queue.js';
+import { parseWatchNote } from '../../shared/nl-parser.js';
 import {
   parseEpisodeRange,
   validateEpisodeNumber,
@@ -111,11 +114,14 @@ export async function logWatch(
     watchedAt?: string;
     year?: number;
     traktId?: number;
+    preview?: boolean;
+    allowDuplicates?: boolean;
   }
 ): Promise<ToolSuccess<TraktHistoryAddResponse> | ToolError | DisambiguationResponse> {
   try {
-    const { type, showName, movieName, season, episode, watchedAt, year, traktId } = args;
+    const { type, showName, movieName, season, episode, watchedAt, year, traktId, preview, allowDuplicates } = args;
     const toolName = 'log_watch';
+    const duplicateDetector = new DuplicateDetector(client);
 
     // Validate ISO 8601 format for watchedAt
     validateISO8601Date(watchedAt, 'watchedAt');
@@ -161,6 +167,23 @@ export async function logWatch(
       const show = disambiguationResult.selected.show;
       if (!show) {
         return createToolError('NOT_FOUND', `Show data not found in search results`);
+      }
+
+      // Preview mode: return formatted preview without syncing
+      if (preview) {
+        return createToolSuccess({
+          action_required: 'confirm',
+          preview: {
+            type: 'episode',
+            title: show.title,
+            year: show.year,
+            season,
+            episode,
+            watchedAt: watched_at,
+            traktId: show.ids.trakt,
+          },
+          message: `Preview: Would log ${show.title}${show.year ? ` (${show.year})` : ''} S${season}E${episode} as watched on ${watched_at}`,
+        });
       }
 
       // Add to history
@@ -216,6 +239,45 @@ export async function logWatch(
         return createToolError('NOT_FOUND', `Movie data not found in search results`);
       }
 
+      // Check for duplicates unless explicitly allowed
+      if (!allowDuplicates) {
+        const duplicateCheck = await duplicateDetector.checkRecent({
+          type: 'movie',
+          traktId: movie.ids.trakt,
+        });
+
+        if (duplicateCheck.isDuplicate) {
+          const watchedDate = duplicateCheck.watchedAt 
+            ? new Date(duplicateCheck.watchedAt).toLocaleDateString()
+            : 'recently';
+          return createToolError(
+            'DUPLICATE_ENTRY',
+            `Already logged ${movie.title}${movie.year ? ` (${movie.year})` : ''} on ${watchedDate}`,
+            { existingEntry: duplicateCheck.existingEntry },
+            [
+              'This appears to be a duplicate entry',
+              'Use allowDuplicates: true to log it again (for rewatches)',
+              'Check your history with get_history tool to verify',
+            ]
+          );
+        }
+      }
+
+      // Preview mode: return formatted preview without syncing
+      if (preview) {
+        return createToolSuccess({
+          action_required: 'confirm',
+          preview: {
+            type: 'movie',
+            title: movie.title,
+            year: movie.year,
+            watchedAt: watched_at,
+            traktId: movie.ids.trakt,
+          },
+          message: `Preview: Would log ${movie.title}${movie.year ? ` (${movie.year})` : ''} as watched on ${watched_at}`,
+        });
+      }
+
       // Add to history
       const historyData = {
         movies: [
@@ -231,6 +293,99 @@ export async function logWatch(
     }
   } catch (error) {
     const message = sanitizeError(error, 'logWatch');
+    return createToolError('TRAKT_API_ERROR', message);
+  }
+}
+
+/**
+ * Undo recent watch history entries.
+ *
+ * Removes the last N entries from watch history with preview and confirmation support.
+ * 
+ * @param limit - Number of entries to remove (default: 1, max: 10)
+ * @param confirm - Must be true to actually remove. If false/undefined, returns preview only
+ */
+export async function undoLastLog(
+  client: TraktClient,
+  args: {
+    limit?: number;
+    confirm?: boolean;
+  }
+): Promise<ToolSuccess | ToolError> {
+  try {
+    const { limit = 1, confirm = false } = args;
+    const toolName = 'undo_last_log';
+
+    // Validate limit
+    if (limit < 1 || limit > 10) {
+      return createToolError('VALIDATION_ERROR', 'limit must be between 1 and 10');
+    }
+
+    // Fetch recent history
+    const history = await client.getHistory(undefined, undefined, undefined, 1, { toolName });
+    
+    if (!Array.isArray(history) || history.length === 0) {
+      return createToolError('NOT_FOUND', 'No recent watch history found');
+    }
+
+    // Get the entries to remove (limited to requested amount)
+    const entriesToRemove = history.slice(0, limit);
+
+    // Format preview of entries
+    const previewEntries = entriesToRemove.map((entry) => {
+      const watchedAt = new Date(entry.watched_at).toLocaleDateString();
+      if (entry.type === 'episode' && entry.show && entry.episode) {
+        return `- ${entry.show.title} S${entry.episode.season}E${entry.episode.number} (watched ${watchedAt})`;
+      } else if (entry.type === 'movie' && entry.movie) {
+        return `- ${entry.movie.title}${entry.movie.year ? ` (${entry.movie.year})` : ''} (watched ${watchedAt})`;
+      }
+      return `- Unknown entry (watched ${watchedAt})`;
+    }).join('\n');
+
+    // Preview mode - return what would be removed
+    if (!confirm) {
+      return createToolSuccess({
+        action_required: 'confirm',
+        preview: {
+          count: entriesToRemove.length,
+          entries: entriesToRemove,
+        },
+        message: `Preview: Would remove ${entriesToRemove.length} entr${entriesToRemove.length === 1 ? 'y' : 'ies'}:\n\n${previewEntries}\n\nTo proceed, call with confirm: true`,
+      });
+    }
+
+    // Build removal request
+    const removeData: {
+      movies?: Array<{ ids: { trakt: number }; watched_at: string }>;
+      episodes?: Array<{ ids: { trakt: number }; watched_at: string }>;
+    } = {};
+
+    for (const entry of entriesToRemove) {
+      if (entry.type === 'episode' && entry.episode) {
+        if (!removeData.episodes) removeData.episodes = [];
+        removeData.episodes.push({
+          ids: { trakt: entry.episode.ids.trakt },
+          watched_at: entry.watched_at,
+        });
+      } else if (entry.type === 'movie' && entry.movie) {
+        if (!removeData.movies) removeData.movies = [];
+        removeData.movies.push({
+          ids: { trakt: entry.movie.ids.trakt },
+          watched_at: entry.watched_at,
+        });
+      }
+    }
+
+    // Remove from history
+    const response = await client.removeFromHistory(removeData, { toolName });
+
+    return createToolSuccess({
+      removed: entriesToRemove.length,
+      details: previewEntries,
+      response,
+    }, `Successfully removed ${entriesToRemove.length} entr${entriesToRemove.length === 1 ? 'y' : 'ies'} from history`);
+  } catch (error) {
+    const message = sanitizeError(error, 'undoLastLog');
     return createToolError('TRAKT_API_ERROR', message);
   }
 }
@@ -256,10 +411,11 @@ export async function bulkLog(
     watchedAt?: string;
     year?: number;
     traktId?: number;
+    preview?: boolean;
   }
 ): Promise<ToolSuccess<TraktHistoryAddResponse> | ToolError | DisambiguationResponse> {
   try {
-    const { type, showName, movieNames, season, episodes, watchedAt, year, traktId } = args;
+    const { type, showName, movieNames, season, episodes, watchedAt, year, traktId, preview } = args;
     const toolName = 'bulk_log';
 
     // Validate ISO 8601 format for watchedAt
@@ -313,6 +469,24 @@ export async function bulkLog(
       const show = disambiguationResult.selected.show;
       if (!show) {
         return createToolError('NOT_FOUND', `Show data not found in search results`);
+      }
+
+      // Preview mode: return formatted preview without syncing
+      if (preview) {
+        return createToolSuccess({
+          action_required: 'confirm',
+          preview: {
+            type: 'episodes',
+            title: show.title,
+            year: show.year,
+            season,
+            episodes: episodeNumbers,
+            watchedAt: watched_at,
+            traktId: show.ids.trakt,
+            count: episodeNumbers.length,
+          },
+          message: `Preview: Would log ${episodeNumbers.length} episode(s) of ${show.title}${show.year ? ` (${show.year})` : ''} S${season} as watched on ${watched_at}`,
+        });
       }
 
       // Build history data
@@ -403,6 +577,21 @@ export async function bulkLog(
         movieData.push({
           watched_at,
           ids: { trakt: movie.ids.trakt },
+        });
+      }
+
+      // Preview mode: return formatted preview without syncing
+      if (preview) {
+        const movieTitles = movieNames.join(', ');
+        return createToolSuccess({
+          action_required: 'confirm',
+          preview: {
+            type: 'movies',
+            movies: movieNames,
+            watchedAt: watched_at,
+            count: movieNames.length,
+          },
+          message: `Preview: Would log ${movieNames.length} movie(s) (${movieTitles}) as watched on ${watched_at}`,
         });
       }
 
@@ -846,5 +1035,176 @@ export async function debugLastRequest(
   } catch (error) {
     const message = sanitizeError(error, 'debugLastRequest');
     return createToolError('DEBUG_ERROR', message);
+  }
+}
+
+/**
+ * Sync offline watch queue to Trakt
+ * 
+ * Processes pending entries from the local queue, searches for matches,
+ * and logs them to Trakt. Supports dry-run for preview.
+ * 
+ * Note: Interactive confirmation is handled by Claude, not in this tool.
+ * The tool returns parsed entries that Claude presents to the user.
+ */
+export async function syncLogwatchQueue(
+  client: TraktClient,
+  args: {
+    queuePath?: string;
+    dryRun?: boolean;
+    autoConfirm?: boolean;
+  }
+): Promise<ToolSuccess | ToolError> {
+  try {
+    const { queuePath, dryRun = false, autoConfirm = false } = args;
+    const toolName = 'sync_logwatch_queue';
+    
+    const queue = queuePath ? new WatchLogQueue(queuePath) : new WatchLogQueue();
+    const pending = await queue.getPending();
+
+    if (pending.length === 0) {
+      return createToolSuccess({
+        synced: 0,
+        failed: 0,
+        skipped: 0,
+        message: 'No pending entries to sync',
+      });
+    }
+
+    // Parse all entries
+    const parsedEntries = pending.map(entry => ({
+      id: entry.id,
+      rawText: entry.rawText,
+      capturedAt: entry.capturedAt,
+      parsed: parseWatchNote(entry.rawText, entry.capturedAt),
+    }));
+
+    // In dry-run mode, return parsed entries for review
+    if (dryRun) {
+      return createToolSuccess({
+        action_required: 'review',
+        totalEntries: pending.length,
+        entries: parsedEntries,
+        message: `Dry run: ${pending.length} entries ready to sync. Review and call again without dryRun to proceed.`,
+      });
+    }
+
+    // For non-auto mode, return first entry for confirmation
+    // Claude will guide user through each entry interactively
+    if (!autoConfirm) {
+      const firstEntry = parsedEntries[0];
+      return createToolSuccess({
+        action_required: 'confirm_entry',
+        currentEntry: firstEntry,
+        remaining: parsedEntries.length - 1,
+        totalEntries: parsedEntries.length,
+        message: `Ready to process ${parsedEntries.length} entries. First entry requires confirmation. Use the parsed data to search and log, then mark as synced/failed/skipped.`,
+      });
+    }
+
+    // Auto-confirm mode: process all entries
+    let synced = 0;
+    let failed = 0;
+    let skipped = 0;
+    const results = [];
+
+    for (const entry of parsedEntries) {
+      try {
+        const parsed = entry.parsed;
+        
+        // Skip entries with low confidence or no title
+        if (parsed.confidence === 'low' || !parsed.title) {
+          await queue.markSkipped(entry.id);
+          skipped++;
+          results.push({ id: entry.id, status: 'skipped', reason: 'Low confidence or missing title' });
+          continue;
+        }
+
+        // Search for content
+        const searchType = parsed.type === 'episode' ? 'show' : parsed.type === 'movie' ? 'movie' : undefined;
+        if (!searchType) {
+          await queue.markFailed(entry.id, 'Unknown content type');
+          failed++;
+          results.push({ id: entry.id, status: 'failed', reason: 'Unknown content type' });
+          continue;
+        }
+
+        const searchResults = await client.search(parsed.title, searchType, parsed.year, { toolName });
+        
+        if (!Array.isArray(searchResults) || searchResults.length === 0) {
+          await queue.markFailed(entry.id, 'No search results');
+          failed++;
+          results.push({ id: entry.id, status: 'failed', reason: 'No search results' });
+          continue;
+        }
+
+        // Auto-select first result (simplified - full version would need disambiguation)
+        const firstResult = searchResults[0];
+        const content = searchType === 'show' ? firstResult.show : firstResult.movie;
+        
+        if (!content) {
+          await queue.markFailed(entry.id, 'Missing content data');
+          failed++;
+          results.push({ id: entry.id, status: 'failed', reason: 'Missing content data' });
+          continue;
+        }
+
+        // Log to Trakt
+        if (parsed.type === 'episode' && parsed.season && parsed.episode) {
+          const historyData = {
+            shows: [{
+              watched_at: parsed.watchedAt || new Date().toISOString(),
+              ids: { trakt: content.ids.trakt },
+              seasons: [{
+                number: parsed.season,
+                episodes: [{ number: parsed.episode }],
+              }],
+            }],
+          };
+          await client.addToHistory(historyData, { toolName });
+        } else if (parsed.type === 'movie') {
+          const historyData = {
+            movies: [{
+              watched_at: parsed.watchedAt || new Date().toISOString(),
+              ids: { trakt: content.ids.trakt },
+            }],
+          };
+          await client.addToHistory(historyData, { toolName });
+        }
+
+        // Mark as synced
+        await queue.markSynced(entry.id, {
+          type: parsed.type,
+          traktId: content.ids.trakt,
+          title: content.title,
+          year: content.year,
+          season: parsed.season,
+          episode: parsed.episode,
+        });
+        
+        synced++;
+        results.push({ id: entry.id, status: 'synced', title: content.title });
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        await queue.markFailed(entry.id, errorMsg);
+        failed++;
+        results.push({ id: entry.id, status: 'failed', reason: errorMsg });
+      }
+    }
+
+    // Archive queue
+    const archivePath = await queue.archive();
+
+    return createToolSuccess({
+      synced,
+      failed,
+      skipped,
+      totalProcessed: parsedEntries.length,
+      archivePath,
+      results,
+    }, `Synced ${synced}/${parsedEntries.length} entries. Failed: ${failed}, Skipped: ${skipped}. Archived to ${archivePath}`);
+  } catch (error) {
+    const message = sanitizeError(error, 'syncLogwatchQueue');
+    return createToolError('SYNC_ERROR', message);
   }
 }

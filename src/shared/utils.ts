@@ -302,8 +302,8 @@ export function handleSearchDisambiguation(
     return { needsDisambiguation: false, selected: exactTitleMatches[0] };
   }
 
-  // Multiple results - need disambiguation
-  const options: DisambiguationOption[] = searchResults.slice(0, 10).map((result) => {
+  // Multiple results - need disambiguation (limit to top 3)
+  const options: DisambiguationOption[] = searchResults.slice(0, 3).map((result) => {
     const item = contentType === 'show' ? result.show : result.movie;
     if (!item) {
       throw new Error('Search result missing item data');
@@ -313,8 +313,25 @@ export function handleSearchDisambiguation(
       year: item.year,
       traktId: item.ids.trakt,
       type: contentType,
+      genres: item.genres,
+      overview: item.overview,
+      score: result.score,
     };
   });
+
+  // Format genres for display
+  const formatGenres = (genres?: string[]): string => {
+    if (!genres || genres.length === 0) return '';
+    return genres.slice(0, 3).join(', ');
+  };
+
+  // Build detailed message with match information
+  const matchDetails = options
+    .map((opt, idx) => {
+      const genresStr = formatGenres(opt.genres);
+      return `${idx + 1}. ${opt.title}${opt.year ? ` (${opt.year})` : ''}${genresStr ? ` - ${genresStr}` : ''}`;
+    })
+    .join('\n');
 
   return {
     needsDisambiguation: true,
@@ -322,7 +339,7 @@ export function handleSearchDisambiguation(
       success: false,
       needs_disambiguation: true,
       options,
-      message: `Multiple matches found for "${searchTerm}". Please retry with the year parameter (e.g., year: ${options[0]?.year}) or traktId parameter (e.g., traktId: ${options[0]?.traktId}).`,
+      message: `Multiple matches found for "${searchTerm}". Top matches:\n\n${matchDetails}\n\nPlease retry with:\n- year parameter (e.g., year: ${options[0]?.year})\n- traktId parameter (e.g., traktId: ${options[0]?.traktId})`,
     },
   };
 }

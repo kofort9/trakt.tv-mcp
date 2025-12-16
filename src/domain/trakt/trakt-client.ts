@@ -230,14 +230,17 @@ export class TraktClient {
 
   /**
    * Search for shows and movies (with caching)
+   * 
+   * @param extended - Request extended data (genres, overview) for better disambiguation
    */
   async search(
     query: string,
     type?: 'show' | 'movie',
     year?: number,
-    options?: { toolName?: string }
+    options?: { toolName?: string; extended?: boolean }
   ) {
-    const cacheKey = generateSearchCacheKey(query, type, year);
+    const extended = options?.extended ?? true; // Default to true for better disambiguation
+    const cacheKey = generateSearchCacheKey(query, type, year) + (extended ? ':ext' : '');
 
     // Check cache first
     const cached = this.searchCache.get(cacheKey);
@@ -253,6 +256,7 @@ export class TraktClient {
 
     const params: Record<string, string | number> = { query };
     if (year) params.years = year;
+    if (extended) params.extended = 'full';
 
     const result = await this.get(`/search/${type || 'show,movie'}`, { params }, options?.toolName);
 
