@@ -30,6 +30,9 @@ import {
   LogPreviewResponse,
 } from '../../types/trakt.js';
 
+// Constants for tool operations
+export const MAX_UNDO_LIMIT = 10;
+
 /**
  * Search for a specific episode by show name, season, and episode number
  */
@@ -335,8 +338,8 @@ export async function undoLastLog(
     const toolName = 'undo_last_log';
 
     // Validate limit
-    if (limit < 1 || limit > 10) {
-      return createToolError('VALIDATION_ERROR', 'limit must be between 1 and 10');
+    if (limit < 1 || limit > MAX_UNDO_LIMIT) {
+      return createToolError('VALIDATION_ERROR', `limit must be between 1 and ${MAX_UNDO_LIMIT}`);
     }
 
     // Fetch recent history

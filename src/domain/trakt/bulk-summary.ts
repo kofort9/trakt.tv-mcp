@@ -4,6 +4,11 @@ import { DisambiguationOption } from '../../types/trakt.js';
 
 export type SearchStatus = 'resolved' | 'ambiguous' | 'not_found' | 'error';
 
+// Recommended batch sizes for bulk operations
+export const RECOMMENDED_BATCH_SIZE = 50;
+export const MAX_BATCH_SIZE = 100;
+export const DEFAULT_CONCURRENCY_LIMIT = 5;
+
 export interface BulkSummaryEntry {
   index: number;
   rawText: string;
@@ -30,12 +35,23 @@ export interface BulkSummary {
  * - ambiguous: Multiple matches found (requires user selection)
  * - not_found: No matches found
  * - error: Search failed
+ * 
+ * Recommended batch sizes:
+ * - Small batches (<= 50 entries): Optimal balance of speed and API limits
+ * - Medium batches (50-100 entries): Acceptable with rate limit awareness
+ * - Large batches (> 100 entries): Consider splitting or expect longer processing
  */
 export class BulkSummaryBuilder {
-  constructor(private client: TraktClient) {}
+  private concurrencyLimit: number;
+
+  constructor(private client: TraktClient, concurrencyLimit: number = DEFAULT_CONCURRENCY_LIMIT) {
+    this.concurrencyLimit = concurrencyLimit;
+  }
 
   /**
    * Build summary by searching for all entries
+   * 
+   * Uses controlled concurrency to respect API rate limits and avoid overwhelming the server.
    */
   async buildSummary(
     entries: Array<{ rawText: string; parsed: ParsedWatchEntry }>
@@ -49,9 +65,9 @@ export class BulkSummaryBuilder {
       entries: [],
     };
 
-    // Process all entries in parallel
-    const results = await Promise.allSettled(
-      entries.map((entry, index) => this.classifyEntry(entry, index))
+    // Process entries with controlled concurrency
+    const results = await this.processConcurrent(
+      entries.map((entry, index) => ({ entry, index }))
     );
 
     // Collect results
@@ -96,6 +112,28 @@ export class BulkSummaryBuilder {
     }
 
     return summary;
+  }
+
+  /**
+   * Process entries with controlled concurrency to respect rate limits
+   * 
+   * Chunks items into batches and processes each batch in parallel,
+   * but processes batches sequentially to avoid overwhelming the API.
+   */
+  private async processConcurrent(
+    items: Array<{ entry: { rawText: string; parsed: ParsedWatchEntry }; index: number }>
+  ): Promise<PromiseSettledResult<BulkSummaryEntry>[]> {
+    const allResults: PromiseSettledResult<BulkSummaryEntry>[] = [];
+
+    // Process in chunks of concurrencyLimit
+    for (let i = 0; i < items.length; i += this.concurrencyLimit) {
+      const chunk = items.slice(i, i + this.concurrencyLimit);
+      const chunkPromises = chunk.map((item) => this.classifyEntry(item.entry, item.index));
+      const chunkResults = await Promise.allSettled(chunkPromises);
+      allResults.push(...chunkResults);
+    }
+
+    return allResults;
   }
 
   /**
@@ -173,7 +211,8 @@ export class BulkSummaryBuilder {
       return summaryEntry;
     } catch (error) {
       summaryEntry.searchStatus = 'error';
-      summaryEntry.error = error instanceof Error ? error.message : 'Search failed';
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      summaryEntry.error = `Search failed for "${entry.parsed.title}": ${errorMsg}`;
       return summaryEntry;
     }
   }

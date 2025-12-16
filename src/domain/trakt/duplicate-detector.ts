@@ -1,11 +1,15 @@
 import { TraktClient } from './trakt-client.js';
 import { TraktWatchedItem } from '../../types/trakt.js';
+import { logError } from '../../core/logging.js';
 
 export interface DuplicateCheckResult {
   isDuplicate: boolean;
   existingEntry?: TraktWatchedItem;
   watchedAt?: string;
 }
+
+// Default window for duplicate detection (in hours)
+export const DEFAULT_DUPLICATE_WINDOW_HOURS = 48;
 
 /**
  * Duplicate detection for watch history to prevent accidental re-logs
@@ -30,7 +34,7 @@ export class DuplicateDetector {
       season?: number;
       episode?: number;
     },
-    windowHours: number = 48
+    windowHours: number = DEFAULT_DUPLICATE_WINDOW_HOURS
   ): Promise<DuplicateCheckResult> {
     try {
       // Calculate start date for the check window
@@ -50,7 +54,9 @@ export class DuplicateDetector {
 
       // Check for matching entry
       for (const entry of history) {
-        // Verify entry is within the time window
+        // Defensive check: Verify entry is within the time window
+        // While the API should respect startDateISO, this provides additional safety
+        // against pagination issues or API inconsistencies
         const entryDate = new Date(entry.watched_at);
         const windowStart = new Date();
         windowStart.setHours(windowStart.getHours() - windowHours);
@@ -93,7 +99,7 @@ export class DuplicateDetector {
       return { isDuplicate: false };
     } catch (error) {
       // Log error but don't fail the operation - duplicate detection is advisory
-      console.error('Duplicate detection failed:', error);
+      logError('Duplicate detection failed', error);
       return { isDuplicate: false };
     }
   }

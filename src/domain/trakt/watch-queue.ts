@@ -38,6 +38,38 @@ export interface AppendResult {
 }
 
 /**
+ * Validate if an object is a valid WatchQueueEntry
+ */
+function isValidWatchQueueEntry(obj: unknown): obj is WatchQueueEntry {
+  if (!obj || typeof obj !== 'object') return false;
+  
+  const entry = obj as Record<string, unknown>;
+  
+  // Required fields
+  if (typeof entry.id !== 'string' || !entry.id) return false;
+  if (typeof entry.rawText !== 'string') return false;
+  if (typeof entry.capturedAt !== 'string' || !entry.capturedAt) return false;
+  if (!['pending', 'synced', 'failed', 'skipped'].includes(entry.status as string)) return false;
+  if (!['cli', 'api', 'slack', 'system'].includes(entry.source as string)) return false;
+  
+  // Optional fields type checks
+  if (entry.syncedAt !== undefined && typeof entry.syncedAt !== 'string') return false;
+  if (entry.failureReason !== undefined && typeof entry.failureReason !== 'string') return false;
+  
+  if (entry.resolvedContent !== undefined) {
+    const resolved = entry.resolvedContent as Record<string, unknown>;
+    if (!['episode', 'movie'].includes(resolved.type as string)) return false;
+    if (typeof resolved.traktId !== 'number') return false;
+    if (typeof resolved.title !== 'string') return false;
+    if (resolved.year !== undefined && typeof resolved.year !== 'number') return false;
+    if (resolved.season !== undefined && typeof resolved.season !== 'number') return false;
+    if (resolved.episode !== undefined && typeof resolved.episode !== 'number') return false;
+  }
+  
+  return true;
+}
+
+/**
  * Lightweight local queue for capturing natural-language watch logs when AI/Trakt is unavailable.
  *
  * The queue is append-only JSONL for durability, stored at ~/.trakt-mcp/pending-logs.jsonl with
@@ -111,9 +143,13 @@ export class WatchLogQueue {
     const entries: WatchQueueEntry[] = [];
     for (const line of slice) {
       try {
-        entries.push(JSON.parse(line) as WatchQueueEntry);
+        const parsed = JSON.parse(line);
+        if (isValidWatchQueueEntry(parsed)) {
+          entries.push(parsed);
+        }
+        // Skip invalid entries silently to avoid breaking listing when the file is partially corrupted
       } catch {
-        // Skip malformed lines to avoid breaking listing when the file is partially corrupted.
+        // Skip malformed JSON lines to avoid breaking listing when the file is partially corrupted.
         continue;
       }
     }
