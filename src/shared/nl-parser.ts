@@ -90,12 +90,12 @@ export function parseWatchNote(
   const typeMatch = text.match(typeHints);
   if (typeMatch) {
     const hint = typeMatch[0].toLowerCase();
-    if (hint === 'movie' || hint === 'film') {
-      result.type = 'movie';
-      result.confidence = 'high';
-    } else if (hint === 'episode' || hint === 'ep' || hint === 'show' || hint === 'series') {
-      // Only set type to episode if not already set by episode extraction
-      if (!result.season && !result.episode) {
+    // Only use type hints if episode patterns haven't already determined the type
+    if (!result.season && !result.episode) {
+      if (hint === 'movie' || hint === 'film') {
+        result.type = 'movie';
+        result.confidence = 'high';
+      } else if (hint === 'episode' || hint === 'ep' || hint === 'show' || hint === 'series') {
         result.type = 'episode';
       }
     }
