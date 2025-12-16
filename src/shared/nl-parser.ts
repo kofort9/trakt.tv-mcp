@@ -71,24 +71,11 @@ export function parseWatchNote(
     }
   }
 
-  // 4. Extract action verbs and type hints
+  // 4. Extract action verbs
   const actionVerbs = /\b(watched|finished|completed|saw|viewed)\b/i;
-  const typeHints = /\b(movie|film|show|series|episode|ep)\b/i;
-  
   text = text.replace(actionVerbs, '').trim();
-  const typeMatch = text.match(typeHints);
-  if (typeMatch) {
-    const hint = typeMatch[0].toLowerCase();
-    if (hint === 'movie' || hint === 'film') {
-      result.type = 'movie';
-      result.confidence = 'high';
-    } else if (hint === 'episode' || hint === 'ep' || hint === 'show' || hint === 'series') {
-      result.type = 'episode';
-    }
-    text = text.replace(typeHints, '').trim();
-  }
 
-  // 5. Extract season/episode patterns
+  // 5. Extract season/episode patterns BEFORE removing type hints
   const episodeResult = extractEpisodeInfo(text);
   if (episodeResult.found) {
     result.season = episodeResult.season;
@@ -98,14 +85,31 @@ export function parseWatchNote(
     text = episodeResult.remainingText;
   }
 
-  // 6. Extract year in parentheses or standalone
+  // 6. Extract type hints (after episode extraction)
+  const typeHints = /\b(movie|film|show|series|episode|ep)\b/i;
+  const typeMatch = text.match(typeHints);
+  if (typeMatch) {
+    const hint = typeMatch[0].toLowerCase();
+    if (hint === 'movie' || hint === 'film') {
+      result.type = 'movie';
+      result.confidence = 'high';
+    } else if (hint === 'episode' || hint === 'ep' || hint === 'show' || hint === 'series') {
+      // Only set type to episode if not already set by episode extraction
+      if (!result.season && !result.episode) {
+        result.type = 'episode';
+      }
+    }
+    text = text.replace(typeHints, '').trim();
+  }
+
+  // 7. Extract year in parentheses or standalone
   const yearResult = extractYear(text);
   if (yearResult.found) {
     result.year = yearResult.year;
     text = yearResult.remainingText;
   }
 
-  // 7. Remaining text is the title
+  // 8. Remaining text is the title
   result.title = text.trim();
 
   // Adjust confidence based on extracted information

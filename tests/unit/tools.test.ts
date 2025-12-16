@@ -582,8 +582,8 @@ describe('tools', () => {
         const result = await tools.undoLastLog(mockClient, { confirm: false });
 
         expect(result.success).toBe(true);
-        expect(String(result.message)).toContain('The Bear');
-        expect(String(result.message)).toContain('S2E5');
+        expect(result.data.message).toContain('The Bear');
+        expect(result.data.message).toContain('S2E5');
       });
     });
 
