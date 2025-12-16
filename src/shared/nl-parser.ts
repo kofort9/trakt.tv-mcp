@@ -42,13 +42,13 @@ export function parseWatchNote(
   };
 
   // 1. Check for temporal modifiers (immediate action indicators)
-  const temporalModifiers = /\b(just|just\s+now|just\s+finished)\b/i;
+  const temporalModifiers = /\b(just\s+finished|just\s+now|just)\b/i;
   const temporalMatch = text.match(temporalModifiers);
   if (temporalMatch) {
     result.dateSource = 'parsed';
     result.dateExpression = temporalMatch[0].toLowerCase();
     result.watchedAt = capturedAt; // Use capture time for "just" actions
-    text = text.replace(temporalModifiers, '').trim();
+    text = text.replace(temporalMatch[0], '').trim();
   }
 
   // 2. Check for recall patterns (indefinite past)
@@ -192,17 +192,17 @@ function extractEpisodeInfo(
   // Patterns for season/episode (ordered by specificity)
   const patterns = [
     // S2E5, S02E05, s2e5
-    /\bS(\d+)E(\d+)\b/i,
+    { regex: /\bS(\d+)E(\d+)\b/i },
     // 2x5, 2x05
-    /\b(\d+)x(\d+)\b/i,
+    { regex: /\b(\d+)x(\d+)\b/i },
     // season 2 episode 5
-    /\bseason\s+(\d+)\s+episode\s+(\d+)\b/i,
+    { regex: /\bseason\s+(\d+)\s+episode\s+(\d+)\b/i },
     // S2 E5, S02 E05
-    /\bS\s*(\d+)\s+E\s*(\d+)\b/i,
+    { regex: /\bS\s*(\d+)\s+E\s*(\d+)\b/i },
   ];
 
   for (const pattern of patterns) {
-    const match = text.match(pattern);
+    const match = text.match(pattern.regex);
     if (match) {
       return {
         found: true,

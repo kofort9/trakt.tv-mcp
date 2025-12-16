@@ -40,11 +40,13 @@ export class DuplicateDetector {
 
       // Fetch recent history for the content type
       const historyType = content.type === 'episode' ? 'shows' : 'movies';
-      const history = await this.client.getHistory({
-        type: historyType,
-        start_date: startDateISO,
-        limit: 100, // Reasonable limit for recent history
-      });
+      const history = await this.client.getHistory(
+        historyType,
+        startDateISO,
+        undefined,
+        1,
+        { toolName: 'duplicate_detector' }
+      );
 
       if (!Array.isArray(history) || history.length === 0) {
         return { isDuplicate: false };
@@ -52,6 +54,16 @@ export class DuplicateDetector {
 
       // Check for matching entry
       for (const entry of history) {
+        // Verify entry is within the time window
+        const entryDate = new Date(entry.watched_at);
+        const windowStart = new Date();
+        windowStart.setHours(windowStart.getHours() - windowHours);
+        
+        if (entryDate < windowStart) {
+          // Entry is outside the window
+          continue;
+        }
+
         if (content.type === 'episode') {
           // Check episode match
           const show = entry.show;

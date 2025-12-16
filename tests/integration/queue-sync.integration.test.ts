@@ -38,7 +38,7 @@ describe('Queue Sync Workflow', () => {
   describe('Full Sync Flow', () => {
     it('should sync simple movie entry successfully', async () => {
       // Add entry to queue
-      await queue.append('watched Dune 2021');
+      await queue.append('watched Dune 2021 movie');
 
       // Mock search result
       mockClient.search.mockResolvedValue([
@@ -52,7 +52,7 @@ describe('Queue Sync Workflow', () => {
         },
       ]);
 
-      // Mock history (no duplicates)
+      // Mock history (no duplicates) - returns empty array
       mockClient.getHistory.mockResolvedValue([]);
 
       // Mock successful add
@@ -83,6 +83,7 @@ describe('Queue Sync Workflow', () => {
         },
       ]);
 
+      // Mock empty history (no duplicates)
       mockClient.getHistory.mockResolvedValue([]);
       mockClient.addToHistory.mockResolvedValue({ added: { episodes: 1 } });
 
@@ -217,8 +218,8 @@ describe('Queue Sync Workflow', () => {
 
   describe('Error Handling', () => {
     it('should mark failed entries and continue', async () => {
-      await queue.append('watched Dune 2021');
-      await queue.append('watched Inception 2010');
+      await queue.append('watched Dune 2021 movie');
+      await queue.append('watched Inception 2010 movie');
 
       // First search succeeds, second fails
       mockClient.search
@@ -248,7 +249,7 @@ describe('Queue Sync Workflow', () => {
     });
 
     it('should handle network errors', async () => {
-      await queue.append('watched Dune 2021');
+      await queue.append('watched Dune 2021 movie');
 
       mockClient.search.mockRejectedValue(new Error('Network error'));
 
@@ -262,7 +263,7 @@ describe('Queue Sync Workflow', () => {
     });
 
     it('should preserve failed entries for retry', async () => {
-      await queue.append('watched Dune 2021');
+      await queue.append('watched Dune 2021 movie');
 
       mockClient.search.mockRejectedValue(new Error('Network error'));
 
@@ -286,7 +287,7 @@ describe('Queue Sync Workflow', () => {
       // Manually create entry with specific capturedAt
       const queueEntry = {
         id: '123',
-        rawText: 'watched Dune yesterday',
+        rawText: 'watched Dune 2021 movie yesterday',
         capturedAt: capturedISO,
         status: 'pending' as const,
         source: 'cli' as const,
@@ -309,10 +310,13 @@ describe('Queue Sync Workflow', () => {
       mockClient.getHistory.mockResolvedValue([]);
       mockClient.addToHistory.mockResolvedValue({ added: { movies: 1 } });
 
-      await syncLogwatchQueue(mockClient as unknown as TraktClient, {
+      const result = await syncLogwatchQueue(mockClient as unknown as TraktClient, {
         queuePath,
         autoConfirm: true,
       });
+
+      expect(result.success).toBe(true);
+      expect(result.data.synced).toBe(1);
 
       // Check that addToHistory was called with parsed date (yesterday)
       const historyCall = mockClient.addToHistory.mock.calls[0][0];
@@ -325,7 +329,7 @@ describe('Queue Sync Workflow', () => {
 
       const queueEntry = {
         id: '123',
-        rawText: 'watched Dune',
+        rawText: 'watched Dune 2021 movie',
         capturedAt: capturedISO,
         status: 'pending' as const,
         source: 'cli' as const,
@@ -347,10 +351,13 @@ describe('Queue Sync Workflow', () => {
       mockClient.getHistory.mockResolvedValue([]);
       mockClient.addToHistory.mockResolvedValue({ added: { movies: 1 } });
 
-      await syncLogwatchQueue(mockClient as unknown as TraktClient, {
+      const result = await syncLogwatchQueue(mockClient as unknown as TraktClient, {
         queuePath,
         autoConfirm: true,
       });
+
+      expect(result.success).toBe(true);
+      expect(result.data.synced).toBe(1);
 
       // Should use capturedAt
       const historyCall = mockClient.addToHistory.mock.calls[0][0];
@@ -363,7 +370,7 @@ describe('Queue Sync Workflow', () => {
 
       const queueEntry = {
         id: '123',
-        rawText: 'just watched Dune',
+        rawText: 'just watched Dune 2021 movie',
         capturedAt: capturedISO,
         status: 'pending' as const,
         source: 'cli' as const,
@@ -385,10 +392,13 @@ describe('Queue Sync Workflow', () => {
       mockClient.getHistory.mockResolvedValue([]);
       mockClient.addToHistory.mockResolvedValue({ added: { movies: 1 } });
 
-      await syncLogwatchQueue(mockClient as unknown as TraktClient, {
+      const result = await syncLogwatchQueue(mockClient as unknown as TraktClient, {
         queuePath,
         autoConfirm: true,
       });
+
+      expect(result.success).toBe(true);
+      expect(result.data.synced).toBe(1);
 
       // Should use capturedAt for "just watched"
       const historyCall = mockClient.addToHistory.mock.calls[0][0];

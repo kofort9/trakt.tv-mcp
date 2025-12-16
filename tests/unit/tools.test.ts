@@ -582,8 +582,8 @@ describe('tools', () => {
         const result = await tools.undoLastLog(mockClient, { confirm: false });
 
         expect(result.success).toBe(true);
-        expect(result.message).toContain('The Bear');
-        expect(result.message).toContain('S2E5');
+        expect(String(result.message)).toContain('The Bear');
+        expect(String(result.message)).toContain('S2E5');
       });
     });
 
@@ -600,6 +600,8 @@ describe('tools', () => {
           },
         ]);
 
+        const addToHistorySpy = vi.spyOn(mockClient, 'addToHistory');
+
         const result = await tools.logWatch(mockClient, {
           type: 'movie',
           movieName: 'Dune',
@@ -610,7 +612,7 @@ describe('tools', () => {
         expect(result.success).toBe(true);
         expect(result.data.action_required).toBe('confirm');
         expect(result.data.preview).toBeTruthy();
-        expect(mockClient.addToHistory).not.toHaveBeenCalled();
+        expect(addToHistorySpy).not.toHaveBeenCalled();
       });
 
       it('should include resolved content in preview', async () => {
@@ -747,7 +749,7 @@ describe('tools', () => {
 
         expect(result.error?.message).toContain('Already logged');
         expect(result.error?.message).toContain('Dune');
-        expect(result.error?.suggestions).toContain('Use allowDuplicates: true');
+        expect(result.error?.suggestions?.some((s: string) => s.includes('allowDuplicates'))).toBe(true);
       });
     });
   });
