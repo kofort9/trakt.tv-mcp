@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Enhanced Disambiguation**: Top 3 matches with genres, overview, and relevance scores for better content identification
+- **Preview Mode**: `preview` parameter for `log_watch` and `bulk_log` to review before syncing to Trakt
+- **Duplicate Detection**: Automatic check for recent logs (48-hour window) with `allowDuplicates` override for rewatches
+- **Undo Support**: `undo_last_log` tool to remove recent watch history entries with preview and confirmation
+- **Natural Language Parser**: Comprehensive parser for offline watch notes supporting temporal modifiers, recall patterns, and date expressions
+- **Enhanced Queue Model**: Extended status tracking (pending/synced/failed/skipped), resolved content caching, and archive support
+- **Queue Sync Tool**: `sync_logwatch_queue` MCP tool to process offline watch logs with auto-confirm and dry-run modes
 - Public-facing community docs: CODE_OF_CONDUCT, SECURITY, SUPPORT, plus issue/PR templates
 - Manual E2E NL queue plan (offline capture → resolve/sync) with optional Slack append-to-queue flow
 - Node version enforcement helpers: `.nvmrc`, `engine-strict` (`.npmrc`), and preinstall version guard
@@ -30,8 +37,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Zero-value rejection for ambiguous dates ("0 days ago")
 - Maximum bounds validation (365 days, 52 weeks)
 - Empty string validation for date parameters
+- Repo reorg with clearer layering: `src/server`, `src/domain/trakt`, `src/core`, `src/shared`, `src/cli`, `src/bin`; tests under `tests/unit|integration|e2e`; scripts grouped under `scripts/dev|data|ops|tools`.
+- Future work plan (`docs/architecture/future-work.md`) capturing UX/feature roadmap.
+- Opt-in Trakt E2E suite (`tests/e2e`) plus `npm run auth:trakt` helper to seed tokens; GitHub Action (`e2e.yml`) for manual/scheduled live runs.
 
 ### Changed
+- **Disambiguation responses**: Now limited to top 3 matches with rich metadata (genres, overview, scores) for clearer selection
+- **Search API**: Now requests extended data by default for better disambiguation
+- **Watch queue**: Expanded from append-only to full lifecycle management with status tracking and archiving
 - README refreshed with public repo links, support/security references, and Node 20 guidance; package metadata now includes repository, bugs, and homepage URLs
 - Refactored Langfuse from singleton to class-based dependency injection pattern
 - Improved ISO 8601 date validation with strict month/day range checks
@@ -40,6 +53,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced disambiguation responses for ambiguous content
 - Standardized error response format across all tools
 - Updated documentation structure with organized subdirectories
+- Updated docs/guides/testing/observability to new paths; archived GPT-5 repo review (dated) and linked future-work; changelog version info bumped.
+- `npm run format` now covers `src`, `tests`, and `scripts`; `npm run verify` runs a Prettier check before build/lint/test.
 
 ### Fixed
 - "tonight" now correctly maps to current date (not next day)

@@ -18,6 +18,8 @@ export interface TraktShow {
     imdb?: string;
     tmdb?: number;
   };
+  genres?: string[];
+  overview?: string;
 }
 
 export interface TraktMovie {
@@ -29,6 +31,8 @@ export interface TraktMovie {
     imdb?: string;
     tmdb?: number;
   };
+  genres?: string[];
+  overview?: string;
 }
 
 export interface TraktEpisode {
@@ -73,6 +77,24 @@ export interface TraktHistoryAddResponse {
   };
 }
 
+// Preview response for log_watch and bulk_log preview mode
+export interface LogPreviewResponse {
+  action_required: 'confirm';
+  preview: {
+    type: string;
+    title?: string;
+    year?: number;
+    season?: number;
+    episode?: number;
+    episodes?: number[];
+    movies?: string[];
+    watchedAt: string;
+    traktId?: number;
+    count?: number;
+  };
+  message: string;
+}
+
 export interface TraktCalendarItem {
   first_aired: string;
   episode: TraktEpisode;
@@ -112,6 +134,9 @@ export interface DisambiguationOption {
   year?: number;
   traktId: number;
   type: 'show' | 'movie';
+  genres?: string[];
+  overview?: string;
+  score?: number;
 }
 
 export interface DisambiguationResponse {

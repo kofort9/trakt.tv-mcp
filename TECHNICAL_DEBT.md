@@ -4,9 +4,15 @@ Source of truth for temporary dependency pins, workarounds, and technical debt i
 
 ## Active Backlog
 
-- **Logging UX & disambiguation debt:** Ambiguous searches still require manual retry; add multi-match shortlists, failure refinement hints, and pre-log preview/confirm flows.
-- **Bulk/undo parity:** Bulk operations lack confirmation/undo; add summary tables, idempotent duplicate checks, and undo/remove support via Trakt history API.
-- **Offline logwatch maturity:** Current queue is raw-text only; add parse-on-capture with guesses, enriched queue fields, fix/drop/sync commands, and dry-run sync with per-entry status.
+### Should Consider
+
+- **Interactive CLI for logwatch sync:** Current sync is MCP-only; add full interactive CLI with prompts, date correction, and progress display
+- **Enhanced disambiguation UX:** Add poster images and taglines (requires additional API calls)
+- **Increase pagination limit in duplicate detector:** For power users with large watch histories, consider increasing default pagination limit beyond 1 page
+
+### Nice to Have
+
+- **Cache search results within bulk operations:** When processing multiple entries, cache search results to avoid redundant API calls for the same title
 
 
 ## Dependency Pins
@@ -31,6 +37,12 @@ To prevent future dependency pin accumulation:
 
 ## Resolved Items
 
+- **Episode duplicate detection (2025-12-16):** Added duplicate detection to episode logging path for consistency with movies, including comprehensive tests and allowDuplicates parameter support.
+- **Performance benchmarks for bulk operations (2025-12-16):** Added comprehensive performance tests including large queue handling (1000+ entries), network failure recovery, concurrency control verification, and timeout handling.
+- **Logging UX & Disambiguation (2025-12-16):** Implemented enhanced disambiguation with top 3 matches, preview mode, duplicate detection, and undo support.
+- **Bulk Logging & Undo (2025-12-16):** Added bulk operation summary tables, idempotent duplicate checks, and undo/remove support via Trakt history API.
+- **Offline Logwatch Core (2025-12-16):** Added parse-on-sync with NL parser, enhanced queue status tracking, and sync tool with dry-run mode.
+- **Test Coverage (2025-12-16):** Added 100+ unit and integration tests for NL parser, duplicate detector, queue operations, and sync workflow.
 - **Node.js 20 enforcement (2025-12-11):** Added `.nvmrc` (20.19.6), `.npmrc` `engine-strict`, and `scripts/check-node-version.js` wired to `preinstall`; updated README and `docs/DEBUGGING.md` with upgrade steps for brew/nvm.
 - **Security audit refresh (2025-12-11):** Ran `npm audit` on Node 20.19.6 (0 vulnerabilities); updated `docs/policies/SECURITY_INVESTIGATION.md` to reflect patched `@modelcontextprotocol/sdk@1.24.x` → `body-parser@2.2.1`.
 - **Cache metrics memory tracking (2025-12-11):** Added byte-level tracking, estimation timing, and memory-based eviction/warnings in `src/lib/cache.ts` with coverage in `src/lib/__tests__/cache.test.ts`.
@@ -53,4 +65,4 @@ To prevent future dependency pin accumulation:
 
 ---
 
-**Last Updated**: 2025-12-14
+**Last Updated**: 2025-12-16

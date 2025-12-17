@@ -482,4 +482,376 @@ describe('tools', () => {
       }
     });
   });
+
+  describe('New Tools', () => {
+    describe('undoLastLog', () => {
+      it('should return preview when confirm is false', async () => {
+        vi.spyOn(mockClient, 'getHistory').mockResolvedValue([
+          {
+            watched_at: '2025-12-16T10:00:00.000Z',
+            action: 'watch',
+            type: 'movie',
+            movie: {
+              title: 'Dune',
+              year: 2021,
+              ids: { trakt: 12345, slug: 'dune-2021', imdb: 'tt123', tmdb: 456 },
+            },
+          },
+        ]);
+
+        const result = await tools.undoLastLog(mockClient, { limit: 1, confirm: false });
+
+        expect(result.success).toBe(true);
+        expect(result.data.action_required).toBe('confirm');
+        expect(result.data.preview).toBeTruthy();
+      });
+
+      it('should remove entries when confirm is true', async () => {
+        vi.spyOn(mockClient, 'getHistory').mockResolvedValue([
+          {
+            watched_at: '2025-12-16T10:00:00.000Z',
+            action: 'watch',
+            type: 'movie',
+            movie: {
+              title: 'Dune',
+              year: 2021,
+              ids: { trakt: 12345, slug: 'dune-2021', imdb: 'tt123', tmdb: 456 },
+            },
+          },
+        ]);
+
+        vi.spyOn(mockClient, 'removeFromHistory').mockResolvedValue({});
+
+        const result = await tools.undoLastLog(mockClient, { limit: 1, confirm: true });
+
+        expect(result.success).toBe(true);
+        expect(result.data.removed).toBe(1);
+        expect(mockClient.removeFromHistory).toHaveBeenCalled();
+      });
+
+      it('should handle limit parameter', async () => {
+        vi.spyOn(mockClient, 'getHistory').mockResolvedValue([
+          {
+            watched_at: '2025-12-16T10:00:00.000Z',
+            action: 'watch',
+            type: 'movie',
+            movie: {
+              title: 'Dune',
+              year: 2021,
+              ids: { trakt: 12345, slug: 'dune-2021', imdb: 'tt123', tmdb: 456 },
+            },
+          },
+          {
+            watched_at: '2025-12-16T09:00:00.000Z',
+            action: 'watch',
+            type: 'movie',
+            movie: {
+              title: 'Inception',
+              year: 2010,
+              ids: { trakt: 67890, slug: 'inception', imdb: 'tt456', tmdb: 789 },
+            },
+          },
+        ]);
+
+        const result = await tools.undoLastLog(mockClient, { limit: 2, confirm: false });
+
+        expect(result.success).toBe(true);
+        expect(result.data.preview.count).toBe(2);
+      });
+
+      it('should format preview correctly', async () => {
+        vi.spyOn(mockClient, 'getHistory').mockResolvedValue([
+          {
+            watched_at: '2025-12-16T10:00:00.000Z',
+            action: 'watch',
+            type: 'episode',
+            show: {
+              title: 'The Bear',
+              year: 2022,
+              ids: { trakt: 12345, slug: 'the-bear', tvdb: 123, imdb: 'tt123', tmdb: 456 },
+            },
+            episode: {
+              season: 2,
+              number: 5,
+              title: 'Episode 5',
+              ids: { trakt: 67890, tvdb: 789, imdb: 'tt456', tmdb: 789 },
+            },
+          },
+        ]);
+
+        const result = await tools.undoLastLog(mockClient, { confirm: false });
+
+        expect(result.success).toBe(true);
+        expect(result.data.message).toContain('The Bear');
+        expect(result.data.message).toContain('S2E5');
+      });
+    });
+
+    describe('logWatch with preview', () => {
+      it('should return preview without syncing', async () => {
+        vi.spyOn(mockClient, 'search').mockResolvedValue([
+          {
+            score: 100,
+            movie: {
+              title: 'Dune',
+              year: 2021,
+              ids: { trakt: 12345, slug: 'dune-2021', imdb: 'tt123', tmdb: 456 },
+            },
+          },
+        ]);
+
+        const addToHistorySpy = vi.spyOn(mockClient, 'addToHistory');
+
+        const result = await tools.logWatch(mockClient, {
+          type: 'movie',
+          movieName: 'Dune',
+          year: 2021,
+          preview: true,
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.data.action_required).toBe('confirm');
+        expect(result.data.preview).toBeTruthy();
+        expect(addToHistorySpy).not.toHaveBeenCalled();
+      });
+
+      it('should include resolved content in preview', async () => {
+        vi.spyOn(mockClient, 'search').mockResolvedValue([
+          {
+            score: 100,
+            movie: {
+              title: 'Dune',
+              year: 2021,
+              ids: { trakt: 12345, slug: 'dune-2021', imdb: 'tt123', tmdb: 456 },
+            },
+          },
+        ]);
+
+        const result = await tools.logWatch(mockClient, {
+          type: 'movie',
+          movieName: 'Dune',
+          preview: true,
+        });
+
+        expect(result.data.preview.type).toBe('movie');
+        expect(result.data.preview.title).toBe('Dune');
+        expect(result.data.preview.traktId).toBe(12345);
+      });
+    });
+
+    describe('logWatch with duplicate detection', () => {
+      it('should block duplicate within 48 hours', async () => {
+        vi.spyOn(mockClient, 'search').mockResolvedValue([
+          {
+            score: 100,
+            movie: {
+              title: 'Dune',
+              year: 2021,
+              ids: { trakt: 12345, slug: 'dune-2021', imdb: 'tt123', tmdb: 456 },
+            },
+          },
+        ]);
+
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+        vi.spyOn(mockClient, 'getHistory').mockResolvedValue([
+          {
+            watched_at: oneHourAgo.toISOString(),
+            action: 'watch',
+            type: 'movie',
+            movie: {
+              title: 'Dune',
+              year: 2021,
+              ids: { trakt: 12345, slug: 'dune-2021', imdb: 'tt123', tmdb: 456 },
+            },
+          },
+        ]);
+
+        const result = await tools.logWatch(mockClient, {
+          type: 'movie',
+          movieName: 'Dune',
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error?.code).toBe('DUPLICATE_ENTRY');
+      });
+
+      it('should allow duplicate with allowDuplicates flag', async () => {
+        vi.spyOn(mockClient, 'search').mockResolvedValue([
+          {
+            score: 100,
+            movie: {
+              title: 'Dune',
+              year: 2021,
+              ids: { trakt: 12345, slug: 'dune-2021', imdb: 'tt123', tmdb: 456 },
+            },
+          },
+        ]);
+
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+        vi.spyOn(mockClient, 'getHistory').mockResolvedValue([
+          {
+            watched_at: oneHourAgo.toISOString(),
+            action: 'watch',
+            type: 'movie',
+            movie: {
+              title: 'Dune',
+              year: 2021,
+              ids: { trakt: 12345, slug: 'dune-2021', imdb: 'tt123', tmdb: 456 },
+            },
+          },
+        ]);
+
+        vi.spyOn(mockClient, 'addToHistory').mockResolvedValue({
+          added: { movies: 1 },
+          not_found: { movies: [], shows: [], seasons: [], episodes: [] },
+        });
+
+        const result = await tools.logWatch(mockClient, {
+          type: 'movie',
+          movieName: 'Dune',
+          allowDuplicates: true,
+        });
+
+        expect(result.success).toBe(true);
+        expect(mockClient.addToHistory).toHaveBeenCalled();
+      });
+
+      it('should provide helpful error message', async () => {
+        vi.spyOn(mockClient, 'search').mockResolvedValue([
+          {
+            score: 100,
+            movie: {
+              title: 'Dune',
+              year: 2021,
+              ids: { trakt: 12345, slug: 'dune-2021', imdb: 'tt123', tmdb: 456 },
+            },
+          },
+        ]);
+
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+        vi.spyOn(mockClient, 'getHistory').mockResolvedValue([
+          {
+            watched_at: oneHourAgo.toISOString(),
+            action: 'watch',
+            type: 'movie',
+            movie: {
+              title: 'Dune',
+              year: 2021,
+              ids: { trakt: 12345, slug: 'dune-2021', imdb: 'tt123', tmdb: 456 },
+            },
+          },
+        ]);
+
+        const result = await tools.logWatch(mockClient, {
+          type: 'movie',
+          movieName: 'Dune',
+        });
+
+        expect(result.error?.message).toContain('Already logged');
+        expect(result.error?.message).toContain('Dune');
+        expect(result.error?.suggestions?.some((s: string) => s.includes('allowDuplicates'))).toBe(
+          true
+        );
+      });
+
+      it('should detect duplicate episodes', async () => {
+        // Mock search returning a show
+        vi.spyOn(mockClient, 'search').mockResolvedValue([
+          {
+            show: {
+              title: 'The Bear',
+              year: 2022,
+              ids: { trakt: 54321, slug: 'the-bear', imdb: 'tt456', tmdb: 789 },
+            },
+          },
+        ]);
+
+        // Mock duplicate detection finding a duplicate episode
+        vi.spyOn(mockClient, 'getHistory').mockResolvedValue([
+          {
+            id: 1,
+            watched_at: new Date().toISOString(),
+            action: 'watch',
+            type: 'episode',
+            show: {
+              title: 'The Bear',
+              year: 2022,
+              ids: { trakt: 54321, slug: 'the-bear', imdb: 'tt456', tmdb: 789 },
+            },
+            episode: {
+              title: 'Episode Title',
+              season: 2,
+              number: 5,
+              ids: { trakt: 999 },
+            },
+          },
+        ]);
+
+        const result = await tools.logWatch(mockClient, {
+          type: 'episode',
+          showName: 'The Bear',
+          season: 2,
+          episode: 5,
+        });
+
+        expect(result.error?.message).toContain('Already logged');
+        expect(result.error?.message).toContain('The Bear');
+        expect(result.error?.message).toContain('S2E5');
+        expect(result.error?.suggestions?.some((s: string) => s.includes('allowDuplicates'))).toBe(
+          true
+        );
+      });
+
+      it('should allow duplicate episodes when allowDuplicates is true', async () => {
+        // Mock search returning a show
+        vi.spyOn(mockClient, 'search').mockResolvedValue([
+          {
+            show: {
+              title: 'The Bear',
+              year: 2022,
+              ids: { trakt: 54321, slug: 'the-bear', imdb: 'tt456', tmdb: 789 },
+            },
+          },
+        ]);
+
+        // Mock duplicate detection finding a duplicate episode
+        vi.spyOn(mockClient, 'getHistory').mockResolvedValue([
+          {
+            id: 1,
+            watched_at: new Date().toISOString(),
+            action: 'watch',
+            type: 'episode',
+            show: {
+              title: 'The Bear',
+              year: 2022,
+              ids: { trakt: 54321, slug: 'the-bear', imdb: 'tt456', tmdb: 789 },
+            },
+            episode: {
+              title: 'Episode Title',
+              season: 2,
+              number: 5,
+              ids: { trakt: 999 },
+            },
+          },
+        ]);
+
+        // Mock addToHistory
+        vi.spyOn(mockClient, 'addToHistory').mockResolvedValue({
+          added: { episodes: 1 },
+          not_found: { episodes: [] },
+        });
+
+        const result = await tools.logWatch(mockClient, {
+          type: 'episode',
+          showName: 'The Bear',
+          season: 2,
+          episode: 5,
+          allowDuplicates: true,
+        });
+
+        expect(result.success).toBe(true);
+        expect(mockClient.addToHistory).toHaveBeenCalled();
+      });
+    });
+  });
 });

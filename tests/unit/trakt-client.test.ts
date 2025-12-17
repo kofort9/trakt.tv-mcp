@@ -35,7 +35,7 @@ describe('TraktClient tool name propagation', () => {
     await client.search('foo', 'show', undefined, { toolName: 'search_show' });
 
     expect(getMock).toHaveBeenCalledWith('/search/show', {
-      params: { query: 'foo' },
+      params: { query: 'foo', extended: 'full' },
       _toolName: 'search_show',
     });
   });
