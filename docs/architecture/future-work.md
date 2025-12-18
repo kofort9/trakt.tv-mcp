@@ -1,8 +1,52 @@
 # Future Work & UX Improvements
 
-**Last Updated:** 2025-12-16
+**Last Updated:** 2025-12-17
 
 This document captures forward-looking feature and UX tasks that are out of scope for the current cycle but should be prioritized next.
+
+---
+
+## 🔥 Active Priority Queue
+
+Items from sync queue experimentation (2025-12-17). Ordered by priority.
+
+### Critical (Blocks Core Functionality)
+
+| # | Item | Branch | Status | Notes |
+|---|------|--------|--------|-------|
+| 1 | Search-first type inference | `fix/sync-queue-improvements` | ✅ Done | Parser extracts, search determines type |
+| 2 | Interactive state machine | `feat/interactive-state-machine` | 📋 ADR-002 | Explicit states, async confirmation |
+
+### High Priority (Enables Debugging & Reliability)
+
+| # | Item | Branch | Status | Notes |
+|---|------|--------|--------|-------|
+| 3 | Observability for `sync_logwatch_queue` | `fix/sync-queue-observability` | 🔜 Next | Wrap with `traceToolCall()` |
+| 4 | Fix `_retryCount` crash | `fix/sync-queue-improvements` | 🔜 Next | Defensive init in TraktClient |
+
+### Medium Priority (Improves UX for Common Patterns)
+
+| # | Item | Branch | Status | Notes |
+|---|------|--------|--------|-------|
+| 5 | Franchise expansion workflow | `feat/franchise-detection` | 📝 Planned | "all the X movies" → collection search |
+| 6 | Month-level date granularity | `feat/date-parser-enhancements` | 📝 Planned | "last month" → capture date - 15 days |
+| 7 | Smart auto-confirm behavior | `fix/sync-queue-improvements` | 🔜 Next | Skip (not guess) on 0 or 2+ results |
+
+### Low Priority (Nice to Have)
+
+| # | Item | Branch | Status | Notes |
+|---|------|--------|--------|-------|
+| 8 | Validate Trakt typo tolerance | N/A | 📝 Research | Test "carrabien" → "caribbean" |
+
+### Suggested Order of Attack
+
+```
+1 ✅ → 3 → 4 → 7 → 2 → 5 → 6 → 8
+```
+
+**Rationale**: Parser philosophy done. Add observability (debug everything), harden reliability (#4, #7), then implement state machine (#2), then polish UX patterns.
+
+---
 
 ## ✅ Completed (v0.4.0)
 

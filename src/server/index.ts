@@ -440,27 +440,64 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'sync_logwatch_queue',
         description:
-          'Sync offline watch queue to Trakt. Processes pending entries, searches for matches, and logs them. Supports dry-run and auto-confirm modes.',
+          'Sync offline watch queue to Trakt. Processes pending entries, searches for matches, and logs them. Supports dry-run, auto-confirm, and interactive modes.',
         inputSchema: {
           type: 'object',
           properties: {
             queuePath: {
               type: 'string',
-              description:
-                'Optional: Custom path to queue file (default: ~/.trakt-mcp/pending-logs.jsonl)',
+              description: 'Custom path to queue file. Default: ~/.trakt-mcp/pending-logs.jsonl',
             },
             dryRun: {
               type: 'boolean',
-              description: 'Preview entries without syncing (default: false)',
+              description:
+                'Preview mode: returns summary table without syncing. Shows resolved/ambiguous/not-found counts.',
             },
             autoConfirm: {
               type: 'boolean',
-              description: 'Auto-process all entries without confirmation (default: false)',
+              description:
+                'Auto-process unambiguous entries without user confirmation. Skips ambiguous entries (multiple matches) and duplicates. Use for batch processing.',
             },
             showSummary: {
               type: 'boolean',
               description:
-                'Show pre-sync summary table with status of all entries (resolved/ambiguous/not found)',
+                'Returns pre-sync summary table showing status of all entries. Use before processing to review queue.',
+            },
+            minimalOutput: {
+              type: 'boolean',
+              description: 'Return compact response with counts only, no full entries or tables',
+            },
+            entryId: {
+              type: 'string',
+              description:
+                'ID of specific entry to process. Use with action parameter for interactive workflow.',
+            },
+            action: {
+              type: 'string',
+              enum: ['confirm', 'skip', 'fail'],
+              description:
+                'Action for entry specified by entryId: "confirm" logs to Trakt (requires selectedTraktId and selectedType), "skip" marks as skipped, "fail" marks as failed.',
+            },
+            entryIndex: {
+              type: 'number',
+              description:
+                'Zero-based index for interactive mode starting point. Use to resume processing or skip to specific entry. Default: 0.',
+            },
+            selectedTraktId: {
+              type: 'number',
+              description:
+                'Trakt ID to log when action="confirm". Get from searchResults in previous response. Required for confirm action.',
+            },
+            selectedType: {
+              type: 'string',
+              enum: ['movie', 'episode'],
+              description:
+                'Content type when action="confirm": "movie" or "episode". Required for confirm action.',
+            },
+            allowDuplicates: {
+              type: 'boolean',
+              description:
+                'Allow logging entries already in recent history (for rewatches). Default: false - skips duplicates within 48 hours.',
             },
           },
         },
@@ -498,6 +535,89 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 'Filter to show only error responses (status code >= 400). Default: false',
             },
           },
+        },
+      },
+      {
+        name: 'queue_status',
+        description: 'Get quick count of pending/synced/failed queue entries',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            queuePath: {
+              type: 'string',
+              description: 'Custom path to queue file. Default: ~/.trakt-mcp/pending-logs.jsonl',
+            },
+          },
+        },
+      },
+      {
+        name: 'queue_preview',
+        description: 'Preview queue with dry-run summary table. Shows what would be synced',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            queuePath: {
+              type: 'string',
+              description: 'Custom path to queue file. Default: ~/.trakt-mcp/pending-logs.jsonl',
+            },
+            limit: {
+              type: 'number',
+              description: 'Max entries to preview. Default: all pending entries',
+            },
+          },
+        },
+      },
+      {
+        name: 'queue_auto_sync',
+        description: 'Batch sync unambiguous entries, skip ambiguous/duplicates',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            queuePath: {
+              type: 'string',
+              description: 'Custom path to queue file. Default: ~/.trakt-mcp/pending-logs.jsonl',
+            },
+            allowDuplicates: {
+              type: 'boolean',
+              description: 'Allow logging duplicates (for rewatches). Default: false',
+            },
+          },
+        },
+      },
+      {
+        name: 'queue_confirm',
+        description: 'Confirm, skip, or fail a single queue entry',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            entryId: {
+              type: 'string',
+              description: 'ID of entry to process',
+            },
+            action: {
+              type: 'string',
+              enum: ['confirm', 'skip', 'fail'],
+              description: 'Action: confirm (log to Trakt), skip, or fail',
+            },
+            queuePath: {
+              type: 'string',
+              description: 'Custom path to queue file. Default: ~/.trakt-mcp/pending-logs.jsonl',
+            },
+            selectedTraktId: {
+              type: 'number',
+              description: 'Trakt ID when action=confirm. Required for confirm',
+            },
+            selectedType: {
+              type: 'string',
+              enum: ['movie', 'episode'],
+              description: 'Content type when action=confirm. Required for confirm',
+            },
+            allowDuplicates: {
+              type: 'boolean',
+              description: 'Allow duplicates (for rewatches). Default: false',
+            },
+          },
+          required: ['entryId', 'action'],
         },
       },
     ],
@@ -757,22 +877,31 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     if (name === 'sync_logwatch_queue') {
-      const result = await tools.syncLogwatchQueue(traktClient, {
-        queuePath: args?.queuePath as string | undefined,
-        dryRun: args?.dryRun as boolean | undefined,
-        autoConfirm: args?.autoConfirm as boolean | undefined,
-        showSummary: args?.showSummary as boolean | undefined,
-      });
+      return await traceToolCall('sync_logwatch_queue', args || {}, async () => {
+        const result = await tools.syncLogwatchQueue(traktClient, {
+          queuePath: args?.queuePath as string | undefined,
+          dryRun: args?.dryRun as boolean | undefined,
+          autoConfirm: args?.autoConfirm as boolean | undefined,
+          showSummary: args?.showSummary as boolean | undefined,
+          minimalOutput: args?.minimalOutput as boolean | undefined,
+          entryId: args?.entryId as string | undefined,
+          action: args?.action as 'confirm' | 'skip' | 'fail' | undefined,
+          entryIndex: args?.entryIndex as number | undefined,
+          selectedTraktId: args?.selectedTraktId as number | undefined,
+          selectedType: args?.selectedType as 'movie' | 'episode' | undefined,
+          allowDuplicates: args?.allowDuplicates as boolean | undefined,
+        });
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-        isError: !result.success,
-      };
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+          isError: !result.success,
+        };
+      });
     }
 
     if (name === 'debug_last_request') {
@@ -794,6 +923,85 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         ],
         isError: !result.success,
       };
+    }
+
+    if (name === 'queue_status') {
+      return await traceToolCall('queue_status', args || {}, async () => {
+        const result = await tools.queueStatus({
+          queuePath: args?.queuePath as string | undefined,
+        });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+          isError: !result.success,
+        };
+      });
+    }
+
+    if (name === 'queue_preview') {
+      return await traceToolCall('queue_preview', args || {}, async () => {
+        const result = await tools.queuePreview(traktClient, {
+          queuePath: args?.queuePath as string | undefined,
+          limit: args?.limit as number | undefined,
+        });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+          isError: !result.success,
+        };
+      });
+    }
+
+    if (name === 'queue_auto_sync') {
+      return await traceToolCall('queue_auto_sync', args || {}, async () => {
+        const result = await tools.queueAutoSync(traktClient, {
+          queuePath: args?.queuePath as string | undefined,
+          allowDuplicates: args?.allowDuplicates as boolean | undefined,
+        });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+          isError: !result.success,
+        };
+      });
+    }
+
+    if (name === 'queue_confirm') {
+      return await traceToolCall('queue_confirm', args || {}, async () => {
+        const result = await tools.queueConfirm(traktClient, {
+          entryId: args?.entryId as string,
+          action: args?.action as 'confirm' | 'skip' | 'fail',
+          queuePath: args?.queuePath as string | undefined,
+          selectedTraktId: args?.selectedTraktId as number | undefined,
+          selectedType: args?.selectedType as 'movie' | 'episode' | undefined,
+          allowDuplicates: args?.allowDuplicates as boolean | undefined,
+        });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+          isError: !result.success,
+        };
+      });
     }
 
     throw new Error(`Unknown tool: ${name}`);

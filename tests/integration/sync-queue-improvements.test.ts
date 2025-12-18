@@ -379,7 +379,7 @@ describe('Sync Queue Improvements', () => {
       expect(result.data.synced).toBeGreaterThanOrEqual(1);
     });
 
-    it('should preserve failed entries for manual retry', async () => {
+    it('should preserve skipped entries for manual review (smart auto-confirm)', async () => {
       // Setup
       await queue.append('watched nonexistent movie 9999');
 
@@ -391,14 +391,14 @@ describe('Sync Queue Improvements', () => {
         autoConfirm: true,
       });
 
-      // Assert
-      expect(result.data.failed).toBe(1);
+      // Assert: Smart auto-confirm skips (not fails) entries with 0 results
+      // so they appear in "needs attention" queue
+      expect(result.data.skipped).toBe(1);
 
-      // Check that entry is still in queue
+      // Check that entry is still in queue as skipped (for manual review)
       const entries = await queue.list();
       expect(entries.length).toBe(1);
-      expect(entries[0].status).toBe('failed');
-      expect(entries[0].failureReason).toContain('No search results');
+      expect(entries[0].status).toBe('skipped');
     });
 
     it('should handle TraktClient with null _retryCount safely', async () => {
@@ -475,7 +475,7 @@ describe('Sync Queue Improvements', () => {
     it('should retain only failed/skipped/pending entries in queue after sync', async () => {
       // Setup
       await queue.append('watched Dune 2021 movie'); // Will sync
-      await queue.append('watched nonexistent movie'); // Will fail
+      await queue.append('watched nonexistent movie'); // Will be skipped (smart auto-confirm)
 
       mockClient.search
         .mockResolvedValueOnce([
@@ -499,10 +499,10 @@ describe('Sync Queue Improvements', () => {
         autoConfirm: true,
       });
 
-      // Assert: Queue should only have failed entry
+      // Assert: Queue should only have skipped entry (smart auto-confirm skips 0 results)
       const entries = await queue.list();
       expect(entries.length).toBe(1);
-      expect(entries[0].status).toBe('failed');
+      expect(entries[0].status).toBe('skipped');
     });
 
     it('should not corrupt queue file on error', async () => {
