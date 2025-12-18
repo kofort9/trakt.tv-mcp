@@ -341,3 +341,4 @@ function extractYear(text: string): { found: boolean; year?: number; remainingTe
 
   return { found: false, remainingText: text };
 }
+

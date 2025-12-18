@@ -10,11 +10,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/kofifort/trakt.tv-mcp.git"
+    "url": "https://github.com/kofort9/trakt.tv-mcp.git"
   },
-  "homepage": "https://github.com/kofifort/trakt.tv-mcp#readme",
+  "homepage": "https://github.com/kofort9/trakt.tv-mcp#readme",
   "bugs": {
-    "url": "https://github.com/kofifort/trakt.tv-mcp/issues"
+    "url": "https://github.com/kofort9/trakt.tv-mcp/issues"
   },
   "scripts": {
     "preinstall": "node scripts/dev/check-node-version.js",

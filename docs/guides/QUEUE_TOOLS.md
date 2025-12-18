@@ -1,5 +1,7 @@
 # Queue Tools - Optimized Workflow Guide
 
+> **TLDR:** Use `queue_status` for counts, `queue_auto_sync` for batch processing, `queue_confirm` for disambiguation. Typical workflow: status -> auto_sync -> confirm remaining ambiguous entries.
+
 This guide documents the optimized queue tools for syncing offline watch logs to Trakt.tv. These tools are designed to minimize token costs while providing efficient batch processing and interactive workflows.
 
 ## Tool Overview
@@ -418,3 +420,4 @@ A: Already-synced entries are marked as synced. Re-running will only process rem
 **Q: Can I use custom queue paths?**
 
 A: Yes, all tools accept `queuePath` parameter. Default: `~/.trakt-mcp/pending-logs.jsonl`
+

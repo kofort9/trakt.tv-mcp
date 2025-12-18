@@ -390,12 +390,13 @@ describe('parseWatchNote', () => {
     });
 
     it('should remove "all of the" prefix', () => {
+      // Note: Typo/fuzzy matching tests tracked in TECHNICAL_DEBT.md
       const result = parseWatchNote(
-        "I've seen all of the pirates of the carrabien movies",
+        "I've seen all of the pirates of the caribbean movies",
         testCapturedAt
       );
 
-      expect(result.title).toBe('pirates of the carrabien movies');
+      expect(result.title).toBe('pirates of the caribbean movies');
     });
 
     it('should remove trailing "before"', () => {
@@ -475,3 +476,4 @@ describe('parseWatchNote', () => {
     });
   });
 });
+

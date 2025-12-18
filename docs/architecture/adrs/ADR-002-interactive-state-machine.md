@@ -1,8 +1,9 @@
 # ADR-002: Interactive State Machine for Queue Sync
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2025-12-17
 - Owners: @kofifort
+- Implementation Status: Core states (`pending`, `synced`, `failed`, `skipped`) are implemented in `WatchQueue`. The `awaiting_confirmation` state and full async confirmation workflow described below are planned for future implementation.
 
 ## Context
 

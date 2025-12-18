@@ -1,5 +1,7 @@
 # Manual E2E Logging (No AI) – NL Queue Concept
 
+> **TLDR:** `logwatch "note"` captures to local queue, sync later via MCP tools. Capture now, resolve ambiguity later when online.
+
 ## Problem
 - When Claude/AI is unavailable, logging watches still needs to be fast and low-friction.
 - Users prefer natural language (“today I finished Tenet”) over flag-heavy CLI commands.

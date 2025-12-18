@@ -293,3 +293,4 @@ export class BulkSummaryBuilder {
     return str.substring(0, maxLength - 3) + '...';
   }
 }
+
