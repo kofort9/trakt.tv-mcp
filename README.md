@@ -1,15 +1,14 @@
 # trakt.tv-mcp
 
-[![CI](https://github.com/kofifort/trakt.tv-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/kofifort/trakt.tv-mcp/actions/workflows/ci.yml)
-[![Security Audit](https://github.com/kofifort/trakt.tv-mcp/actions/workflows/security.yml/badge.svg)](https://github.com/kofifort/trakt.tv-mcp/actions/workflows/security.yml)
+[![CI](https://github.com/kofort9/trakt.tv-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/kofort9/trakt.tv-mcp/actions/workflows/ci.yml)
+[![Security Audit](https://github.com/kofort9/trakt.tv-mcp/actions/workflows/security.yml/badge.svg)](https://github.com/kofort9/trakt.tv-mcp/actions/workflows/security.yml)
 
 MCP server for Trakt.tv API - enables AI assistants to track watched shows, movies, and anime using natural language
 
 ## Project Links
-- Repository: https://github.com/kofifort/trakt.tv-mcp
-- Issues: https://github.com/kofifort/trakt.tv-mcp/issues
+- Repository: https://github.com/kofort9/trakt.tv-mcp
+- Issues: https://github.com/kofort9/trakt.tv-mcp/issues
 - Security: see [SECURITY.md](SECURITY.md)
-- Code of Conduct: see [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 
 ## Features
 
@@ -111,8 +110,6 @@ The OAuth device flow includes safeguards against race conditions:
 
 > The repo includes `.nvmrc` (20.19.6) and a `preinstall` guard that fails fast on Node <20. Use `nvm use` or `export PATH="/opt/homebrew/opt/node@20/bin:$PATH"` if you're on Homebrew.
 
-> The repo includes `.nvmrc` (20.19.6) and a `preinstall` guard that fails fast on Node <20. Use `nvm use` or `export PATH="/opt/homebrew/opt/node@20/bin:$PATH"` if you're on Homebrew.
-
 ### Setup
 
 ```bash
@@ -186,20 +183,20 @@ GitHub Actions automatically runs quality checks on every push and pull request:
 
 See [Branch Protection Recommendations](.github/BRANCH_PROTECTION.md) for setting up branch protection rules.
 
-## Contributing
+## Contributing & AI Integration
 
-We welcome contributions! Before submitting changes:
+This project is designed for AI assistant integration (Claude, etc.). Key resources:
 
-1. Read [CLAUDE.md](CLAUDE.md) for project architecture and guidelines
-2. Review [Natural Language Guide](docs/guides/NATURAL_LANGUAGE_GUIDE.md) if adding date/time features
-3. See [Contributing Guide](docs/guides/CONTRIBUTING.md) for extending natural language support
-4. Ensure all tests pass and code quality checks succeed
+1. [CLAUDE.md](CLAUDE.md) - Project architecture and guidelines for AI assistants
+2. [Contributing Guide](docs/guides/CONTRIBUTING.md) - AI integration patterns and natural language support
+3. [Natural Language Guide](docs/guides/NATURAL_LANGUAGE_GUIDE.md) - Date/time parsing documentation
+
+All changes must pass tests and code quality checks.
 
 ## Support
 
-- Usage questions and bugs: open an issue via the templates.
-- Security issues: follow [SECURITY.md](SECURITY.md).
-- See [SUPPORT.md](SUPPORT.md) for a quick summary.
+- **Bugs & Questions**: [Open an issue](https://github.com/kofort9/trakt.tv-mcp/issues)
+- **Security**: See [SECURITY.md](SECURITY.md)
 
 ## License
 
