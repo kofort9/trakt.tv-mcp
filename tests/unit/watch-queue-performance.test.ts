@@ -222,4 +222,3 @@ describe('WatchLogQueue Performance Tests', () => {
     }, 10000); // 10 second timeout for large file test
   });
 });
-

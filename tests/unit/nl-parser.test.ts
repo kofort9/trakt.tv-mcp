@@ -476,4 +476,3 @@ describe('parseWatchNote', () => {
     });
   });
 });
-
