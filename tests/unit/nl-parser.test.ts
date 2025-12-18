@@ -205,14 +205,20 @@ describe('parseWatchNote', () => {
     });
 
     it('should validate reasonable year range', () => {
-      const resultOld = parseWatchNote('watched movie 1899', testCapturedAt);
+      // Year 1899 is outside valid range (1900-2100), should not be extracted
+      const resultOld = parseWatchNote('watched Casablanca 1899', testCapturedAt);
       expect(resultOld.year).toBeUndefined();
+      expect(resultOld.title).toContain('Casablanca');
 
-      const resultValid = parseWatchNote('watched movie 1950', testCapturedAt);
+      // Year 1950 is valid, should be extracted
+      const resultValid = parseWatchNote('watched Casablanca 1950', testCapturedAt);
       expect(resultValid.year).toBe(1950);
+      expect(resultValid.title).toBe('Casablanca');
 
-      const resultFuture = parseWatchNote('watched movie 2150', testCapturedAt);
+      // Year 2150 is outside valid range, should not be extracted
+      const resultFuture = parseWatchNote('watched Casablanca 2150', testCapturedAt);
       expect(resultFuture.year).toBeUndefined();
+      expect(resultFuture.title).toContain('Casablanca');
     });
 
     it('should handle year with parentheses and season', () => {
@@ -263,10 +269,11 @@ describe('parseWatchNote', () => {
       expect(result.confidence).toBe('high');
     });
 
-    it('should default to unknown type when no hints', () => {
+    it('should default to infer_from_search type when no hints', () => {
       const result = parseWatchNote('watched something', testCapturedAt);
 
-      expect(result.type).toBe('unknown');
+      // 'infer_from_search' means "let the search API determine the type"
+      expect(result.type).toBe('infer_from_search');
     });
   });
 
@@ -332,6 +339,76 @@ describe('parseWatchNote', () => {
 
       expect(result.dateSource).toBe('parsed');
       expect(result.dateExpression).toBe('just');
+    });
+  });
+
+  describe('Title Cleanup', () => {
+    it('should preserve titles starting with "I" that are real titles (I Am Legend)', () => {
+      const result = parseWatchNote('watched I Am Legend', testCapturedAt);
+
+      expect(result.title).toBe('I Am Legend');
+    });
+
+    it('should preserve "I, Robot" title', () => {
+      const result = parseWatchNote('watched I, Robot', testCapturedAt);
+
+      expect(result.title).toBe('I, Robot');
+    });
+
+    it('should preserve "I Know What You Did Last Summer"', () => {
+      const result = parseWatchNote('watched I Know What You Did Last Summer', testCapturedAt);
+
+      expect(result.title).toBe('I Know What You Did Last Summer');
+    });
+
+    it('should remove artifact "I" from "I just finished X"', () => {
+      const result = parseWatchNote('I just finished Chungking Express', testCapturedAt);
+
+      // The "I" at the start should be removed (it's an artifact, not part of the title)
+      expect(result.title).toBe('Chungking Express');
+    });
+
+    it('should keep year as title when it IS the movie title (2046)', () => {
+      const result = parseWatchNote('I just finished 2046', testCapturedAt);
+
+      // "2046" is the movie title, not a year
+      expect(result.title).toBe('2046');
+      expect(result.year).toBeUndefined();
+    });
+
+    it('should extract year when there is a meaningful title left', () => {
+      const result = parseWatchNote('watched columbus 2017', testCapturedAt);
+
+      expect(result.title).toBe('columbus');
+      expect(result.year).toBe(2017);
+    });
+
+    it('should remove "all the" prefix from franchise patterns', () => {
+      const result = parseWatchNote("I've seen all the matrix movies", testCapturedAt);
+
+      expect(result.title).toBe('matrix movies');
+    });
+
+    it('should remove "all of the" prefix', () => {
+      const result = parseWatchNote(
+        "I've seen all of the pirates of the carrabien movies",
+        testCapturedAt
+      );
+
+      expect(result.title).toBe('pirates of the carrabien movies');
+    });
+
+    it('should remove trailing "before"', () => {
+      const result = parseWatchNote("I've seen titanic before", testCapturedAt);
+
+      expect(result.title).toBe('titanic');
+    });
+
+    it('should clean up multiple spaces', () => {
+      const result = parseWatchNote('I   watched   Dune', testCapturedAt);
+
+      expect(result.title).toBe('Dune');
+      expect(result.title).not.toContain('  ');
     });
   });
 

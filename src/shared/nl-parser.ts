@@ -7,7 +7,15 @@
 
 export interface ParsedWatchEntry {
   title: string;
-  type: 'movie' | 'episode' | 'unknown';
+  /**
+   * Content type:
+   * - 'movie': Explicitly identified as a movie (via "movie"/"film" keyword)
+   * - 'episode': Has season/episode info (S01E02) or "show"/"series" keyword
+   * - 'infer_from_search': Let the search API determine the type (this is the default)
+   *
+   * "infer_from_search" is NOT a failure state - it means "search Trakt and use the result's type"
+   */
+  type: 'movie' | 'episode' | 'infer_from_search';
   confidence: 'high' | 'medium' | 'low';
   year?: number;
   season?: number;
@@ -31,7 +39,7 @@ export function parseWatchNote(rawText: string, capturedAt: string): ParsedWatch
   // Initialize result
   const result: ParsedWatchEntry = {
     title: '',
-    type: 'unknown',
+    type: 'infer_from_search', // Default: let search API determine type
     confidence: 'medium',
     dateSource: 'fallback',
     watchedAt: capturedAt,
@@ -101,14 +109,28 @@ export function parseWatchNote(rawText: string, capturedAt: string): ParsedWatch
   }
 
   // 7. Extract year in parentheses or standalone
+  // But don't extract if it would leave the title empty (e.g., movie title "2046")
   const yearResult = extractYear(text);
   if (yearResult.found) {
-    result.year = yearResult.year;
-    text = yearResult.remainingText;
+    // Check if extracting year would leave a meaningful title
+    const remainingAfterYear = cleanupTitle(yearResult.remainingText);
+
+    // A meaningful title should have at least 2 characters and not be just "I" or "i"
+    // (which is often a parsing artifact from "I watched X" patterns)
+    const isMeaningful =
+      remainingAfterYear.length > 1 ||
+      (remainingAfterYear.length === 1 && !/^[Ii]$/.test(remainingAfterYear));
+
+    if (isMeaningful) {
+      // Safe to extract year - there's still a meaningful title left
+      result.year = yearResult.year;
+      text = yearResult.remainingText;
+    }
+    // Otherwise, keep the year as part of the title (it IS the title, like "2046")
   }
 
-  // 8. Remaining text is the title
-  result.title = text.trim();
+  // 8. Clean up and set the title
+  result.title = cleanupTitle(text);
 
   // Adjust confidence based on extracted information
   if (!result.title) {
@@ -118,8 +140,54 @@ export function parseWatchNote(rawText: string, capturedAt: string): ParsedWatch
   } else if (result.type === 'movie' && result.year) {
     result.confidence = 'high';
   }
+  // Note: 'infer_from_search' with a valid title keeps 'medium' confidence - this is correct
 
   return result;
+}
+
+/**
+ * Clean up extracted title text
+ *
+ * Removes parsing artifacts while preserving legitimate title patterns like "I Am Legend", "I, Robot"
+ */
+function cleanupTitle(text: string): string {
+  // Clean up multiple spaces first (artifacts from multiple regex removals)
+  text = text.replace(/\s{2,}/g, ' ').trim();
+
+  // Remove trailing filler words
+  text = text.replace(/\s+(before|again)$/i, '').trim();
+
+  // Remove "all the" / "all of the" prefix (for franchise patterns like "all the matrix movies")
+  text = text.replace(/^all\s+(of\s+)?the\s+/i, '').trim();
+
+  // Remove leading "I " ONLY if it's a parsing artifact, not part of a real title
+  // Real titles starting with "I": "I Am Legend", "I, Robot", "I Know What You Did..."
+  // Artifact: "I Chungking Express" (leftover from "I watched Chungking Express")
+  //
+  // Safe rule: Remove "I " only if followed by a word that is NOT:
+  // - A verb that commonly follows "I" in titles (Am, Was, Know, Think, Love, etc.)
+  // - A comma (I,)
+  const titleStartingPatterns =
+    /^I\s+(Am|Was|Were|Know|Think|Love|Can|Could|Will|Would|Have|Had|Do|Did|Want|Need|See|Saw|Remember|Wish|Hope|Believe|,)/i;
+
+  if (text.match(/^I\s+/i) && !text.match(titleStartingPatterns)) {
+    const afterI = text.slice(2).trim();
+    if (afterI.length > 0) {
+      // Remove the leading "I" if what follows is:
+      // - A word starting with uppercase letter (proper noun/title like "Chungking Express")
+      // - A number (like "2046" - a movie title)
+      const firstChar = afterI[0];
+      const isUppercase =
+        firstChar === firstChar.toUpperCase() && firstChar !== firstChar.toLowerCase();
+      const isNumber = /^\d/.test(afterI);
+
+      if (isUppercase || isNumber) {
+        text = afterI;
+      }
+    }
+  }
+
+  return text.trim();
 }
 
 /**

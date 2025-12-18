@@ -169,15 +169,36 @@ describe('BulkSummaryBuilder', () => {
       expect(summary.entries[0].error).toContain('missing title');
     });
 
-    it('should handle unknown content type', async () => {
+    it('should handle infer_from_search type by searching without type filter', async () => {
+      const mockSearchResult = [
+        {
+          score: 100,
+          movie: {
+            title: 'Something',
+            year: 2020,
+            ids: { trakt: 12345, slug: 'something', imdb: 'tt123', tmdb: 123 },
+          },
+        },
+      ];
+      mockClient.search.mockResolvedValue(mockSearchResult);
+
       const entries = [
-        { rawText: 'watched something', parsed: createParsedEntry({ type: 'unknown' }) },
+        {
+          rawText: 'watched something',
+          parsed: createParsedEntry({ title: 'Something', type: 'infer_from_search' }),
+        },
       ];
 
       const summary = await builder.buildSummary(entries);
 
-      expect(summary.errors).toBe(1);
-      expect(summary.entries[0].error).toContain('Unknown content type');
+      // 'infer_from_search' type uses type-less search, letting Trakt determine the type
+      expect(summary.resolved).toBe(1);
+      expect(summary.errors).toBe(0);
+      expect(summary.entries[0].matches?.[0].type).toBe('movie');
+      // Verify search was called without type filter (undefined for type)
+      expect(mockClient.search).toHaveBeenCalledWith('Something', undefined, undefined, {
+        toolName: 'bulk_summary',
+      });
     });
 
     it('should limit matches to top 3', async () => {
@@ -232,7 +253,8 @@ describe('BulkSummaryBuilder', () => {
       expect(summary.entries[0].matches?.[0].type).toBe('show');
     });
 
-    it('should include genres and overview in matches', async () => {
+    it('should return minimal match data (title, year, traktId, type)', async () => {
+      // Note: genres, overview, score are intentionally stripped to reduce token cost
       const mockSearchResult = [
         {
           score: 100,
@@ -253,9 +275,14 @@ describe('BulkSummaryBuilder', () => {
       const summary = await builder.buildSummary(entries);
 
       const match = summary.entries[0].matches?.[0];
-      expect(match?.genres).toEqual(['Sci-Fi', 'Drama', 'Adventure']);
-      expect(match?.overview).toContain('noble family');
-      expect(match?.score).toBe(100);
+      expect(match?.title).toBe('Dune');
+      expect(match?.year).toBe(2021);
+      expect(match?.traktId).toBe(12345);
+      expect(match?.type).toBe('movie');
+      // Verbose fields are stripped to reduce token cost
+      expect(match?.genres).toBeUndefined();
+      expect(match?.overview).toBeUndefined();
+      expect(match?.score).toBeUndefined();
     });
   });
 
