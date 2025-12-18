@@ -26,7 +26,6 @@ Quick links by topic. All paths are relative to `docs/`.
 
 ## Policies & Security
 - `../SECURITY.md` — Security policy
-- `../CODE_OF_CONDUCT.md` — Code of conduct
 - `policies/SECURITY_INVESTIGATION.md` — Security investigation log
 - `policies/audit-report.json` — Latest audit output
 
@@ -90,6 +89,5 @@ If you add a new doc, drop a link in the relevant section above and keep the tit
 
 ---
 
-**Last Updated:** 2025-12-14
-**Documentation Version:** 2.2.0 (Reorg & E2E)
-**Maintained By:** Development Team
+**Last Updated:** 2025-12-18
+**Documentation Version:** 2.3.0

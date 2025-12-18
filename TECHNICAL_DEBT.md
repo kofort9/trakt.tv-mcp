@@ -9,10 +9,15 @@ Source of truth for temporary dependency pins, workarounds, and technical debt i
 - **Interactive CLI for logwatch sync:** Current sync is MCP-only; add full interactive CLI with prompts, date correction, and progress display
 - **Enhanced disambiguation UX:** Add poster images and taglines (requires additional API calls)
 - **Increase pagination limit in duplicate detector:** For power users with large watch histories, consider increasing default pagination limit beyond 1 page
+- **Typo/fuzzy matching tests:** Add explicit test cases for misspelled titles to verify parser robustness (e.g., "carribbean" vs "caribbean")
+- **Rate limiting edge cases:** Current tests mock at axios level, bypassing interceptor chain; add tests that exercise full interceptor chain with rate limit responses
+- **Concurrent queue file access:** No tests for multiple processes accessing queue file simultaneously; add concurrency tests for queue operations
+- **Archive operation coverage:** Limited testing of archive file creation/restoration; expand test coverage for archive functionality
 
 ### Nice to Have
 
 - **Cache search results within bulk operations:** When processing multiple entries, cache search results to avoid redundant API calls for the same title
+- **_retryCount initialization micro-optimization:** Considered moving `_retryCount` initialization from request interceptor to one-time constructor setup; decided against due to negligible performance impact and added complexity (nullish coalescing check is essentially free)
 
 
 ## Dependency Pins
@@ -65,4 +70,4 @@ To prevent future dependency pin accumulation:
 
 ---
 
-**Last Updated**: 2025-12-16
+**Last Updated**: 2025-12-18

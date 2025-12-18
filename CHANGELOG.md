@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **ADR-002**: Interactive state machine design for async queue confirmation workflow
+- **Observability for Queue Tools**: All queue tools now wrapped with `traceToolCall()` for Langfuse visibility
+- **Defensive Retry Initialization**: `_retryCount` now initialized in request interceptor to prevent edge-case crashes
+- **Smart Auto-Confirm**: Entries with 0 search results now skipped (not failed) for manual review
+- **Search-First Parser Philosophy**: NL parser now uses `infer_from_search` type, letting Trakt API determine content type
+- **Title Cleanup Logic**: Parser handles edge cases like "I Am Legend", numeric titles ("2046"), and parsing artifacts
+- **Optimized Queue Tools**: New focused tools for efficient queue management with 50-70% token cost reduction
+  - `queue_status`: Quick count of pending/synced/failed entries (~200 tokens)
+  - `queue_preview`: Dry-run summary with pagination support (~300 tokens)
+  - `queue_auto_sync`: Batch sync unambiguous entries (~250 tokens)
+  - `queue_confirm`: Single entry action for interactive disambiguation (~350 tokens)
+- **Token Cost Optimizations**: Compressed response payloads across all queue tools
+  - Search results limited to top 3 matches (down from 10)
+  - Verbose fields removed (genres, overview, score) from disambiguation
+  - Franchise hints only included when detected (not empty by default)
+  - New `minimalOutput` flag for `sync_logwatch_queue` (counts only, no tables)
+- **Queue Tools Documentation**: Comprehensive guide with recommended workflows, examples, and migration path ([docs/guides/QUEUE_TOOLS.md](docs/guides/QUEUE_TOOLS.md))
+- **ADR-001**: Architecture decision record documenting token optimization rationale and design decisions
 - **Enhanced Disambiguation**: Top 3 matches with genres, overview, and relevance scores for better content identification
 - **Preview Mode**: `preview` parameter for `log_watch` and `bulk_log` to review before syncing to Trakt
 - **Duplicate Detection**: Automatic check for recent logs (48-hour window) with `allowDuplicates` override for rewatches
@@ -15,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Natural Language Parser**: Comprehensive parser for offline watch notes supporting temporal modifiers, recall patterns, and date expressions
 - **Enhanced Queue Model**: Extended status tracking (pending/synced/failed/skipped), resolved content caching, and archive support
 - **Queue Sync Tool**: `sync_logwatch_queue` MCP tool to process offline watch logs with auto-confirm and dry-run modes
-- Public-facing community docs: CODE_OF_CONDUCT, SECURITY, SUPPORT, plus issue/PR templates
+- Public-facing docs: SECURITY, plus issue/PR templates
 - Manual E2E NL queue plan (offline capture → resolve/sync) with optional Slack append-to-queue flow
 - Node version enforcement helpers: `.nvmrc`, `engine-strict` (`.npmrc`), and preinstall version guard
 - Comprehensive natural language date parsing support
@@ -42,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Opt-in Trakt E2E suite (`tests/e2e`) plus `npm run auth:trakt` helper to seed tokens; GitHub Action (`e2e.yml`) for manual/scheduled live runs.
 
 ### Changed
+- **README Cleanup**: Streamlined for personal project - removed CODE_OF_CONDUCT/SUPPORT, fixed GitHub username, emphasized AI integration
 - **Disambiguation responses**: Now limited to top 3 matches with rich metadata (genres, overview, scores) for clearer selection
 - **Search API**: Now requests extended data by default for better disambiguation
 - **Watch queue**: Expanded from append-only to full lifecycle management with status tracking and archiving
@@ -123,6 +142,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Links
 
-- [GitHub Repository](https://github.com/kofifort/trakt.tv-mcp)
+- [GitHub Repository](https://github.com/kofort9/trakt.tv-mcp)
 - [Trakt.tv API Documentation](https://trakt.docs.apiary.io/)
 - [MCP Protocol Specification](https://modelcontextprotocol.io/)

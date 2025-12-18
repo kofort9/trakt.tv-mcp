@@ -2,6 +2,13 @@
 
 Use this folder to capture design decisions that affect the Trakt MCP server.
 
+## Index
+
+| ADR | Title | Status | Date |
+|-----|-------|--------|------|
+| [ADR-001](./ADR-001-queue-sync-token-optimization.md) | Token Cost Optimization for Queue Sync | Accepted | 2025-12-17 |
+| [ADR-002](./ADR-002-interactive-state-machine.md) | Interactive State Machine for Queue Sync | Proposed | 2025-12-17 |
+
 ## Template
 
 Copy the outline below into a new file named `ADR-<number>-<slug>.md`:

@@ -1112,11 +1112,33 @@ export async function syncLogwatchQueue(
     dryRun?: boolean;
     autoConfirm?: boolean;
     showSummary?: boolean;
+    minimalOutput?: boolean;
+    entryId?: string;
+    action?: 'confirm' | 'skip' | 'fail';
+    entryIndex?: number;
+    // For confirm action - specify which search result to use
+    selectedTraktId?: number;
+    selectedType?: 'movie' | 'episode';
+    // Allow duplicate entries (for rewatches)
+    allowDuplicates?: boolean;
   }
 ): Promise<ToolSuccess | ToolError> {
   try {
-    const { queuePath, dryRun = false, autoConfirm = false, showSummary = false } = args;
+    const {
+      queuePath,
+      dryRun = false,
+      autoConfirm = false,
+      showSummary = false,
+      minimalOutput = false,
+      entryId,
+      action,
+      entryIndex = 0,
+      selectedTraktId,
+      selectedType,
+      allowDuplicates = false,
+    } = args;
     const toolName = 'sync_logwatch_queue';
+    const duplicateDetector = new DuplicateDetector(client);
 
     const queue = queuePath ? new WatchLogQueue(queuePath) : new WatchLogQueue();
     const pending = await queue.getPending();
@@ -1142,8 +1164,23 @@ export async function syncLogwatchQueue(
     if (showSummary || dryRun) {
       const summaryBuilder = new BulkSummaryBuilder(client);
       const summary = await summaryBuilder.buildSummary(parsedEntries);
-      const table = summaryBuilder.formatTable(summary);
 
+      // Return minimal output if requested
+      if (minimalOutput) {
+        return createToolSuccess({
+          action_required: 'review',
+          totalEntries: pending.length,
+          resolved: summary.resolved,
+          ambiguous: summary.ambiguous,
+          notFound: summary.notFound,
+          errors: summary.errors,
+          canProceed: summary.errors === 0,
+          message: `Summary: ${summary.resolved} resolved, ${summary.ambiguous} ambiguous, ${summary.notFound} not found, ${summary.errors} errors`,
+        });
+      }
+
+      // Return full output with table
+      const table = summaryBuilder.formatTable(summary);
       return createToolSuccess({
         action_required: 'review',
         summary,
@@ -1154,16 +1191,295 @@ export async function syncLogwatchQueue(
       });
     }
 
-    // For non-auto mode, return first entry for confirmation
+    // Handle interactive mode action
+    if (entryId && action) {
+      const entry = parsedEntries.find((e) => e.id === entryId);
+      if (!entry) {
+        return createToolError('ENTRY_NOT_FOUND', `Entry with id ${entryId} not found`);
+      }
+
+      if (action === 'skip') {
+        await queue.markSkipped(entryId);
+        const nextIndex = parsedEntries.findIndex((e) => e.id === entryId) + 1;
+
+        if (nextIndex < parsedEntries.length) {
+          return createToolSuccess({
+            action_required: 'confirm_entry',
+            currentEntry: parsedEntries[nextIndex],
+            currentIndex: nextIndex,
+            remaining: parsedEntries.length - nextIndex - 1,
+            totalEntries: parsedEntries.length,
+            message: `Entry skipped. Moving to next entry (${nextIndex + 1}/${parsedEntries.length}).`,
+          });
+        } else {
+          return createToolSuccess({
+            synced: 0,
+            failed: 0,
+            skipped: 1,
+            totalProcessed: 1,
+            message: 'Entry skipped. No more entries to process.',
+          });
+        }
+      }
+
+      if (action === 'fail') {
+        await queue.markFailed(entryId, 'Manually marked as failed');
+        const nextIndex = parsedEntries.findIndex((e) => e.id === entryId) + 1;
+
+        if (nextIndex < parsedEntries.length) {
+          return createToolSuccess({
+            action_required: 'confirm_entry',
+            currentEntry: parsedEntries[nextIndex],
+            currentIndex: nextIndex,
+            remaining: parsedEntries.length - nextIndex - 1,
+            totalEntries: parsedEntries.length,
+            message: `Entry marked as failed. Moving to next entry (${nextIndex + 1}/${parsedEntries.length}).`,
+          });
+        } else {
+          return createToolSuccess({
+            synced: 0,
+            failed: 1,
+            skipped: 0,
+            totalProcessed: 1,
+            message: 'Entry marked as failed. No more entries to process.',
+          });
+        }
+      }
+
+      if (action === 'confirm') {
+        // Confirm action requires selectedTraktId and selectedType
+        if (!selectedTraktId || !selectedType) {
+          return createToolError(
+            'VALIDATION_ERROR',
+            'Confirm action requires selectedTraktId and selectedType parameters. ' +
+              'Use the searchResults from the previous response to select content.'
+          );
+        }
+
+        const parsed = entry.parsed;
+        const watchedAt = parsed.watchedAt || new Date().toISOString();
+
+        // Check for duplicates unless explicitly allowed
+        if (!allowDuplicates) {
+          const duplicateCheck = await duplicateDetector.checkRecent({
+            type: selectedType,
+            traktId: selectedTraktId,
+            season: parsed.season,
+            episode: parsed.episode,
+          });
+
+          if (duplicateCheck.isDuplicate) {
+            const watchedDate = duplicateCheck.watchedAt
+              ? new Date(duplicateCheck.watchedAt).toLocaleDateString()
+              : 'recently';
+            return createToolError(
+              'DUPLICATE_ENTRY',
+              `Already logged this content on ${watchedDate}. Use allowDuplicates: true to log it again (for rewatches).`,
+              { existingEntry: duplicateCheck.existingEntry }
+            );
+          }
+        }
+
+        try {
+          if (selectedType === 'movie') {
+            const historyData = {
+              movies: [
+                {
+                  watched_at: watchedAt,
+                  ids: { trakt: selectedTraktId },
+                },
+              ],
+            };
+            await client.addToHistory(historyData, { toolName });
+          } else if (selectedType === 'episode') {
+            if (!parsed.season || !parsed.episode) {
+              return createToolError(
+                'VALIDATION_ERROR',
+                'Episode confirmation requires season and episode numbers in the original entry.'
+              );
+            }
+            const historyData = {
+              shows: [
+                {
+                  watched_at: watchedAt,
+                  ids: { trakt: selectedTraktId },
+                  seasons: [
+                    {
+                      number: parsed.season,
+                      episodes: [{ number: parsed.episode }],
+                    },
+                  ],
+                },
+              ],
+            };
+            await client.addToHistory(historyData, { toolName });
+          }
+
+          await queue.markSynced(entryId, {
+            type: selectedType,
+            traktId: selectedTraktId,
+            title: entry.rawText,
+            season: parsed.season,
+            episode: parsed.episode,
+          });
+
+          const nextIndex = parsedEntries.findIndex((e) => e.id === entryId) + 1;
+
+          if (nextIndex < parsedEntries.length) {
+            return createToolSuccess({
+              action_required: 'confirm_entry',
+              currentEntry: parsedEntries[nextIndex],
+              currentIndex: nextIndex,
+              remaining: parsedEntries.length - nextIndex - 1,
+              totalEntries: parsedEntries.length,
+              message: `Entry confirmed and synced. Moving to next entry (${nextIndex + 1}/${parsedEntries.length}).`,
+            });
+          } else {
+            return createToolSuccess({
+              synced: 1,
+              failed: 0,
+              skipped: 0,
+              totalProcessed: 1,
+              message: 'Entry confirmed and synced. No more entries to process.',
+            });
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          await queue.markFailed(entryId, errorMessage);
+          return createToolError('SYNC_ERROR', `Failed to sync entry: ${errorMessage}`);
+        }
+      }
+    }
+
+    // For non-auto mode, return entry at specified index for confirmation
     // Claude will guide user through each entry interactively
     if (!autoConfirm) {
-      const firstEntry = parsedEntries[0];
+      // Validate entryIndex
+      if (entryIndex < 0 || entryIndex >= parsedEntries.length) {
+        return createToolError(
+          'VALIDATION_ERROR',
+          `entryIndex must be between 0 and ${parsedEntries.length - 1}, got ${entryIndex}`
+        );
+      }
+      const currentEntry = parsedEntries[entryIndex];
+
+      // Search for the entry to provide disambiguation hints
+      const parsed = currentEntry.parsed;
+      let searchResults = null;
+      let searchError: string | undefined;
+      let searchType: 'show' | 'movie' | undefined = undefined;
+
+      if (parsed.title) {
+        if (parsed.type === 'episode') {
+          searchType = 'show';
+        } else if (parsed.type === 'movie') {
+          searchType = 'movie';
+        }
+        // Note: If type is 'unknown', searchType is undefined which searches both movies and shows
+
+        // Perform search (without type filter if type is unknown)
+        try {
+          searchResults = await client.search(parsed.title, searchType, parsed.year, {
+            toolName,
+          });
+        } catch (error) {
+          // Capture search error for response instead of silently ignoring
+          searchError = error instanceof Error ? error.message : String(error);
+        }
+      }
+
+      // Detect potential franchise patterns
+      let franchiseHint: {
+        detected: boolean;
+        items?: Array<{ title: string; year?: number; type: string; traktId?: number }>;
+        message?: string;
+      } = { detected: false };
+
+      if (searchResults && Array.isArray(searchResults) && searchResults.length > 1) {
+        // Extract unique content items from search results
+        const contentItems = searchResults
+          .slice(0, 10)
+          .map((r) => {
+            if (r.movie) {
+              return {
+                title: r.movie.title,
+                year: r.movie.year,
+                type: 'movie',
+                traktId: r.movie.ids?.trakt,
+              };
+            } else if (r.show) {
+              return {
+                title: r.show.title,
+                year: r.show.year,
+                type: 'show',
+                traktId: r.show.ids?.trakt,
+              };
+            }
+            return null;
+          })
+          .filter(Boolean) as Array<{
+          title: string;
+          year?: number;
+          type: string;
+          traktId?: number;
+        }>;
+
+        // Check if this looks like a franchise (multiple distinct items with same base title)
+        const searchTitle = parsed.title.toLowerCase();
+        const matchingItems = contentItems.filter(
+          (item) =>
+            item.title.toLowerCase().includes(searchTitle) ||
+            searchTitle.includes(item.title.toLowerCase())
+        );
+
+        // If multiple distinct items match, this might be a franchise
+        const uniqueByYearAndTitle = new Map<string, (typeof matchingItems)[0]>();
+        for (const item of matchingItems) {
+          const key = `${item.title}:${item.year}`;
+          if (!uniqueByYearAndTitle.has(key)) {
+            uniqueByYearAndTitle.set(key, item);
+          }
+        }
+
+        if (uniqueByYearAndTitle.size > 1) {
+          franchiseHint = {
+            detected: true,
+            items: Array.from(uniqueByYearAndTitle.values()),
+            message: `Found ${uniqueByYearAndTitle.size} related titles. This may be a franchise - you can log multiple items.`,
+          };
+        }
+      }
+
+      const message = searchError
+        ? `Entry ${entryIndex + 1}/${parsedEntries.length} - search failed: ${searchError}`
+        : `Ready to process ${parsedEntries.length} entries. Entry ${entryIndex + 1}/${parsedEntries.length} requires confirmation.`;
+
+      // Limit and compress search results (top 3 only, strip verbose fields)
+      const compressedSearchResults = Array.isArray(searchResults)
+        ? searchResults.slice(0, 3).map((r) => {
+            const content = r.movie || r.show;
+            return {
+              traktId: content?.ids?.trakt,
+              title: content?.title,
+              year: content?.year,
+              type: r.movie ? 'movie' : 'show',
+            };
+          })
+        : [];
+
       return createToolSuccess({
         action_required: 'confirm_entry',
-        currentEntry: firstEntry,
-        remaining: parsedEntries.length - 1,
+        currentEntry,
+        currentIndex: entryIndex,
+        remaining: parsedEntries.length - entryIndex - 1,
         totalEntries: parsedEntries.length,
-        message: `Ready to process ${parsedEntries.length} entries. First entry requires confirmation. Use the parsed data to search and log, then mark as synced/failed/skipped.`,
+        searchResults: compressedSearchResults,
+        searchError,
+        franchiseHint:
+          franchiseHint.detected && franchiseHint.items && franchiseHint.items.length > 1
+            ? franchiseHint
+            : undefined,
+        message,
       });
     }
 
@@ -1172,6 +1488,7 @@ export async function syncLogwatchQueue(
     let failed = 0;
     let skipped = 0;
     const results = [];
+    const ambiguousEntries = [];
 
     for (const entry of parsedEntries) {
       try {
@@ -1189,36 +1506,134 @@ export async function syncLogwatchQueue(
           continue;
         }
 
-        // Search for content
-        const searchType =
+        // Search for content - allow type-less search if type is unknown
+        let searchType: 'show' | 'movie' | undefined =
           parsed.type === 'episode' ? 'show' : parsed.type === 'movie' ? 'movie' : undefined;
-        if (!searchType) {
-          await queue.markFailed(entry.id, 'Unknown content type');
-          failed++;
-          results.push({ id: entry.id, status: 'failed', reason: 'Unknown content type' });
-          continue;
-        }
 
         const searchResults = await client.search(parsed.title, searchType, parsed.year, {
           toolName,
         });
 
+        // Smart auto-confirm: Skip (not fail) on 0 results so entry needs attention
         if (!Array.isArray(searchResults) || searchResults.length === 0) {
-          await queue.markFailed(entry.id, 'No search results');
-          failed++;
-          results.push({ id: entry.id, status: 'failed', reason: 'No search results' });
+          await queue.markSkipped(entry.id);
+          skipped++;
+          results.push({
+            id: entry.id,
+            status: 'skipped',
+            reason: 'No search results - needs manual review',
+          });
           continue;
         }
 
-        // Auto-select first result (simplified - full version would need disambiguation)
+        // If type was unknown, try to infer from search results
+        let inferredType: 'movie' | 'show' | undefined;
+        if (!searchType) {
+          const firstResult = searchResults[0];
+          if (firstResult.movie) {
+            inferredType = 'movie';
+          } else if (firstResult.show) {
+            // For shows, we need episode info - skip if not available
+            if (!parsed.season || !parsed.episode) {
+              await queue.markSkipped(entry.id);
+              skipped++;
+              results.push({
+                id: entry.id,
+                status: 'skipped',
+                reason: 'Show found but no episode info in entry',
+              });
+              continue;
+            }
+            inferredType = 'show';
+          }
+        }
+        const effectiveType = searchType || inferredType;
+
+        // Check for ambiguous results (multiple matches with different IDs)
+        // Extract unique content IDs from search results
+        const uniqueIds = new Set(
+          searchResults
+            .map((result) => {
+              const content = effectiveType === 'show' ? result.show : result.movie;
+              return content?.ids?.trakt;
+            })
+            .filter(Boolean)
+        );
+
+        // Smart auto-confirm: Skip (not guess) on 2+ matches so entry needs attention
+        if (uniqueIds.size > 1) {
+          await queue.markSkipped(entry.id);
+          skipped++;
+
+          // Extract year range and titles for better context
+          const matchedContent = searchResults
+            .slice(0, 5)
+            .map((result) => {
+              const content = effectiveType === 'show' ? result.show : result.movie;
+              return content
+                ? { title: content.title, year: content.year, traktId: content.ids?.trakt }
+                : null;
+            })
+            .filter(Boolean);
+
+          const years = matchedContent.map((c) => c?.year).filter(Boolean) as number[];
+          const yearRange =
+            years.length > 0
+              ? years.length === 1
+                ? String(years[0])
+                : `${Math.min(...years)}-${Math.max(...years)}`
+              : undefined;
+
+          ambiguousEntries.push({
+            id: entry.id,
+            rawText: entry.rawText,
+            matchCount: uniqueIds.size,
+            yearRange,
+            matches: matchedContent,
+            hint: yearRange
+              ? `Multiple matches found (years: ${yearRange}). Add year to disambiguate.`
+              : 'Multiple matches found with same name.',
+          });
+          results.push({
+            id: entry.id,
+            status: 'skipped',
+            reason: `Ambiguous - ${uniqueIds.size} matches${yearRange ? ` (${yearRange})` : ''}`,
+            matchCount: uniqueIds.size,
+          });
+          continue;
+        }
+
+        // Auto-select first result (now safe since we've checked for ambiguity)
         const firstResult = searchResults[0];
-        const content = searchType === 'show' ? firstResult.show : firstResult.movie;
+        const content = effectiveType === 'show' ? firstResult.show : firstResult.movie;
 
         if (!content) {
           await queue.markFailed(entry.id, 'Missing content data');
           failed++;
           results.push({ id: entry.id, status: 'failed', reason: 'Missing content data' });
           continue;
+        }
+
+        // Check for duplicates unless explicitly allowed
+        if (!allowDuplicates) {
+          const duplicateCheck = await duplicateDetector.checkRecent({
+            type: effectiveType === 'show' ? 'episode' : 'movie',
+            traktId: content.ids.trakt,
+            season: parsed.season,
+            episode: parsed.episode,
+          });
+
+          if (duplicateCheck.isDuplicate) {
+            await queue.markSkipped(entry.id);
+            skipped++;
+            results.push({
+              id: entry.id,
+              status: 'skipped',
+              reason: 'Duplicate - already in history',
+              existingWatchedAt: duplicateCheck.watchedAt,
+            });
+            continue;
+          }
         }
 
         // Log to Trakt
@@ -1291,11 +1706,502 @@ export async function syncLogwatchQueue(
         totalProcessed: parsedEntries.length,
         archivePath,
         results,
+        ambiguousEntries: ambiguousEntries.length > 0 ? ambiguousEntries : undefined,
       },
-      `Synced ${synced}/${parsedEntries.length} entries. Failed: ${failed}, Skipped: ${skipped}. Archived to ${archivePath}`
+      `Synced ${synced}/${parsedEntries.length} entries. Failed: ${failed}, Skipped: ${skipped}${ambiguousEntries.length > 0 ? ` (${ambiguousEntries.length} ambiguous)` : ''}. Archived to ${archivePath}`
     );
   } catch (error) {
     const message = sanitizeError(error, 'syncLogwatchQueue');
     return createToolError('SYNC_ERROR', message);
+  }
+}
+
+/**
+ * Get quick status counts from the queue
+ *
+ * Lightweight tool for checking queue status without loading full entries.
+ */
+export async function queueStatus(args: { queuePath?: string }): Promise<ToolSuccess | ToolError> {
+  try {
+    const { queuePath } = args;
+    const queue = queuePath ? new WatchLogQueue(queuePath) : new WatchLogQueue();
+    const allEntries = await queue.list();
+
+    const pending = allEntries.filter((e) => e.status === 'pending').length;
+    const synced = allEntries.filter((e) => e.status === 'synced').length;
+    const failed = allEntries.filter((e) => e.status === 'failed').length;
+    const skipped = allEntries.filter((e) => e.status === 'skipped').length;
+
+    return createToolSuccess({
+      total: allEntries.length,
+      pending,
+      synced,
+      failed,
+      skipped,
+      queuePath: queue.getQueueFilePath(),
+    });
+  } catch (error) {
+    const message = sanitizeError(error, 'queueStatus');
+    return createToolError('QUEUE_ERROR', message);
+  }
+}
+
+/**
+ * Preview queue entries with summary table
+ *
+ * Dry-run mode that shows what would be synced without making changes.
+ * Supports pagination for large queues.
+ */
+export async function queuePreview(
+  client: TraktClient,
+  args: {
+    queuePath?: string;
+    limit?: number;
+  }
+): Promise<ToolSuccess | ToolError> {
+  try {
+    const { queuePath, limit } = args;
+    const queue = queuePath ? new WatchLogQueue(queuePath) : new WatchLogQueue();
+    const pending = await queue.getPending();
+
+    if (pending.length === 0) {
+      return createToolSuccess({
+        totalPending: 0,
+        message: 'No pending entries in queue',
+      });
+    }
+
+    // Apply limit if specified
+    const entriesToPreview = limit && limit > 0 ? pending.slice(0, limit) : pending;
+    const hasMore = limit && limit > 0 && pending.length > limit;
+
+    // Parse entries
+    const parsedEntries = entriesToPreview.map((entry) => ({
+      id: entry.id,
+      rawText: entry.rawText,
+      capturedAt: entry.capturedAt,
+      parsed: parseWatchNote(entry.rawText, entry.capturedAt),
+    }));
+
+    // Build summary
+    const summaryBuilder = new BulkSummaryBuilder(client);
+    const summary = await summaryBuilder.buildSummary(parsedEntries);
+    const table = summaryBuilder.formatTable(summary);
+
+    return createToolSuccess({
+      summary,
+      formattedTable: table,
+      totalPending: pending.length,
+      showing: entriesToPreview.length,
+      hasMore,
+      canProceed: summary.errors === 0,
+      message: `Preview: ${summary.resolved} resolved, ${summary.ambiguous} ambiguous, ${summary.notFound} not found, ${summary.errors} errors${hasMore ? ` (showing ${entriesToPreview.length}/${pending.length})` : ''}`,
+    });
+  } catch (error) {
+    const message = sanitizeError(error, 'queuePreview');
+    return createToolError('PREVIEW_ERROR', message);
+  }
+}
+
+/**
+ * Auto-sync unambiguous queue entries
+ *
+ * Batch processes entries with exactly one match, skips ambiguous/duplicates.
+ */
+export async function queueAutoSync(
+  client: TraktClient,
+  args: {
+    queuePath?: string;
+    allowDuplicates?: boolean;
+  }
+): Promise<ToolSuccess | ToolError> {
+  try {
+    const { queuePath, allowDuplicates = false } = args;
+    const toolName = 'queue_auto_sync';
+    const duplicateDetector = new DuplicateDetector(client);
+
+    const queue = queuePath ? new WatchLogQueue(queuePath) : new WatchLogQueue();
+    const pending = await queue.getPending();
+
+    if (pending.length === 0) {
+      return createToolSuccess({
+        synced: 0,
+        failed: 0,
+        skipped: 0,
+        message: 'No pending entries to sync',
+      });
+    }
+
+    // Parse all entries
+    const parsedEntries = pending.map((entry) => ({
+      id: entry.id,
+      rawText: entry.rawText,
+      capturedAt: entry.capturedAt,
+      parsed: parseWatchNote(entry.rawText, entry.capturedAt),
+    }));
+
+    // Auto-confirm mode: process all entries
+    let synced = 0;
+    let failed = 0;
+    let skipped = 0;
+    const results = [];
+    const ambiguousEntries = [];
+
+    for (const entry of parsedEntries) {
+      try {
+        const parsed = entry.parsed;
+
+        // Skip entries with low confidence or no title
+        if (parsed.confidence === 'low' || !parsed.title) {
+          await queue.markSkipped(entry.id);
+          skipped++;
+          results.push({
+            id: entry.id,
+            status: 'skipped',
+            reason: 'Low confidence or missing title',
+          });
+          continue;
+        }
+
+        // Search for content
+        let searchType: 'show' | 'movie' | undefined =
+          parsed.type === 'episode' ? 'show' : parsed.type === 'movie' ? 'movie' : undefined;
+
+        const searchResults = await client.search(parsed.title, searchType, parsed.year, {
+          toolName,
+        });
+
+        // Smart auto-confirm: Skip (not fail) on 0 results so entry needs attention
+        if (!Array.isArray(searchResults) || searchResults.length === 0) {
+          await queue.markSkipped(entry.id);
+          skipped++;
+          results.push({
+            id: entry.id,
+            status: 'skipped',
+            reason: 'No search results - needs manual review',
+          });
+          continue;
+        }
+
+        // If type was unknown, try to infer from search results
+        let inferredType: 'movie' | 'show' | undefined;
+        if (!searchType) {
+          const firstResult = searchResults[0];
+          if (firstResult.movie) {
+            inferredType = 'movie';
+          } else if (firstResult.show) {
+            if (!parsed.season || !parsed.episode) {
+              await queue.markSkipped(entry.id);
+              skipped++;
+              results.push({
+                id: entry.id,
+                status: 'skipped',
+                reason: 'Show found but no episode info in entry',
+              });
+              continue;
+            }
+            inferredType = 'show';
+          }
+        }
+        const effectiveType = searchType || inferredType;
+
+        // Check for ambiguous results
+        const uniqueIds = new Set(
+          searchResults
+            .map((result) => {
+              const content = effectiveType === 'show' ? result.show : result.movie;
+              return content?.ids?.trakt;
+            })
+            .filter(Boolean)
+        );
+
+        // Smart auto-confirm: Skip (not guess) on 2+ matches so entry needs attention
+        if (uniqueIds.size > 1) {
+          await queue.markSkipped(entry.id);
+          skipped++;
+
+          const matchedContent = searchResults
+            .slice(0, 5)
+            .map((result) => {
+              const content = effectiveType === 'show' ? result.show : result.movie;
+              return content
+                ? { title: content.title, year: content.year, traktId: content.ids?.trakt }
+                : null;
+            })
+            .filter(Boolean);
+
+          const years = matchedContent.map((c) => c?.year).filter(Boolean) as number[];
+          const yearRange =
+            years.length > 0
+              ? years.length === 1
+                ? String(years[0])
+                : `${Math.min(...years)}-${Math.max(...years)}`
+              : undefined;
+
+          ambiguousEntries.push({
+            id: entry.id,
+            rawText: entry.rawText,
+            matchCount: uniqueIds.size,
+            yearRange,
+            matches: matchedContent,
+          });
+          results.push({
+            id: entry.id,
+            status: 'skipped',
+            reason: `Ambiguous - ${uniqueIds.size} matches${yearRange ? ` (${yearRange})` : ''}`,
+          });
+          continue;
+        }
+
+        // Auto-select first result
+        const firstResult = searchResults[0];
+        const content = effectiveType === 'show' ? firstResult.show : firstResult.movie;
+
+        if (!content) {
+          await queue.markFailed(entry.id, 'Missing content data');
+          failed++;
+          results.push({ id: entry.id, status: 'failed', reason: 'Missing content data' });
+          continue;
+        }
+
+        // Check for duplicates unless explicitly allowed
+        if (!allowDuplicates) {
+          const duplicateCheck = await duplicateDetector.checkRecent({
+            type: effectiveType === 'show' ? 'episode' : 'movie',
+            traktId: content.ids.trakt,
+            season: parsed.season,
+            episode: parsed.episode,
+          });
+
+          if (duplicateCheck.isDuplicate) {
+            await queue.markSkipped(entry.id);
+            skipped++;
+            results.push({
+              id: entry.id,
+              status: 'skipped',
+              reason: 'Duplicate - already in history',
+            });
+            continue;
+          }
+        }
+
+        // Log to Trakt
+        const watchedAt = parsed.watchedAt || new Date().toISOString();
+
+        if (effectiveType === 'movie') {
+          const historyData = {
+            movies: [
+              {
+                watched_at: watchedAt,
+                ids: { trakt: content.ids.trakt },
+              },
+            ],
+          };
+          await client.addToHistory(historyData, { toolName });
+        } else if (effectiveType === 'show') {
+          if (!parsed.season || !parsed.episode) {
+            await queue.markFailed(entry.id, 'Missing episode info');
+            failed++;
+            results.push({ id: entry.id, status: 'failed', reason: 'Missing episode info' });
+            continue;
+          }
+          const historyData = {
+            shows: [
+              {
+                watched_at: watchedAt,
+                ids: { trakt: content.ids.trakt },
+                seasons: [
+                  {
+                    number: parsed.season,
+                    episodes: [{ number: parsed.episode }],
+                  },
+                ],
+              },
+            ],
+          };
+          await client.addToHistory(historyData, { toolName });
+        } else {
+          await queue.markFailed(entry.id, 'Unknown content type');
+          failed++;
+          results.push({ id: entry.id, status: 'failed', reason: 'Unknown content type' });
+          continue;
+        }
+
+        await queue.markSynced(entry.id, {
+          type: effectiveType === 'show' ? 'episode' : 'movie',
+          traktId: content.ids.trakt,
+          title: content.title,
+          season: parsed.season,
+          episode: parsed.episode,
+        });
+
+        synced++;
+        results.push({ id: entry.id, status: 'synced' });
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        await queue.markFailed(entry.id, errorMsg);
+        failed++;
+        results.push({ id: entry.id, status: 'failed', reason: errorMsg });
+      }
+    }
+
+    return createToolSuccess({
+      synced,
+      failed,
+      skipped,
+      totalProcessed: parsedEntries.length,
+      ambiguousEntries: ambiguousEntries.length > 0 ? ambiguousEntries : undefined,
+      message: `Synced ${synced}/${parsedEntries.length} entries. Failed: ${failed}, Skipped: ${skipped}${ambiguousEntries.length > 0 ? ` (${ambiguousEntries.length} ambiguous - add year to disambiguate)` : ''}`,
+    });
+  } catch (error) {
+    const message = sanitizeError(error, 'queueAutoSync');
+    return createToolError('SYNC_ERROR', message);
+  }
+}
+
+/**
+ * Confirm, skip, or fail a single queue entry
+ *
+ * For interactive mode - handles one entry at a time with explicit action.
+ */
+export async function queueConfirm(
+  client: TraktClient,
+  args: {
+    entryId: string;
+    action: 'confirm' | 'skip' | 'fail';
+    queuePath?: string;
+    selectedTraktId?: number;
+    selectedType?: 'movie' | 'episode';
+    allowDuplicates?: boolean;
+  }
+): Promise<ToolSuccess | ToolError> {
+  try {
+    const {
+      entryId,
+      action,
+      queuePath,
+      selectedTraktId,
+      selectedType,
+      allowDuplicates = false,
+    } = args;
+    const toolName = 'queue_confirm';
+
+    const queue = queuePath ? new WatchLogQueue(queuePath) : new WatchLogQueue();
+    const allEntries = await queue.list();
+    const entry = allEntries.find((e) => e.id === entryId);
+
+    if (!entry) {
+      return createToolError('ENTRY_NOT_FOUND', `Entry with id ${entryId} not found`);
+    }
+
+    if (action === 'skip') {
+      await queue.markSkipped(entryId);
+      return createToolSuccess({
+        action: 'skipped',
+        entryId,
+        message: 'Entry skipped',
+      });
+    }
+
+    if (action === 'fail') {
+      await queue.markFailed(entryId, 'Manually marked as failed');
+      return createToolSuccess({
+        action: 'failed',
+        entryId,
+        message: 'Entry marked as failed',
+      });
+    }
+
+    if (action === 'confirm') {
+      if (!selectedTraktId || !selectedType) {
+        return createToolError(
+          'VALIDATION_ERROR',
+          'Confirm action requires selectedTraktId and selectedType parameters'
+        );
+      }
+
+      const parsed = parseWatchNote(entry.rawText, entry.capturedAt);
+      const watchedAt = parsed.watchedAt || new Date().toISOString();
+
+      // Check for duplicates unless explicitly allowed
+      if (!allowDuplicates) {
+        const duplicateDetector = new DuplicateDetector(client);
+        const duplicateCheck = await duplicateDetector.checkRecent({
+          type: selectedType,
+          traktId: selectedTraktId,
+          season: parsed.season,
+          episode: parsed.episode,
+        });
+
+        if (duplicateCheck.isDuplicate) {
+          const watchedDate = duplicateCheck.watchedAt
+            ? new Date(duplicateCheck.watchedAt).toLocaleDateString()
+            : 'recently';
+          return createToolError(
+            'DUPLICATE_ENTRY',
+            `Already logged this content on ${watchedDate}. Use allowDuplicates: true to log it again.`
+          );
+        }
+      }
+
+      try {
+        if (selectedType === 'movie') {
+          const historyData = {
+            movies: [
+              {
+                watched_at: watchedAt,
+                ids: { trakt: selectedTraktId },
+              },
+            ],
+          };
+          await client.addToHistory(historyData, { toolName });
+        } else if (selectedType === 'episode') {
+          if (!parsed.season || !parsed.episode) {
+            return createToolError(
+              'VALIDATION_ERROR',
+              'Episode confirmation requires season and episode numbers in the original entry'
+            );
+          }
+          const historyData = {
+            shows: [
+              {
+                watched_at: watchedAt,
+                ids: { trakt: selectedTraktId },
+                seasons: [
+                  {
+                    number: parsed.season,
+                    episodes: [{ number: parsed.episode }],
+                  },
+                ],
+              },
+            ],
+          };
+          await client.addToHistory(historyData, { toolName });
+        }
+
+        await queue.markSynced(entryId, {
+          type: selectedType,
+          traktId: selectedTraktId,
+          title: entry.rawText,
+          season: parsed.season,
+          episode: parsed.episode,
+        });
+
+        return createToolSuccess({
+          action: 'confirmed',
+          entryId,
+          message: 'Entry confirmed and synced to Trakt',
+        });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        await queue.markFailed(entryId, errorMessage);
+        return createToolError('SYNC_ERROR', `Failed to sync entry: ${errorMessage}`);
+      }
+    }
+
+    return createToolError('VALIDATION_ERROR', 'Invalid action. Must be: confirm, skip, or fail');
+  } catch (error) {
+    const message = sanitizeError(error, 'queueConfirm');
+    return createToolError('CONFIRM_ERROR', message);
   }
 }

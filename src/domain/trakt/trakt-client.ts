@@ -108,6 +108,8 @@ export class TraktClient {
         // Store metadata in config for use in response interceptor
         enhancedConfig._correlationId = correlationId;
         enhancedConfig._startTime = startTime;
+        // Defensive init: ensure _retryCount is always defined (prevents edge-case crashes)
+        enhancedConfig._retryCount = enhancedConfig._retryCount ?? 0;
 
         return enhancedConfig;
       },
@@ -132,19 +134,26 @@ export class TraktClient {
         return response;
       },
       async (error: AxiosError) => {
-        const config = error.config as TraktRequestConfig & {
-          _retryCount?: number;
-          _correlationId?: string;
-          _startTime?: number;
-        };
+        // Safely access config - it may not exist if request never completed
+        const config = error.config as
+          | (TraktRequestConfig & {
+              _retryCount?: number;
+              _correlationId?: string;
+              _startTime?: number;
+            })
+          | undefined;
 
         // Log error before handling (unless it's a retry)
-        if (!config._retryCount || config._retryCount === 0) {
+        // Check config exists before accessing properties
+        if (config && (!config._retryCount || config._retryCount === 0)) {
           const correlationId = config._correlationId || logger.generateCorrelationId();
           const startTime = config._startTime || Date.now();
           const partialLog = logger.createRequestLog(config, correlationId, config._toolName);
           const fullLog = logger.completeRequestLogWithError(partialLog, error, startTime);
           logger.logRequest(fullLog);
+        } else if (!config) {
+          // Request never completed - log minimal error
+          logWarn(`Request failed before completion: ${error.message}`);
         }
 
         if (error.response?.status === 401 || error.response?.status === 403) {
@@ -154,7 +163,13 @@ export class TraktClient {
 
         if (error.response?.status === 429) {
           // Rate limit exceeded - implement exponential backoff retry
-          const retryCount = config._retryCount || 0;
+          // Cannot retry if config is missing
+          if (!config) {
+            throw new Error('Rate limit exceeded but request config unavailable for retry.');
+          }
+
+          // Initialize _retryCount if undefined
+          const retryCount = config._retryCount ?? 0;
           const maxRetries = 3;
 
           if (retryCount < maxRetries) {

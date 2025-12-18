@@ -16,16 +16,11 @@ if [ "$NODE_MAJOR" -lt 18 ] 2>/dev/null; then
   exit 1
 fi
 
-echo "🔍 Running code style checks..."
+echo "🔍 Running code style checks on staged files..."
 echo ""
 
-# Run prettier
-echo "📝 Formatting code with Prettier..."
-npm run format || exit 1
-
-# Run ESLint
-echo "🔎 Linting code with ESLint..."
-npm run lint || exit 1
+# Run lint-staged to format and lint only staged files
+npx lint-staged || exit 1
 
 echo ""
 echo "✅ Code style checks passed!"

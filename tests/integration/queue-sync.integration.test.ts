@@ -405,4 +405,269 @@ describe('Queue Sync Workflow', () => {
       expect(historyCall.movies[0].watched_at).toBe(capturedISO);
     });
   });
+
+  describe('Interactive Mode', () => {
+    it('should return first entry for confirmation without autoConfirm', async () => {
+      await queue.append('watched Dune 2021 movie');
+      await queue.append('watched Inception 2010 movie');
+
+      mockClient.search.mockResolvedValue([
+        {
+          score: 100,
+          movie: {
+            title: 'Dune',
+            year: 2021,
+            ids: { trakt: 12345, slug: 'dune-2021', imdb: 'tt123', tmdb: 456 },
+          },
+        },
+      ]);
+
+      const result = await syncLogwatchQueue(mockClient as unknown as TraktClient, {
+        queuePath,
+        autoConfirm: false,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data.action_required).toBe('confirm_entry');
+      expect(result.data.currentEntry).toBeTruthy();
+      expect(result.data.currentIndex).toBe(0);
+      expect(result.data.totalEntries).toBe(2);
+      expect(result.data.remaining).toBe(1);
+    });
+
+    it('should support entryIndex parameter to start at specific entry', async () => {
+      await queue.append('watched Dune 2021 movie');
+      await queue.append('watched Inception 2010 movie');
+
+      mockClient.search.mockResolvedValue([
+        {
+          score: 100,
+          movie: {
+            title: 'Inception',
+            year: 2010,
+            ids: { trakt: 67890, slug: 'inception-2010', imdb: 'tt456', tmdb: 789 },
+          },
+        },
+      ]);
+
+      const result = await syncLogwatchQueue(mockClient as unknown as TraktClient, {
+        queuePath,
+        autoConfirm: false,
+        entryIndex: 1,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data.currentIndex).toBe(1);
+      expect(result.data.remaining).toBe(0);
+      expect(result.data.currentEntry.rawText).toContain('Inception');
+    });
+
+    it('should handle skip action and move to next entry', async () => {
+      await queue.append('watched Dune 2021 movie');
+      await queue.append('watched Inception 2010 movie');
+
+      const entries = await queue.getPending();
+      const firstEntryId = entries[0].id;
+
+      const result = await syncLogwatchQueue(mockClient as unknown as TraktClient, {
+        queuePath,
+        entryId: firstEntryId,
+        action: 'skip',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data.action_required).toBe('confirm_entry');
+      expect(result.data.currentIndex).toBe(1);
+
+      // Verify first entry was marked as skipped
+      const allEntries = await queue.list();
+      expect(allEntries[0].status).toBe('skipped');
+    });
+
+    it('should handle fail action and move to next entry', async () => {
+      await queue.append('watched Dune 2021 movie');
+      await queue.append('watched Inception 2010 movie');
+
+      const entries = await queue.getPending();
+      const firstEntryId = entries[0].id;
+
+      const result = await syncLogwatchQueue(mockClient as unknown as TraktClient, {
+        queuePath,
+        entryId: firstEntryId,
+        action: 'fail',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data.action_required).toBe('confirm_entry');
+      expect(result.data.currentIndex).toBe(1);
+
+      // Verify first entry was marked as failed
+      const allEntries = await queue.list();
+      expect(allEntries[0].status).toBe('failed');
+    });
+
+    it('should complete when skipping last entry', async () => {
+      await queue.append('watched Dune 2021 movie');
+
+      const entries = await queue.getPending();
+      const entryId = entries[0].id;
+
+      const result = await syncLogwatchQueue(mockClient as unknown as TraktClient, {
+        queuePath,
+        entryId,
+        action: 'skip',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data.action_required).toBeUndefined();
+      expect(result.data.skipped).toBe(1);
+      expect(result.data.totalProcessed).toBe(1);
+    });
+
+    it('should return error for invalid entryId', async () => {
+      await queue.append('watched Dune 2021 movie');
+
+      const result = await syncLogwatchQueue(mockClient as unknown as TraktClient, {
+        queuePath,
+        entryId: 'invalid-id',
+        action: 'skip',
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success && 'error' in result) {
+        expect(result.error.code).toBe('ENTRY_NOT_FOUND');
+      }
+    });
+
+    it('should include search results in interactive mode', async () => {
+      await queue.append('watched Dune 2021 movie');
+
+      mockClient.search.mockResolvedValue([
+        {
+          score: 100,
+          movie: {
+            title: 'Dune',
+            year: 2021,
+            ids: { trakt: 12345, slug: 'dune-2021', imdb: 'tt123', tmdb: 456 },
+          },
+        },
+      ]);
+
+      const result = await syncLogwatchQueue(mockClient as unknown as TraktClient, {
+        queuePath,
+        autoConfirm: false,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data.searchResults).toBeTruthy();
+      expect(Array.isArray(result.data.searchResults)).toBe(true);
+    });
+  });
+
+  describe('Ambiguous Entry Handling', () => {
+    it('should skip ambiguous entries in autoConfirm mode', async () => {
+      await queue.append('watched Dune movie');
+
+      // Return multiple movies with different IDs
+      mockClient.search.mockResolvedValue([
+        {
+          score: 100,
+          movie: {
+            title: 'Dune',
+            year: 2021,
+            ids: { trakt: 12345, slug: 'dune-2021', imdb: 'tt1', tmdb: 1 },
+          },
+        },
+        {
+          score: 95,
+          movie: {
+            title: 'Dune',
+            year: 1984,
+            ids: { trakt: 67890, slug: 'dune-1984', imdb: 'tt2', tmdb: 2 },
+          },
+        },
+      ]);
+
+      const result = await syncLogwatchQueue(mockClient as unknown as TraktClient, {
+        queuePath,
+        autoConfirm: true,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data.skipped).toBe(1);
+      expect(result.data.synced).toBe(0);
+
+      // Check that ambiguousEntries array is populated
+      expect(result.data.ambiguousEntries).toBeTruthy();
+      expect(result.data.ambiguousEntries.length).toBe(1);
+      expect(result.data.ambiguousEntries[0].id).toBeTruthy();
+      expect(result.data.ambiguousEntries[0].rawText).toContain('Dune');
+    });
+
+    it('should not skip when all results have same ID', async () => {
+      await queue.append('watched Dune 2021 movie');
+
+      // Return same movie multiple times (shouldn't happen, but test the logic)
+      mockClient.search.mockResolvedValue([
+        {
+          score: 100,
+          movie: {
+            title: 'Dune',
+            year: 2021,
+            ids: { trakt: 12345, slug: 'dune-2021', imdb: 'tt123', tmdb: 456 },
+          },
+        },
+        {
+          score: 100,
+          movie: {
+            title: 'Dune',
+            year: 2021,
+            ids: { trakt: 12345, slug: 'dune-2021', imdb: 'tt123', tmdb: 456 },
+          },
+        },
+      ]);
+
+      mockClient.getHistory.mockResolvedValue([]);
+      mockClient.addToHistory.mockResolvedValue({ added: { movies: 1 } });
+
+      const result = await syncLogwatchQueue(mockClient as unknown as TraktClient, {
+        queuePath,
+        autoConfirm: true,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data.synced).toBe(1);
+      expect(result.data.skipped).toBe(0);
+    });
+
+    it('should include search results preview in ambiguous entries', async () => {
+      await queue.append('watched Dune movie');
+
+      // Return 10 results to test slicing
+      const searchResults = Array.from({ length: 10 }, (_, i) => ({
+        score: 100 - i,
+        movie: {
+          title: 'Dune',
+          year: 2021 - i,
+          ids: { trakt: 12345 + i, slug: `dune-${2021 - i}`, imdb: `tt${i}`, tmdb: i },
+        },
+      }));
+
+      mockClient.search.mockResolvedValue(searchResults);
+
+      const result = await syncLogwatchQueue(mockClient as unknown as TraktClient, {
+        queuePath,
+        autoConfirm: true,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data.ambiguousEntries).toBeTruthy();
+      expect(result.data.ambiguousEntries[0].matches).toBeTruthy();
+      // Should only include first 5 results
+      expect(result.data.ambiguousEntries[0].matches.length).toBe(5);
+      // Should include helpful context
+      expect(result.data.ambiguousEntries[0].hint).toBeTruthy();
+      expect(result.data.ambiguousEntries[0].matchCount).toBe(10);
+    });
+  });
 });

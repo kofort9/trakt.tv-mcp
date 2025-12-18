@@ -100,7 +100,7 @@ export class BulkSummaryBuilder {
           rawText: '',
           parsed: {
             title: '',
-            type: 'unknown',
+            type: 'infer_from_search',
             confidence: 'low',
             dateSource: 'fallback',
             watchedAt: new Date().toISOString(),
@@ -159,19 +159,13 @@ export class BulkSummaryBuilder {
         return summaryEntry;
       }
 
-      // Determine search type
+      // Determine search type - allow undefined for 'infer_from_search' (let Trakt determine type)
       const searchType =
         entry.parsed.type === 'episode'
           ? 'show'
           : entry.parsed.type === 'movie'
             ? 'movie'
-            : undefined;
-
-      if (!searchType) {
-        summaryEntry.searchStatus = 'error';
-        summaryEntry.error = 'Unknown content type';
-        return summaryEntry;
-      }
+            : undefined; // 'infer_from_search' → type-less search
 
       // Search for content
       const searchResults = await this.client.search(
@@ -186,17 +180,19 @@ export class BulkSummaryBuilder {
         return summaryEntry;
       }
 
-      // Build disambiguation options
+      // Build disambiguation options - infer type from results if needed
+      // Strip verbose fields (genres, overview, score) to reduce token cost
       const matches: DisambiguationOption[] = searchResults.slice(0, 3).map((result) => {
-        const item = searchType === 'show' ? result.show : result.movie;
+        // Determine which content type this result is
+        const isShow = !!result.show;
+        const item = isShow ? result.show : result.movie;
+        const resultType = isShow ? 'show' : 'movie';
+
         return {
           title: item?.title || 'Unknown',
           year: item?.year,
           traktId: item?.ids.trakt || 0,
-          type: searchType === 'show' ? 'show' : 'movie',
-          genres: item?.genres,
-          overview: item?.overview,
-          score: result.score,
+          type: resultType,
         };
       });
 
@@ -246,14 +242,11 @@ export class BulkSummaryBuilder {
 
       lines.push(`${statusIcon} [${entry.index + 1}] ${title}${year}${episodeInfo}`);
 
-      // Show matches for ambiguous
+      // Show matches for ambiguous (simplified output without genres)
       if (entry.searchStatus === 'ambiguous' && entry.matches) {
         for (let i = 0; i < entry.matches.length; i++) {
           const match = entry.matches[i];
-          const genres = match.genres?.slice(0, 2).join(', ') || '';
-          lines.push(
-            `    ${i + 1}. ${match.title} (${match.year || 'N/A'})${genres ? ` - ${genres}` : ''}`
-          );
+          lines.push(`    ${i + 1}. ${match.title} (${match.year || 'N/A'})`);
         }
       }
 
