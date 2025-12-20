@@ -1,5 +1,13 @@
 # OpenTelemetry Implementation Report
 
+> **ARCHIVED**: This document describes the original OpenTelemetry implementation.
+> The project has since migrated to **Langfuse** for observability.
+> See [docs/operations/observability.md](../../operations/observability.md) for current setup.
+
+---
+
+## Original Report
+
 **Issue:** [KHQ-71](https://linear.app/kaxfhq/issue/KHQ-71/opentelemetry-instrumentation-for-nlp-ambiguity-and)
 **Branch:** `feature/khq-71-opentelemetry-instrumentation-for-nlp-ambiguity-and`
 **Implementation Date:** December 3, 2025

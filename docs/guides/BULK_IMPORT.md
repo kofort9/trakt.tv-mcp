@@ -1,4 +1,6 @@
-# Quick Start Guide - Bulk Import
+# Bulk Import Guide
+
+Import your historical watch data from CSV files into Trakt.tv.
 
 ## TL;DR
 
