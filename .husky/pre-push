@@ -2,6 +2,17 @@
 # Pre-push hook: Skip tests for documentation-only changes
 # Runs full test suite when code files are modified
 
+# Source nvm if available (git hooks don't inherit shell environment)
+# This ensures we use the project's .nvmrc Node version
+if [ -f "$HOME/.nvm/nvm.sh" ]; then
+  export NVM_DIR="$HOME/.nvm"
+  . "$NVM_DIR/nvm.sh" --no-use
+  # Use .nvmrc version if it exists, otherwise use default
+  if [ -f ".nvmrc" ]; then
+    nvm use >/dev/null 2>&1 || true
+  fi
+fi
+
 # Verify Node version meets minimum requirements
 # Note: Developer is responsible for having correct Node version active
 NODE_VERSION=$(node -v 2>/dev/null | sed 's/v//')

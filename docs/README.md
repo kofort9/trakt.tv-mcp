@@ -4,7 +4,7 @@ Quick links by topic. All paths are relative to `docs/`.
 
 ## Guides
 - `guides/NATURAL_LANGUAGE_GUIDE.md` — Natural language patterns and examples
-- `guides/QUICK_START.md` — Fast setup + first commands
+- `guides/BULK_IMPORT.md` — Bulk CSV import for historical data
 - `guides/LINEAR_IMPORT_GUIDE.md` — Linear import how-to
 - `guides/CONTRIBUTING.md` — Contributor + AI assistant guidelines
 
@@ -20,7 +20,6 @@ Quick links by topic. All paths are relative to `docs/`.
 - `testing/test-tools.md` — Helper tools and fixtures
 
 ## Architecture
-- `architecture/IMPLEMENTATION_REPORT.md` — Observability implementation report
 - `architecture/adrs/README.md` — ADR index and template
 - `architecture/future-work.md` — Forward-looking UX/features plan
 
@@ -67,6 +66,13 @@ If you add a new doc, drop a link in the relevant section above and keep the tit
 
 ## Recent Changes
 
+**2025-12-19: Documentation Skill & CLAUDE.md Expansion**
+
+- Expanded CLAUDE.md from 34 to 428 lines with tool catalog, AI responsibilities, examples
+- Renamed QUICK_START.md → BULK_IMPORT.md (content was about CSV import, not general quick start)
+- Archived IMPLEMENTATION_REPORT.md → archive/implementation/OPENTELEMETRY_REPORT.md (superseded by Langfuse)
+- Created repo-documentation skill for multi-agent doc maintenance
+
 **2025-12-11: Dependency Documentation & Security Updates**
 
 - Added TECHNICAL_DEBT.md with dependency pin documentation (ora 8.2.0, vitest 3.2.4)
@@ -89,5 +95,5 @@ If you add a new doc, drop a link in the relevant section above and keep the tit
 
 ---
 
-**Last Updated:** 2025-12-18
-**Documentation Version:** 2.3.0
+**Last Updated:** 2025-12-19
+**Documentation Version:** 2.4.0
