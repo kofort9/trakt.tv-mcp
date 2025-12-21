@@ -1,31 +1,8 @@
 #!/bin/sh
 # Pre-commit hook: Run code style checks before commit
 
-# Source nvm if available (git hooks don't inherit shell environment)
-# This ensures we use the project's .nvmrc Node version
-if [ -f "$HOME/.nvm/nvm.sh" ]; then
-  export NVM_DIR="$HOME/.nvm"
-  . "$NVM_DIR/nvm.sh" --no-use
-  # Use .nvmrc version if it exists, otherwise use default
-  if [ -f ".nvmrc" ]; then
-    nvm use >/dev/null 2>&1 || true
-  fi
-fi
-
-# Verify Node version meets minimum requirements
-# Note: Developer is responsible for having correct Node version active
-NODE_VERSION=$(node -v 2>/dev/null | sed 's/v//')
-NODE_MAJOR=$(echo "$NODE_VERSION" | cut -d. -f1)
-if [ -z "$NODE_VERSION" ]; then
-  echo "❌ Error: Node.js not found in PATH"
-  echo "   Install Node 18+ and ensure it's in your PATH"
-  exit 1
-fi
-if [ "$NODE_MAJOR" -lt 18 ] 2>/dev/null; then
-  echo "❌ Error: Node $NODE_VERSION detected. This project requires Node 18.18+ or 20.x"
-  echo "   Use nvm/fnm/asdf/volta to switch (e.g., 'nvm use 18', 'fnm use 18', 'volta pin node@18', 'asdf local nodejs 18.18.0')"
-  exit 1
-fi
+# Source shared NVM setup (handles nvm sourcing + Node version check)
+. "$(dirname "$0")/nvm-setup.sh"
 
 echo "🔍 Running code style checks on staged files..."
 echo ""

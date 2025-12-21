@@ -245,9 +245,8 @@ We will measure success by:
 ## References
 
 - [Queue Tools Guide](../../guides/QUEUE_TOOLS.md) - User-facing documentation
-- [Sync Queue Test Report](../../../SYNC_QUEUE_TEST_REPORT.md) - Original testing that identified the problem
+- [Sync Queue Test Report](../../test-reports/SYNC_QUEUE_TEST_REPORT.md) - Original testing that identified the problem
 - [Case Study: First Production Test](../../case-studies/2025-12-16-sync-queue-first-test.md) - Real-world usage scenario
-- [Implementation PR](https://github.com/kofifort/trakt.tv-mcp/pull/XXX) - Code changes (TODO: update with PR number)
 
 ## Future Considerations
 
