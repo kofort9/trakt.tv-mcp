@@ -15,6 +15,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
+// Skip all tests on Windows - shell scripts and chmod don't work the same way
+const isWindows = os.platform() === 'win32';
+const describeUnix = isWindows ? describe.skip : describe;
+
 const HOOK_DIR = path.join(process.cwd(), '.husky');
 const NVM_SETUP_SCRIPT = path.join(HOOK_DIR, 'nvm-setup.sh');
 const PRE_COMMIT_HOOK = path.join(HOOK_DIR, 'pre-commit');
@@ -62,7 +66,7 @@ exit 0
   return mockBin;
 }
 
-describe('Git Hooks Integration Tests', () => {
+describeUnix('Git Hooks Integration Tests', () => {
   let tempDir: string;
 
   beforeAll(() => {

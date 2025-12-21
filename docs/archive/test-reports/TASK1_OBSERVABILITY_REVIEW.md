@@ -5,7 +5,7 @@ This document is historical and may contain outdated information.
 
 **Archived:** November 2025
 **Reason:** Observability implementation review completed; features in production
-**For current information, see:** [docs/DEBUGGING.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/DEBUGGING.md)
+**For current information, see:** [docs/operations/DEBUGGING.md](../../operations/DEBUGGING.md)
 
 ---
 
