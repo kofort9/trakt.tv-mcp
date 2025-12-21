@@ -75,7 +75,9 @@ fi
 #   - .claude/agents/* (Agent configuration files)
 #   - docs/* (Documentation directory)
 # Using POSIX-compliant grep for cross-platform compatibility
-NON_DOC_CHANGES=$(echo "$CHANGED_FILES" | grep -v '\.md$' | grep -v '^\.claude/agents/' | grep -v '^docs/')
+# grep returns exit code 1 when no lines match, which fails with set -e
+# The '|| true' ensures we get empty string instead of script abort
+NON_DOC_CHANGES=$(echo "$CHANGED_FILES" | grep -v '\.md$' | grep -v '^\.claude/agents/' | grep -v '^docs/' || true)
 
 if [ -z "$NON_DOC_CHANGES" ]; then
   echo "📝 Only documentation files changed, skipping tests..."

@@ -736,7 +736,7 @@ Would you like me to search for "Breaking Bad" instead?
 ## Related Documentation
 
 - **[CONTRIBUTING.md](./CONTRIBUTING.md)** - How to contribute to this project, including adding new patterns
-- **[docs/DEBUGGING.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/DEBUGGING.md)** - Debugging guide for troubleshooting
+- **[docs/operations/DEBUGGING.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/operations/DEBUGGING.md)** - Debugging guide for troubleshooting
 - **[docs/testing/TESTING_GUIDE.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/testing/TESTING_GUIDE.md)** - Comprehensive testing documentation
 
 ---

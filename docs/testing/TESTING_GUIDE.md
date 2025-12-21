@@ -647,7 +647,7 @@ npx prettier --check "src/**/*.ts"
 
 - **[NATURAL_LANGUAGE_GUIDE.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/guides/NATURAL_LANGUAGE_GUIDE.md)** - NL pattern reference
 - **[CONTRIBUTING.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/guides/CONTRIBUTING.md)** - How to add tests for new features
-- **[DEBUGGING.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/DEBUGGING.md)** - Debugging failed tests
+- **[DEBUGGING.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/operations/DEBUGGING.md)** - Debugging failed tests
 - **[docs/archive/test-reports/](/Users/kofifort/Repos/trakt.tv-mcp/docs/archive/test-reports/)** - Historical test reports
 
 ---
