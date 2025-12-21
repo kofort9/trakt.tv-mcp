@@ -5,7 +5,7 @@
 **Version:** 1.1
 **Date:** 2025-11-20
 **Status:** Implementation Complete - Awaiting Final Fixes
-**PR Context:** [PR #2](https://github.com/kofifort/trakt.tv-mcp/pull/2) - Phase 3 MCP Tools (227 tests passing, 8 tools implemented)
+**PR Context:** [PR #2](https://github.com/kofort9/trakt.tv-mcp/pull/2) - Phase 3 MCP Tools (227 tests passing, 8 tools implemented)
 
 ---
 

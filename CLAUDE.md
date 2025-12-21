@@ -13,6 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - [Key Files & Directories](#key-files--directories)
 - [Testing](#testing)
 - [Observability & Debugging](#observability--debugging)
+- [Maintenance Notes](#maintenance-notes)
 - [Related Documentation](#related-documentation)
 
 ---
@@ -402,6 +403,28 @@ export LANGFUSE_PUBLIC_KEY="pk-lf-..."
 
 ---
 
+## Maintenance Notes
+
+### Content Synchronization
+
+Some content in this file is duplicated from other documentation files to provide complete context for AI assistants. When updating the following sections, ensure changes are synchronized:
+
+| CLAUDE.md Section | Source Document | Sync Direction |
+|-------------------|-----------------|----------------|
+| Available Tools | `docs/guides/NATURAL_LANGUAGE_GUIDE.md` | CLAUDE.md → Guide |
+| Error Handling | `docs/guides/CONTRIBUTING.md` | Bidirectional |
+| Development Workflow | `README.md` | README → CLAUDE.md |
+| Testing | `docs/testing/TESTING_GUIDE.md` | Guide → CLAUDE.md |
+
+**Why duplication exists:** CLAUDE.md serves as a single-file context for AI assistants, while the `docs/` hierarchy serves human developers who navigate by topic.
+
+**When to sync:**
+- After updating tool schemas in `src/domain/trakt/tools.ts`, update both CLAUDE.md and the Natural Language Guide
+- After changing build/test commands, update both README.md and CLAUDE.md
+- After adding new error codes, update both CONTRIBUTING.md and CLAUDE.md
+
+---
+
 ## Related Documentation
 
 **For AI Assistants:**
@@ -423,5 +446,5 @@ export LANGFUSE_PUBLIC_KEY="pk-lf-..."
 
 ---
 
-**Last Updated:** 2025-12-19
-**Documentation Version:** 2.0.0
+**Last Updated:** 2025-12-20
+**Documentation Version:** 2.1.0
