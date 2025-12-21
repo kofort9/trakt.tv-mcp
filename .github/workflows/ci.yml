@@ -74,6 +74,27 @@ jobs:
       - name: Run tests
         run: npm test
 
+  pr-docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    continue-on-error: true # Non-blocking until existing docs are cleaned up
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check markdown links
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: 'yes'
+          use-verbose-mode: 'no'
+          config-file: '.markdown-link-check.json'
+          folder-path: 'docs/, ./'
+          file-extension: '.md'
+          check-modified-files-only: 'yes'
+          base-branch: 'main'
+
   pr-claude-review:
     name: Claude's Review
     runs-on: ubuntu-latest
@@ -130,7 +151,7 @@ jobs:
     name: PR Summary
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    needs: [pr-build, pr-style, pr-test, pr-claude-review]
+    needs: [pr-build, pr-style, pr-test, pr-docs, pr-claude-review]
 
     steps:
       - name: Mark PR checks as successful
