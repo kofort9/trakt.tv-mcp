@@ -235,7 +235,7 @@ All files                 |   95.23 |    91.12 |   97.50 |   95.23 |
    - Returns clear options with year/traktId
    - Retry mechanism tested and validated
 
-**Full reports archived:** See `/Users/kofifort/Repos/trakt.tv-mcp/docs/archive/test-reports/`
+**Full reports archived:** See `docs/archive/test-reports/`
 
 ---
 
@@ -645,10 +645,10 @@ npx prettier --check "src/**/*.ts"
 
 ## Related Documentation
 
-- **[NATURAL_LANGUAGE_GUIDE.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/guides/NATURAL_LANGUAGE_GUIDE.md)** - NL pattern reference
-- **[CONTRIBUTING.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/guides/CONTRIBUTING.md)** - How to add tests for new features
-- **[DEBUGGING.md](/Users/kofifort/Repos/trakt.tv-mcp/docs/operations/DEBUGGING.md)** - Debugging failed tests
-- **[docs/archive/test-reports/](/Users/kofifort/Repos/trakt.tv-mcp/docs/archive/test-reports/)** - Historical test reports
+- **[NATURAL_LANGUAGE_GUIDE.md](../guides/NATURAL_LANGUAGE_GUIDE.md)** - NL pattern reference
+- **[CONTRIBUTING.md](../guides/CONTRIBUTING.md)** - How to add tests for new features
+- **[DEBUGGING.md](../operations/DEBUGGING.md)** - Debugging failed tests
+- **[Test Reports Archive](../archive/test-reports/)** - Historical test reports
 
 ---
 
