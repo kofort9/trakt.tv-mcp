@@ -19,6 +19,7 @@ import {
 } from '../../shared/utils.js';
 import { logger, RequestLog, ToolMetrics } from '../../core/logger.js';
 import { parallelSearchMovies } from '../../core/parallel.js';
+import { createChildSpan, logAmbiguity } from '../../core/langfuse.js';
 import {
   TraktEpisode,
   TraktShow,
@@ -1490,7 +1491,20 @@ export async function syncLogwatchQueue(
     const results = [];
     const ambiguousEntries = [];
 
-    for (const entry of parsedEntries) {
+    for (let i = 0; i < parsedEntries.length; i++) {
+      const entry = parsedEntries[i];
+      // Create span for each entry processing
+      // Note: createChildSpan is try-catch safe (returns no-op on failure)
+      // All code paths below call entrySpan.end() or entrySpan.error()
+      const entrySpan = createChildSpan('sync.process_entry', {
+        entryId: entry.id,
+        entryIndex: i,
+        totalEntries: parsedEntries.length,
+        rawText: entry.rawText.substring(0, 100), // Truncate for readability
+        parsedType: entry.parsed.type,
+        parsedTitle: entry.parsed.title,
+      });
+
       try {
         const parsed = entry.parsed;
 
@@ -1503,6 +1517,7 @@ export async function syncLogwatchQueue(
             status: 'skipped',
             reason: 'Low confidence or missing title',
           });
+          entrySpan.end({ status: 'skipped', reason: 'low_confidence' });
           continue;
         }
 
@@ -1510,9 +1525,21 @@ export async function syncLogwatchQueue(
         let searchType: 'show' | 'movie' | undefined =
           parsed.type === 'episode' ? 'show' : parsed.type === 'movie' ? 'movie' : undefined;
 
+        // Create span for search operation
+        const searchSpan = createChildSpan('sync.search', {
+          title: parsed.title,
+          searchType: searchType || 'infer',
+          year: parsed.year,
+        });
+
         const searchResults = await client.search(parsed.title, searchType, parsed.year, {
           toolName,
         });
+
+        searchSpan.end(
+          { resultCount: Array.isArray(searchResults) ? searchResults.length : 0 },
+          { searchType: searchType || 'infer' }
+        );
 
         // Smart auto-confirm: Skip (not fail) on 0 results so entry needs attention
         if (!Array.isArray(searchResults) || searchResults.length === 0) {
@@ -1523,6 +1550,9 @@ export async function syncLogwatchQueue(
             status: 'skipped',
             reason: 'No search results - needs manual review',
           });
+          // Log ambiguity event for observability
+          logAmbiguity(parsed.title, 0, true, 'none');
+          entrySpan.end({ status: 'skipped', reason: 'no_results' });
           continue;
         }
 
@@ -1542,6 +1572,7 @@ export async function syncLogwatchQueue(
                 status: 'skipped',
                 reason: 'Show found but no episode info in entry',
               });
+              entrySpan.end({ status: 'skipped', reason: 'show_no_episode_info' });
               continue;
             }
             inferredType = 'show';
@@ -1600,6 +1631,9 @@ export async function syncLogwatchQueue(
             reason: `Ambiguous - ${uniqueIds.size} matches${yearRange ? ` (${yearRange})` : ''}`,
             matchCount: uniqueIds.size,
           });
+          // Log ambiguity event for observability
+          logAmbiguity(parsed.title, uniqueIds.size, true, 'fuzzy');
+          entrySpan.end({ status: 'skipped', reason: 'ambiguous', matchCount: uniqueIds.size });
           continue;
         }
 
@@ -1611,6 +1645,7 @@ export async function syncLogwatchQueue(
           await queue.markFailed(entry.id, 'Missing content data');
           failed++;
           results.push({ id: entry.id, status: 'failed', reason: 'Missing content data' });
+          entrySpan.end({ status: 'failed', reason: 'missing_content_data' });
           continue;
         }
 
@@ -1630,6 +1665,11 @@ export async function syncLogwatchQueue(
               id: entry.id,
               status: 'skipped',
               reason: 'Duplicate - already in history',
+              existingWatchedAt: duplicateCheck.watchedAt,
+            });
+            entrySpan.end({
+              status: 'skipped',
+              reason: 'duplicate',
               existingWatchedAt: duplicateCheck.watchedAt,
             });
             continue;
@@ -1682,9 +1722,16 @@ export async function syncLogwatchQueue(
 
           synced++;
           results.push({ id: entry.id, status: 'synced', title: content.title });
+          entrySpan.end({
+            status: 'synced',
+            resolvedType,
+            traktId: content.ids.trakt,
+            title: content.title,
+          });
         } else {
           await queue.markFailed(entry.id, 'Could not determine content type');
           failed++;
+          entrySpan.end({ status: 'failed', reason: 'could_not_determine_type' });
           results.push({ id: entry.id, status: 'failed', reason: 'Unknown content type' });
         }
       } catch (error) {
@@ -1692,6 +1739,12 @@ export async function syncLogwatchQueue(
         await queue.markFailed(entry.id, errorMsg);
         failed++;
         results.push({ id: entry.id, status: 'failed', reason: errorMsg });
+        // Log error to observability span
+        if (error instanceof Error) {
+          entrySpan.error(error, { entryId: entry.id });
+        } else {
+          entrySpan.end({ status: 'failed', reason: 'unknown_error', error: errorMsg });
+        }
       }
     }
 

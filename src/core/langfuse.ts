@@ -379,6 +379,81 @@ export class LangfuseTracer {
   }
 
   /**
+   * Create a child span for internal tracing within a tool operation
+   * Returns a span wrapper with start/end methods, or a no-op if Langfuse is disabled
+   *
+   * IMPORTANT: This method follows the zero-impact observability principle.
+   * All operations are wrapped in try-catch to ensure observability failures
+   * never crash business logic.
+   */
+  createChildSpan(
+    name: string,
+    input?: Record<string, unknown>
+  ): {
+    end: (output?: unknown, metadata?: Record<string, unknown>) => void;
+    error: (error: Error, metadata?: Record<string, unknown>) => void;
+  } {
+    // No-op functions returned when Langfuse is disabled or on any error
+    const noopSpan = {
+      end: () => {},
+      error: () => {},
+    };
+
+    if (!this.langfuse) {
+      return noopSpan;
+    }
+
+    try {
+      const activeTrace = this.getActiveTrace();
+      const startTime = Date.now();
+
+      const span = activeTrace
+        ? activeTrace.span({ name, input })
+        : this.langfuse.span({ name, input });
+
+      return {
+        end: (output?: unknown, metadata?: Record<string, unknown>) => {
+          try {
+            const durationMs = Date.now() - startTime;
+            span.update({
+              output: output ? sanitizeOutput(output) : undefined,
+              metadata: {
+                ...metadata,
+                duration_ms: durationMs,
+                success: true,
+              },
+            });
+            span.end();
+          } catch {
+            // Silently ignore - observability failures shouldn't break operations
+          }
+        },
+        error: (error: Error, metadata?: Record<string, unknown>) => {
+          try {
+            const durationMs = Date.now() - startTime;
+            span.update({
+              output: { error: error.message },
+              metadata: {
+                ...metadata,
+                duration_ms: durationMs,
+                success: false,
+                error_type: error.name,
+              },
+              level: 'ERROR',
+            });
+            span.end();
+          } catch {
+            // Silently ignore - observability failures shouldn't break operations
+          }
+        },
+      };
+    } catch {
+      // If span creation fails, return no-op to prevent crashes
+      return noopSpan;
+    }
+  }
+
+  /**
    * Log a cache operation
    */
   logCacheEvent(operation: 'hit' | 'miss', key: string, toolName?: string): void {
@@ -540,5 +615,7 @@ export const logAmbiguity = (
 ) => defaultTracer.logAmbiguity(query, matchCount, needsClarification, matchType);
 export const logCacheEvent = (operation: 'hit' | 'miss', key: string, toolName?: string) =>
   defaultTracer.logCacheEvent(operation, key, toolName);
+export const createChildSpan = (name: string, input?: Record<string, unknown>) =>
+  defaultTracer.createChildSpan(name, input);
 export const endTrace = (options?: { awaitFlush?: boolean }) => defaultTracer.endTrace(options);
 export const shutdown = () => defaultTracer.shutdown();

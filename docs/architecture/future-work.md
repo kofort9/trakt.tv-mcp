@@ -1,6 +1,6 @@
 # Future Work & UX Improvements
 
-**Last Updated:** 2025-12-17
+**Last Updated:** 2025-12-22
 
 This document captures forward-looking feature and UX tasks that are out of scope for the current cycle but should be prioritized next.
 
@@ -8,21 +8,21 @@ This document captures forward-looking feature and UX tasks that are out of scop
 
 ## 🔥 Active Priority Queue
 
-Items from sync queue experimentation (2025-12-17). Ordered by priority.
+Items from sync queue experimentation and PR reviews. Ordered by priority.
 
 ### Critical (Blocks Core Functionality)
 
 | # | Item | Branch | Status | Notes |
 |---|------|--------|--------|-------|
-| 1 | Search-first type inference | `fix/sync-queue-improvements` | ✅ Done | Parser extracts, search determines type |
+| 1 | Search-first type inference | PR #28 | ✅ Done | Parser extracts, search determines type |
 | 2 | Interactive state machine | `feat/interactive-state-machine` | 📋 ADR-002 | Explicit states, async confirmation |
 
 ### High Priority (Enables Debugging & Reliability)
 
 | # | Item | Branch | Status | Notes |
 |---|------|--------|--------|-------|
-| 3 | Observability for `sync_logwatch_queue` | `fix/sync-queue-observability` | 🔜 Next | Wrap with `traceToolCall()` |
-| 4 | Fix `_retryCount` crash | `fix/sync-queue-improvements` | 🔜 Next | Defensive init in TraktClient |
+| 3 | Observability for `sync_logwatch_queue` | PR #27 | ✅ Done | Internal spans via `createChildSpan()` |
+| 4 | Fix `_retryCount` crash | PR #27 | ✅ Done | Defensive init in TraktClient |
 
 ### Medium Priority (Improves UX for Common Patterns)
 
@@ -30,7 +30,7 @@ Items from sync queue experimentation (2025-12-17). Ordered by priority.
 |---|------|--------|--------|-------|
 | 5 | Franchise expansion workflow | `feat/franchise-detection` | 📝 Planned | "all the X movies" → collection search |
 | 6 | Month-level date granularity | `feat/date-parser-enhancements` | 📝 Planned | "last month" → capture date - 15 days |
-| 7 | Smart auto-confirm behavior | `fix/sync-queue-improvements` | 🔜 Next | Skip (not guess) on 0 or 2+ results |
+| 7 | Smart auto-confirm behavior | PR #28 | ✅ Done | Skip (not guess) on 0 or 2+ results |
 
 ### Low Priority (Nice to Have)
 
@@ -41,10 +41,36 @@ Items from sync queue experimentation (2025-12-17). Ordered by priority.
 ### Suggested Order of Attack
 
 ```
-1 ✅ → 3 → 4 → 7 → 2 → 5 → 6 → 8
+1 ✅ → 3 ✅ → 4 ✅ → 7 ✅ → 2 → 5 → 6 → 8
 ```
 
-**Rationale**: Parser philosophy done. Add observability (debug everything), harden reliability (#4, #7), then implement state machine (#2), then polish UX patterns.
+**Rationale**: Phase 0 complete (1, 3, 4, 7). Next: implement state machine (#2), then polish UX patterns.
+
+---
+
+## 📥 Backlog (From PR Reviews)
+
+Ideas surfaced from automated code reviews worth revisiting.
+
+### Observability Enhancements
+
+| Item | Source | Priority | Notes |
+|------|--------|----------|-------|
+| Type inference result logging | PR #28 review | Medium | Log inferred type + confidence for debugging |
+| Error categorization taxonomy | PR #28 review | Low | Classify errors (network/validation/auth) for metrics |
+
+### Tooling & Skills
+
+| Item | Source | Priority | Notes |
+|------|--------|----------|-------|
+| `/error-classify` skill | PR #28 review | Low | Categorize errors before review |
+| `/comment-validate` skill | PR #27 false positive | Low | Pre-validate comment syntax to reduce review noise |
+
+### Test Improvements
+
+| Item | Source | Priority | Notes |
+|------|--------|----------|-------|
+| Test isolation audit | PR #28 review | Low | Verify no shared state between vitest tests |
 
 ---
 

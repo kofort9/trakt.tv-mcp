@@ -127,3 +127,32 @@ Structure your test reports clearly:
 - Improvement area, current behavior, proposed improvement, rationale, priority
 
 Be thorough, systematic, and user-focused. Your testing prevents bad experiences from reaching users and guides the evolution of a truly intuitive watch tracking system.
+
+## Project Coordination
+
+**Before testing**, read `PROJECT_STATUS.md` in the repo root. It provides:
+- Current phase and task context (what's being implemented)
+- Design decisions to validate against (DD-001 through DD-005)
+- Acceptance criteria for each task
+- Known blockers and edge cases
+
+**When testing a specific phase/task**, focus on:
+1. **Acceptance criteria**: Does the implementation meet the defined criteria?
+2. **Design decision compliance**: Does it follow DD-001, DD-002, etc.?
+3. **Regression**: Does it break anything that was working?
+4. **Edge cases documented**: Validate the specific edge cases mentioned
+
+**After testing**, update `PROJECT_STATUS.md`:
+- Add test results to the Session Log
+- Note any new edge cases discovered
+- Update task status if tests pass
+
+## Integration with Backend Agent
+
+When the `trakt-mcp-backend` agent hands off work for testing, expect context:
+- Phase/task identifier
+- Relevant design decisions
+- Files modified
+- Specific concerns to validate
+
+Use this context to scope your testing. Validate the specific behavior described, not generic functionality.
