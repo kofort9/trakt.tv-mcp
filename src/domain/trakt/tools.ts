@@ -1559,6 +1559,45 @@ export async function syncLogwatchQueue(
         // If type was unknown, try to infer from search results
         let inferredType: 'movie' | 'show' | undefined;
         if (!searchType) {
+          // Check for mixed types (both movies and shows in results) - this is ambiguous
+          const hasMovies = searchResults.some((r) => r.movie);
+          const hasShows = searchResults.some((r) => r.show);
+
+          if (hasMovies && hasShows) {
+            // Mixed content types - mark as ambiguous
+            await queue.markSkipped(entry.id);
+            skipped++;
+
+            const matchedContent = searchResults.slice(0, 5).map((result) => {
+              const content = result.movie || result.show;
+              const contentType = result.movie ? 'movie' : 'show';
+              return content
+                ? {
+                    title: content.title,
+                    year: content.year,
+                    traktId: content.ids?.trakt,
+                    type: contentType,
+                  }
+                : null;
+            });
+
+            ambiguousEntries.push({
+              id: entry.id,
+              rawText: entry.rawText,
+              matchCount: searchResults.length,
+              hint: 'Found both movies and shows with this name. Specify "movie" or "show" to disambiguate.',
+              matches: matchedContent.filter(Boolean),
+            });
+            results.push({
+              id: entry.id,
+              status: 'skipped',
+              reason: `Ambiguous - found both movies and shows`,
+            });
+            logAmbiguity(parsed.title, searchResults.length, true, 'mixed_types');
+            entrySpan.end({ status: 'skipped', reason: 'ambiguous_mixed_types' });
+            continue;
+          }
+
           const firstResult = searchResults[0];
           if (firstResult.movie) {
             inferredType = 'movie';
@@ -1579,6 +1618,19 @@ export async function syncLogwatchQueue(
           }
         }
         const effectiveType = searchType || inferredType;
+
+        // Defensive check: if we couldn't determine the type, skip with clear message
+        if (!effectiveType) {
+          await queue.markFailed(entry.id, 'Could not determine content type from search results');
+          failed++;
+          results.push({
+            id: entry.id,
+            status: 'failed',
+            reason: 'Search returned unexpected result structure',
+          });
+          entrySpan.end({ status: 'failed', reason: 'undefined_effective_type' });
+          continue;
+        }
 
         // Check for ambiguous results (multiple matches with different IDs)
         // Extract unique content IDs from search results
@@ -1677,9 +1729,10 @@ export async function syncLogwatchQueue(
         }
 
         // Log to Trakt
+        // Use effectiveType (which may be inferred from search results) instead of parsed.type
         let resolvedType: 'episode' | 'movie' | null = null;
 
-        if (parsed.type === 'episode' && parsed.season && parsed.episode) {
+        if (effectiveType === 'show' && parsed.season && parsed.episode) {
           const historyData = {
             shows: [
               {
@@ -1696,7 +1749,7 @@ export async function syncLogwatchQueue(
           };
           await client.addToHistory(historyData, { toolName });
           resolvedType = 'episode';
-        } else if (parsed.type === 'movie') {
+        } else if (effectiveType === 'movie') {
           const historyData = {
             movies: [
               {

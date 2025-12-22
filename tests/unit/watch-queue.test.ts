@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { randomUUID } from 'crypto';
 import { WatchLogQueue } from '../../src/domain/trakt/watch-queue.js';
 
 describe('WatchLogQueue', () => {
@@ -10,7 +11,8 @@ describe('WatchLogQueue', () => {
   let queue: WatchLogQueue;
 
   beforeEach(() => {
-    tempDir = path.join(os.tmpdir(), `trakt-mcp-logwatch-${Date.now()}`);
+    // Use randomUUID for truly unique temp directories when tests run in parallel
+    tempDir = path.join(os.tmpdir(), `trakt-mcp-logwatch-${Date.now()}-${randomUUID()}`);
     fs.mkdirSync(tempDir, { recursive: true });
     queuePath = path.join(tempDir, 'pending-logs.jsonl');
     queue = new WatchLogQueue(queuePath);

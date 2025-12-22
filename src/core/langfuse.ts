@@ -350,7 +350,7 @@ export class LangfuseTracer {
     query: string,
     matchCount: number,
     needsClarification: boolean,
-    matchType: 'exact' | 'fuzzy' | 'partial' | 'none'
+    matchType: 'exact' | 'fuzzy' | 'partial' | 'none' | 'mixed_types'
   ): void {
     if (!this.langfuse) return;
 
@@ -611,7 +611,7 @@ export const logAmbiguity = (
   query: string,
   matchCount: number,
   needsClarification: boolean,
-  matchType: 'exact' | 'fuzzy' | 'partial' | 'none'
+  matchType: 'exact' | 'fuzzy' | 'partial' | 'none' | 'mixed_types'
 ) => defaultTracer.logAmbiguity(query, matchCount, needsClarification, matchType);
 export const logCacheEvent = (operation: 'hit' | 'miss', key: string, toolName?: string) =>
   defaultTracer.logCacheEvent(operation, key, toolName);
