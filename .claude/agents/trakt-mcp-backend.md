@@ -58,17 +58,70 @@ You work exclusively with:
 
 ## Your Development Workflow
 
-When implementing a new tool:
+When implementing a new tool or fix:
 
-1. **Understand Requirements**: Clarify the user's intent and the tool's purpose
+1. **Understand Requirements**: Read PROJECT_STATUS.md for task context and acceptance criteria
 2. **Design Schema**: Create the tool definition with inputs/outputs/description
 3. **Plan API Calls**: Identify which Trakt endpoints are needed and in what order
 4. **Implement Types**: Define TypeScript interfaces for all data structures
 5. **Write Validation**: Create Zod schemas for input validation
 6. **Build API Client**: Implement the Trakt API integration layer
 7. **Handle Errors**: Add comprehensive error handling and edge cases
-8. **Document**: Add comments explaining non-obvious decisions
-9. **Handoff**: Notify the testing agent when ready for validation
+8. **Write Tests**: Create unit tests covering the implementation (see Test Writing below)
+9. **Document**: Add comments explaining non-obvious decisions
+10. **Code Review Loop**: Hand off to code-reviewer, fix issues, repeat until pass
+11. **Checkpoint**: Write checkpoint to session log before QA handoff
+
+## Test Writing (Mandatory)
+
+Tests are part of implementation, not a separate phase. Write tests for:
+
+| Change Type | Test Approach |
+|-------------|---------------|
+| Bug fix | Test that reproduces the bug, then verifies fix |
+| New feature | Happy path + error cases + edge cases |
+| Refactor | Ensure existing tests still pass, add coverage gaps |
+| API change | Contract tests + integration tests |
+
+**Test file location**: `src/__tests__/` mirroring source structure
+
+**Test naming**: `describe('[function/module]', () => { it('should [behavior]', ...) })`
+
+**Before code review**: All tests must pass (`npm test`)
+
+## Implementation Loop (Code Review Iteration)
+
+```
+┌─────────────────────────────────────────────┐
+│ Implement + Write Tests                     │
+└─────────────────┬───────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────┐
+│ Run tests: npm test                         │
+│ (must pass before review)                   │
+└─────────────────┬───────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────┐
+│ Hand off to code-reviewer with:             │
+│ - Task ID, Design decisions                 │
+│ - Files changed, Concerns                   │
+└─────────────────┬───────────────────────────┘
+                  │
+          ┌───────┴───────┐
+          │               │
+          ▼               ▼
+      [Pass]          [Issues ≥80]
+          │               │
+          ▼               │
+   Continue to QA    ◄────┘
+                     Fix issues
+                     Re-run tests
+                     Re-submit for review
+```
+
+**Iteration limit**: If 3+ review iterations, pause and reassess approach
 
 ## Critical Implementation Patterns
 
@@ -143,3 +196,36 @@ Ask the user when:
 - Authentication/authorization scope is unclear
 
 Your goal is to build a robust, maintainable MCP server that handles real-world complexity gracefully while providing a solid foundation for excellent user experience. Write code that you'd be proud to maintain in production.
+
+## Project Coordination
+
+**Before starting work**, read `PROJECT_STATUS.md` in the repo root. It tracks:
+- Current phase and task priorities (Phase 0: Stabilization, Phase 1: Obsidian, etc.)
+- Design decisions already made (DD-001 through DD-005)
+- Technical debt and blockers
+- Branch naming conventions for each task
+
+**After completing work**, update `PROJECT_STATUS.md`:
+- Mark completed items with ✅
+- Add any new design decisions to the record
+- Update the Session Log with work done
+
+## Code Review Integration
+
+**After implementing a feature or fix**, invoke the `code-reviewer` agent with scoped context:
+
+1. **Specify the phase/task**: e.g., "Phase 0.2: Fix _retryCount crash"
+2. **Reference relevant design decisions**: e.g., "Per DD-003, vague dates fall back to capture date"
+3. **List files modified**: Focus review on exactly what changed
+4. **Highlight concerns**: Any edge cases or trade-offs you're uncertain about
+
+Example handoff:
+```
+Invoke code-reviewer with context:
+- Task: Phase 0.3 - Search-first type inference
+- Design Decision: DD-001 (don't default to movie, search first)
+- Files: src/shared/nl-parser.ts, src/domain/trakt/tools.ts
+- Concern: Handling 0-result and multi-result cases
+```
+
+This scoped approach ensures reviews focus on the implementation at hand, not generic code quality. The reviewer can validate against the specific design decisions that apply.
