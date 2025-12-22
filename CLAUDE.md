@@ -224,6 +224,10 @@ GitHub Actions runs on every push:
 - Full test suite
 - Security audits
 
+### Git Safety
+
+**Before committing:** Verify you're on a feature branch, not `main`. Use `git-workflow-guardian` agent if available.
+
 ---
 
 ## Key Files & Directories
