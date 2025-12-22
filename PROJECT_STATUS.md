@@ -357,9 +357,9 @@ If context is compacted mid-task:
 - [LangChain Multi-Agent Guidance](https://blog.langchain.com/how-and-when-to-build-multi-agent-systems/)
 - [IBM LLM Orchestration](https://www.ibm.com/think/tutorials/llm-agent-orchestration-with-langchain-and-granite)
 
-### DD-008: Greptile Review Comment Triage
+### DD-008: Automated Review Comment Triage
 **Date:** 2025-12-21
-**Decision:** Triage Greptile auto-review comments to prevent scope creep.
+**Decision:** Triage automated review comments (Claude bot, Copilot, etc.) to prevent scope creep.
 
 **In-Scope (fix immediately):**
 - Bugs in code we wrote this PR
@@ -387,7 +387,7 @@ If context is compacted mid-task:
 **Autonomous (no escalation):**
 - Implementation per DD-001 through DD-008
 - Fixing clear bugs/errors
-- In-scope Greptile comments
+- In-scope automated review comments
 - Documentation updates
 
 **Escalate to human (AskUserQuestion):**
@@ -494,7 +494,7 @@ Agents available for this project (in `.claude/agents/`):
 - Researched industry best practices for multi-agent orchestration
 - Created `pr-scoper` skill for PR sizing analysis
 - Created `checkpoint` skill for compaction recovery
-- Created `pr-feedback-loop` skill for Greptile comment handling
+- Created `pr-feedback-loop` skill for automated review comment handling
 - Updated `trakt-mcp-backend` with explicit test-writing and review loop
 - Documented DD-007 (orchestration), DD-008 (comment triage), DD-009 (autonomy policy)
 - Key insight: "Latest comment only - old context lives in checkpoints, not working memory"
