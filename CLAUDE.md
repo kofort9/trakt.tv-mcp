@@ -77,62 +77,23 @@ Tool validates → Trakt API call → Success
 
 ## Available Tools
 
-### Authentication & Search
+**Core Tools:**
+- `log_watch` - Log single episode/movie (supports optional `rating` 1-10)
+- `bulk_log` - Log multiple episodes/movies with range strings (`"1-5"`, `"1,3,5"`)
+- `rate_media` - Rate already-watched content (1-10 scale)
+- `search_show` - Find shows/movies by title
+- `search_episode` - Find specific episode by show/season/episode
+- `get_history` / `summarize_history` - Query watch history
 
-| Tool | Purpose | Key Parameters |
-|------|---------|----------------|
-| `authenticate` | OAuth device flow for Trakt.tv | None |
-| `search_show` | Find TV shows, movies, anime by title | `query`, `type` (show\|movie) |
-| `search_episode` | Find specific episode by show/season/episode | `showName`, `season`, `episode`, `year`, `traktId` |
+**Other Tools:**
+- `authenticate` - OAuth device flow
+- `undo_last_log` - Remove recent history entries
+- `get_upcoming` - Upcoming episodes for tracked shows
+- `follow_show` / `unfollow_show` - Watchlist management
+- `queue_*` tools - Offline queue management
+- `debug_last_request` - API request logs
 
-### Watch Logging
-
-| Tool | Purpose | Key Parameters |
-|------|---------|----------------|
-| `log_watch` | Log single episode or movie as watched | `type`, `showName`/`movieName`, `season`, `episode`, `watchedAt`, `preview`, `allowDuplicates`, `rating` (1-10) |
-| `bulk_log` | Log multiple episodes/movies at once | `type`, `showName`, `season`, `episodes` (range string), `movieNames` (array) |
-| `undo_last_log` | Remove recent watch history entries | `limit` (1-10), `confirm` |
-
-### Ratings
-
-| Tool | Purpose | Key Parameters |
-|------|---------|----------------|
-| `rate_media` | Add 1-10 rating to movie, show, or episode | `type`, `showName`/`movieName`, `rating` (1-10), `season`, `episode`, `ratedAt` |
-
-**Note:** `log_watch` can also rate content using the optional `rating` parameter (makes 2 API calls).
-
-### History & Analytics
-
-| Tool | Purpose | Key Parameters |
-|------|---------|----------------|
-| `get_history` | Retrieve watch history with filters | `type`, `startDate`, `endDate`, `limit` |
-| `summarize_history` | Analyze history with statistics | `startDate`, `endDate` |
-| `get_upcoming` | Get upcoming episodes for tracked shows | `days` (1-30) |
-
-### Watchlist Management
-
-| Tool | Purpose | Key Parameters |
-|------|---------|----------------|
-| `follow_show` | Add show to watchlist/tracking | `showName`, `year`, `traktId` |
-| `unfollow_show` | Remove show from watchlist | `showName`, `year`, `traktId` |
-
-### Offline Queue Management
-
-| Tool | Purpose | Key Parameters |
-|------|---------|----------------|
-| `sync_logwatch_queue` | Sync offline queue to Trakt | `dryRun`, `autoConfirm`, `entryId`, `action` |
-| `queue_status` | Quick count of queue entries by status | `queuePath` |
-| `queue_preview` | Preview queue with dry-run summary | `queuePath`, `limit` |
-| `queue_auto_sync` | Batch sync unambiguous entries | `queuePath`, `allowDuplicates` |
-| `queue_confirm` | Confirm, skip, or fail single queue entry | `entryId`, `action`, `selectedTraktId`, `selectedType` |
-
-### Debugging
-
-| Tool | Purpose | Key Parameters |
-|------|---------|----------------|
-| `debug_last_request` | Get recent API request logs and metrics | `limit`, `toolName`, `errorsOnly` |
-
-**Most common tools:** `log_watch`, `bulk_log`, `rate_media`, `summarize_history`, `search_show`
+**For full parameter reference:** See [Natural Language Guide](docs/guides/NATURAL_LANGUAGE_GUIDE.md#tool-reference)
 
 ---
 
@@ -185,101 +146,35 @@ Which one did you watch? (Tell me by year)
 
 ## Natural Language Support
 
-### Episode Range Formats
+### Episode Ranges
 
-Tools parse episode range strings:
+Tools parse range strings: `"1-5"` → [1,2,3,4,5], `"1,3,5"` → [1,3,5], `"1-3,5,7-9"` → [1,2,3,5,7,8,9]
 
-| Format | Example | Result |
-|--------|---------|--------|
-| Simple range | `"1-5"` | Episodes 1, 2, 3, 4, 5 |
-| Non-contiguous | `"1,3,5"` | Episodes 1, 3, 5 |
-| Mixed | `"1-3,5,7-9"` | Episodes 1, 2, 3, 5, 7, 8, 9 |
+### Rating Patterns
 
-### Common Patterns
+NL parser extracts ratings: `"8/10"` → 8, `"4 stars"` → 8, `"loved it"` → 10
 
-**Single Episode:**
-```
-User: "Watched Breaking Bad S1E1 yesterday"
-Tool: log_watch
-Args: { type: "episode", showName: "Breaking Bad", season: 1, episode: 1, watchedAt: "2025-12-18" }
-```
+### Quick Examples
 
-**Movie:**
-```
-User: "Saw Dune last Friday"
-Tool: log_watch
-Args: { type: "movie", movieName: "Dune", watchedAt: "2025-12-13" }
-```
+| User Says | Tool | Key Args |
+|-----------|------|----------|
+| "Watched Breaking Bad S1E1 yesterday" | `log_watch` | `season:1, episode:1, watchedAt:"2025-12-21"` |
+| "Binged S1E1-5 of The Office, 8/10" | `bulk_log` | `episodes:"1-5"` + use `rate_media` after |
+| "Rate Dune 9 out of 10" | `rate_media` | `movieName:"Dune", rating:9` |
 
-**Bulk Episodes:**
-```
-User: "Binged Breaking Bad S1E1-5"
-Tool: bulk_log
-Args: { type: "episodes", showName: "Breaking Bad", season: 1, episodes: "1-5" }
-```
-
-**History Query:**
-```
-User: "What did I watch last week?"
-Tool: summarize_history
-Args: { startDate: "2025-12-12", endDate: "2025-12-18" }
-```
-
-**Watch with Rating:**
-```
-User: "Watched Dune, 8/10"
-Tool: log_watch
-Args: { type: "movie", movieName: "Dune", rating: 8 }
-```
-
-**Rate Already-Watched Content:**
-```
-User: "Rate The Bear S2E5 10/10"
-Tool: rate_media
-Args: { type: "episode", showName: "The Bear", season: 2, episode: 5, rating: 10 }
-```
-
-**For complete pattern reference:** See [docs/guides/NATURAL_LANGUAGE_GUIDE.md](docs/guides/NATURAL_LANGUAGE_GUIDE.md)
+**For complete patterns:** See [Natural Language Guide](docs/guides/NATURAL_LANGUAGE_GUIDE.md)
 
 ---
 
 ## Error Handling
 
-### Error Response Format
+**Error Codes:** `VALIDATION_ERROR` | `NOT_FOUND` | `TRAKT_API_ERROR` | `DUPLICATE_ENTRY`
 
-```json
-{
-  "success": false,
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Human-readable description",
-    "suggestions": ["Actionable suggestion 1", "Actionable suggestion 2"]
-  }
-}
-```
+**Response format:** `{ success: false, error: { code, message, suggestions[] } }`
 
-### Common Error Codes
+**Key behavior:** When tools return `suggestions`, present them to the user as actionable next steps.
 
-| Code | Meaning | Example |
-|------|---------|---------|
-| `VALIDATION_ERROR` | Input validation failed | Missing required parameter |
-| `NOT_FOUND` | Content not found on Trakt | Misspelled show name |
-| `TRAKT_API_ERROR` | Trakt.tv API issue | Network error, rate limit |
-| `DUPLICATE_ENTRY` | Already logged recently | Within 48-hour window |
-
-### Presenting Errors
-
-**Example:**
-```
-Tool returns: { "code": "NOT_FOUND", "suggestions": ["Check spelling", "Try search tool"] }
-
-Claude responds:
-I couldn't find "Breaking Bed" on Trakt.tv.
-• Check the spelling - did you mean "Breaking Bad"?
-• Would you like me to search for similar titles?
-```
-
-**For detailed error handling:** See [docs/guides/CONTRIBUTING.md#for-ai-assistants-integration-guidelines](docs/guides/CONTRIBUTING.md)
+**For detailed handling:** See [Contributing Guide](docs/guides/CONTRIBUTING.md#for-ai-assistants-integration-guidelines)
 
 ---
 
@@ -427,23 +322,18 @@ export LANGFUSE_PUBLIC_KEY="pk-lf-..."
 
 ## Maintenance Notes
 
-### Content Synchronization
+### Documentation Strategy
 
-Some content in this file is duplicated from other documentation files to provide complete context for AI assistants. When updating the following sections, ensure changes are synchronized:
+CLAUDE.md is intentionally lean - it provides **essential context** while linking to detailed references:
 
-| CLAUDE.md Section | Source Document | Sync Direction |
-|-------------------|-----------------|----------------|
-| Available Tools | `docs/guides/NATURAL_LANGUAGE_GUIDE.md` | CLAUDE.md → Guide |
-| Error Handling | `docs/guides/CONTRIBUTING.md` | Bidirectional |
-| Development Workflow | `README.md` | README → CLAUDE.md |
-| Testing | `docs/testing/TESTING_GUIDE.md` | Guide → CLAUDE.md |
+| Topic | Source of Truth |
+|-------|-----------------|
+| Tool parameters & patterns | `docs/guides/NATURAL_LANGUAGE_GUIDE.md` |
+| Error handling details | `docs/guides/CONTRIBUTING.md` |
+| Build/test commands | `README.md` |
+| Testing patterns | `docs/testing/TESTING_GUIDE.md` |
 
-**Why duplication exists:** CLAUDE.md serves as a single-file context for AI assistants, while the `docs/` hierarchy serves human developers who navigate by topic.
-
-**When to sync:**
-- After updating tool schemas in `src/domain/trakt/tools.ts`, update both CLAUDE.md and the Natural Language Guide
-- After changing build/test commands, update both README.md and CLAUDE.md
-- After adding new error codes, update both CONTRIBUTING.md and CLAUDE.md
+**When updating tools:** Update the Natural Language Guide with full parameters. CLAUDE.md only needs tool name + one-line purpose.
 
 ---
 

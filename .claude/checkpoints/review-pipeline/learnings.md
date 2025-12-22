@@ -33,7 +33,7 @@ Aggregated patterns and session logs from `/review-pipeline` executions.
 
 ### 2025-12-22 - Pipeline Created
 
-- Origin: PR #29 discussion identified need to orchestrate `/error-classify` (from PR #28) and `/comment-validate` (from PR #27)
+- Origin: PR #29 merged `/error-classify` and `/comment-validate` specs
 - Architecture: Meta-skill orchestrating both + code-reviewer
 - Next: First real execution to gather baseline data
 
