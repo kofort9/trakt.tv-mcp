@@ -61,10 +61,10 @@ Ideas surfaced from automated code reviews worth revisiting.
 
 ### Tooling & Skills
 
-| Item | Source | Priority | Notes |
-|------|--------|----------|-------|
-| `/error-classify` skill | PR #28 review | Low | Categorize errors before review |
-| `/comment-validate` skill | PR #27 false positive | Low | Pre-validate comment syntax to reduce review noise |
+| Item | Source | Priority | Status | Notes |
+|------|--------|----------|--------|-------|
+| `/error-classify` skill | PR #28 review | Low | 📋 Spec drafted | Categorize errors before review. See [spec](../../.claude/skills/error-classify.md) |
+| `/comment-validate` skill | PR #27 false positive | Low | 📋 Spec drafted | Pre-validate comment syntax to reduce review noise. See [spec](../../.claude/skills/comment-validate.md) |
 
 ### Test Improvements
 
