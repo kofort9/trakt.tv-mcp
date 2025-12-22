@@ -2,7 +2,7 @@
 
 **Last Updated:** 2025-12-22
 **Current Phase:** Phase 0 - Stabilization (Complete)
-**Next Session Focus:** Merge PRs #27 & #28, begin Phase 1
+**Next Session Focus:** Phase 1 - Ratings & Reviews
 
 ---
 
@@ -13,38 +13,35 @@
 | Core MCP tools (log_watch, bulk_log, etc.) | ✅ Stable | No |
 | sync_logwatch_queue | ✅ Fixed (PR #27, #28) | No |
 | Observability (Langfuse) | ✅ Internal spans added | No |
-| Obsidian integration | 📋 Planned (Phase 1) | No |
-| Ratings/reviews | 📋 Planned (Phase 2) | No |
+| Ratings/reviews | 📋 Planned (Phase 1) | No |
+| Interactive state machine | 📋 Planned (Phase 2) | No |
 
 ---
 
 ## Phase Overview
 
 ```
-Phase 0: Stabilization (CURRENT)
-├── 0.1 Add observability to sync_logwatch_queue
-├── 0.2 Fix _retryCount crash in TraktClient
-├── 0.3 Implement search-first type inference
-├── 0.4 Smart auto-confirm behavior
+Phase 0: Stabilization (COMPLETE)
+├── 0.1 Add observability to sync_logwatch_queue ✅
+├── 0.2 Fix _retryCount crash in TraktClient ✅
+├── 0.3 Implement search-first type inference ✅
+├── 0.4 Smart auto-confirm behavior ✅
 └── 0.5 Process existing 20-entry queue
 
-Phase 1: Obsidian Dual-Write
-├── 1.1 Create ObsidianWriter module
-├── 1.2 Integrate into log_watch/bulk_log
-├── 1.3 Create watchlog.md format
-└── 1.4 Update log-media skill
+Phase 1: Ratings & Reviews
+├── 1.1 Add rating param to log_watch (1-10)
+├── 1.2 Add review param (short text)
+├── 1.3 Update NL parser for ratings
+└── 1.4 Update queue sync to handle ratings
 
-Phase 2: Ratings & Reviews
-├── 2.1 Add rating param to log_watch (1-10)
-├── 2.2 Add review param (short text)
-├── 2.3 Flow to both Trakt AND Obsidian
-└── 2.4 Update NL parser for ratings
+Phase 2: Advanced Features
+├── 2.1 Interactive state machine (ADR-002)
+├── 2.2 Franchise expansion workflow
+├── 2.3 Month-level date granularity
+└── 2.4 Local SQLite analytics store
 
-Phase 3: Advanced Features (Future)
-├── 3.1 Interactive state machine (ADR-002)
-├── 3.2 Franchise expansion workflow
-├── 3.3 Month-level date granularity
-└── 3.4 Local SQLite analytics store
+Note: Obsidian integration moved to external ObsidianWriter agent
+      (see ~/.claude/agents/obsidian-writer.md)
 ```
 
 ---
@@ -360,9 +357,9 @@ If context is compacted mid-task:
 - [LangChain Multi-Agent Guidance](https://blog.langchain.com/how-and-when-to-build-multi-agent-systems/)
 - [IBM LLM Orchestration](https://www.ibm.com/think/tutorials/llm-agent-orchestration-with-langchain-and-granite)
 
-### DD-008: Greptile Review Comment Triage
+### DD-008: Automated Review Comment Triage
 **Date:** 2025-12-21
-**Decision:** Triage Greptile auto-review comments to prevent scope creep.
+**Decision:** Triage automated review comments (Claude bot, Copilot, etc.) to prevent scope creep.
 
 **In-Scope (fix immediately):**
 - Bugs in code we wrote this PR
@@ -390,7 +387,7 @@ If context is compacted mid-task:
 **Autonomous (no escalation):**
 - Implementation per DD-001 through DD-008
 - Fixing clear bugs/errors
-- In-scope Greptile comments
+- In-scope automated review comments
 - Documentation updates
 
 **Escalate to human (AskUserQuestion):**
@@ -497,7 +494,7 @@ Agents available for this project (in `.claude/agents/`):
 - Researched industry best practices for multi-agent orchestration
 - Created `pr-scoper` skill for PR sizing analysis
 - Created `checkpoint` skill for compaction recovery
-- Created `pr-feedback-loop` skill for Greptile comment handling
+- Created `pr-feedback-loop` skill for automated review comment handling
 - Updated `trakt-mcp-backend` with explicit test-writing and review loop
 - Documented DD-007 (orchestration), DD-008 (comment triage), DD-009 (autonomy policy)
 - Key insight: "Latest comment only - old context lives in checkpoints, not working memory"
