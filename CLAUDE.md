@@ -10,6 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - [Natural Language Support](#natural-language-support)
 - [Error Handling](#error-handling)
 - [Development Workflow](#development-workflow)
+  - [Git Safety](#git-safety)
 - [Key Files & Directories](#key-files--directories)
 - [Testing](#testing)
 - [Observability & Debugging](#observability--debugging)
