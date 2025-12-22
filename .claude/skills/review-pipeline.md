@@ -252,6 +252,47 @@ After code-reviewer completes:
 | False positive rate > 20% | Review skill thresholds |
 | New error category found | Add to taxonomy |
 
+## Error Handling
+
+### Stage Failure Recovery
+
+| Stage | Failure Type | Action |
+|-------|--------------|--------|
+| 1. comment-validate | Crash/timeout | Log warning, proceed to stage 2 without filter |
+| 2. error-classify | Crash/timeout | Log warning, proceed to stage 3 without enrichment |
+| 3. pre-checkpoint | Save failed | Log warning, continue to stage 4 |
+| 4. code-reviewer | Crash/timeout | **Pipeline fails** - investigate manually |
+| 5. post-checkpoint | Save failed | Log warning, pipeline completes (learnings lost) |
+
+### Partial Execution
+
+- If stages 1-2 fail, code-reviewer proceeds without context enrichment
+- Stage 4 (code-reviewer) is the only hard failure - the pipeline exists to support it
+- Stage 5 failure means learnings aren't captured, but the review itself is still valid
+
+### Context Injection Mechanism
+
+Stage 4 receives context from stages 1-2 via **prompt prefix**:
+
+```markdown
+## Pre-Review Context (from /review-pipeline)
+
+### Comment Validation: [PASSED|X ISSUES]
+[Summary from stage 1]
+
+### Error Classification Focus Areas:
+[List of flagged handlers from stage 2]
+
+### Skip Checks:
+- URL protocols (validated)
+- Regex delimiters (validated)
+
+---
+Proceed with code review, focusing on flagged areas above.
+```
+
+This context is prepended to the code-reviewer invocation prompt.
+
 ## Integration with GitHub Actions
 
 ### Option 1: Manual (Current)
