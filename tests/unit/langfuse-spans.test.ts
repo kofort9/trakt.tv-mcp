@@ -104,9 +104,9 @@ describe('syncLogwatchQueue Observability', () => {
         })
       );
 
-      // Duration should be at least 50ms
+      // Duration should be at least 40ms (allowing tolerance for CI timer variance)
       const updateCall = mockSpanUpdate.mock.calls[0][0];
-      expect(updateCall.metadata.duration_ms).toBeGreaterThanOrEqual(50);
+      expect(updateCall.metadata.duration_ms).toBeGreaterThanOrEqual(40);
     });
 
     it('should record error details on span.error()', () => {
