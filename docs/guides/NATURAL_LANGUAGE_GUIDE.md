@@ -1,6 +1,6 @@
 # Natural Language Support Guide
 
-**Last Updated:** 2025-12-09
+**Last Updated:** 2025-12-22
 **Purpose:** Guide to natural language capabilities in the Trakt.tv MCP server
 
 ---
@@ -15,6 +15,8 @@
 6. [Error Handling](#error-handling)
 7. [Disambiguation](#disambiguation)
 8. [Implementation Reference](#implementation-reference)
+9. [Tool Reference](#tool-reference)
+10. [Rating Patterns](#rating-patterns)
 
 ---
 
@@ -733,6 +735,235 @@ Would you like me to search for "Breaking Bad" instead?
 
 ---
 
+## Tool Reference
+
+This section provides complete parameter reference for all MCP tools.
+
+### Watch Logging Tools
+
+#### `log_watch`
+
+Log a single episode or movie as watched.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `type` | `"episode"` \| `"movie"` | Yes | Content type |
+| `showName` | string | For episodes | Name of the TV show |
+| `movieName` | string | For movies | Name of the movie |
+| `season` | number | For episodes | Season number (0+ for specials) |
+| `episode` | number | For episodes | Episode number (1+) |
+| `watchedAt` | string | No | ISO 8601 date (defaults to now) |
+| `rating` | number | No | Rating 1-10 (triggers 2 API calls) |
+| `year` | number | No | Release year for disambiguation |
+| `traktId` | number | No | Exact Trakt ID |
+| `preview` | boolean | No | Preview mode (no actual log) |
+| `allowDuplicates` | boolean | No | Allow duplicate entries |
+
+#### `bulk_log`
+
+Log multiple episodes or movies at once.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `type` | `"episodes"` \| `"movies"` | Yes | Content type (plural) |
+| `showName` | string | For episodes | Name of the TV show |
+| `season` | number | For episodes | Season number |
+| `episodes` | string | For episodes | Range string: `"1-5"`, `"1,3,5"`, `"1-3,5,7-9"` |
+| `movieNames` | string[] | For movies | Array of movie names |
+| `watchedAt` | string | No | ISO 8601 date |
+| `year` | number | No | Release year |
+| `traktId` | number | No | Exact Trakt ID |
+| `preview` | boolean | No | Preview mode |
+
+#### `rate_media`
+
+Rate already-watched content (1-10 scale).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `type` | `"episode"` \| `"movie"` \| `"show"` | Yes | Content type |
+| `rating` | number | Yes | Rating 1-10 |
+| `showName` | string | For episodes/shows | Name of the TV show |
+| `movieName` | string | For movies | Name of the movie |
+| `season` | number | For episodes | Season number |
+| `episode` | number | For episodes | Episode number |
+| `ratedAt` | string | No | ISO 8601 date (defaults to now) |
+| `year` | number | No | Release year |
+| `traktId` | number | No | Exact Trakt ID |
+
+#### `undo_last_log`
+
+Remove recent watch history entries.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `limit` | number | No | Entries to remove (1-10, default: 1) |
+| `confirm` | boolean | No | Must be true to actually remove |
+
+---
+
+### Search Tools
+
+#### `search_show`
+
+Find TV shows, movies, or anime by title.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `query` | string | Yes | Search query |
+| `type` | `"show"` \| `"movie"` | No | Filter by content type |
+
+#### `search_episode`
+
+Find a specific episode.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `showName` | string | Yes | Name of the TV show |
+| `season` | number | Yes | Season number |
+| `episode` | number | Yes | Episode number |
+| `year` | number | No | Release year |
+| `traktId` | number | No | Exact Trakt ID |
+
+---
+
+### History & Analytics Tools
+
+#### `get_history`
+
+Retrieve watch history with filters.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `type` | `"shows"` \| `"movies"` | No | Filter by content type |
+| `startDate` | string | No | ISO 8601 start date |
+| `endDate` | string | No | ISO 8601 end date |
+| `limit` | number | No | Maximum entries |
+
+#### `summarize_history`
+
+Analyze history with statistics.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `startDate` | string | No | ISO 8601 start date |
+| `endDate` | string | No | ISO 8601 end date |
+
+#### `get_upcoming`
+
+Get upcoming episodes for tracked shows.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `days` | number | No | Days ahead (1-30, default: 7) |
+
+---
+
+### Watchlist Tools
+
+#### `follow_show` / `unfollow_show`
+
+Add or remove shows from watchlist.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `showName` | string | Yes | Name of the TV show |
+| `year` | number | No | Release year |
+| `traktId` | number | No | Exact Trakt ID |
+
+---
+
+### Queue Tools
+
+#### `queue_status`
+
+Quick count of pending/synced/failed queue entries.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `queuePath` | string | No | Custom queue file path |
+
+#### `queue_preview`
+
+Preview queue with dry-run summary.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `queuePath` | string | No | Custom queue file path |
+| `limit` | number | No | Max entries to preview |
+
+#### `queue_auto_sync`
+
+Batch sync unambiguous entries.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `queuePath` | string | No | Custom queue file path |
+| `allowDuplicates` | boolean | No | Allow duplicate entries |
+
+#### `queue_confirm`
+
+Confirm, skip, or fail single queue entry.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `entryId` | string | Yes | Entry ID to process |
+| `action` | `"confirm"` \| `"skip"` \| `"fail"` | Yes | Action to take |
+| `selectedTraktId` | number | For confirm | Trakt ID to log |
+| `selectedType` | `"movie"` \| `"episode"` | For confirm | Content type |
+| `queuePath` | string | No | Custom queue file path |
+| `allowDuplicates` | boolean | No | Allow duplicates |
+
+---
+
+### Debugging Tools
+
+#### `debug_last_request`
+
+Get recent API request logs and metrics.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `limit` | number | No | Requests to retrieve (1-100, default: 10) |
+| `toolName` | string | No | Filter by tool name |
+| `errorsOnly` | boolean | No | Only show errors |
+| `method` | string | No | Filter by HTTP method |
+| `statusCode` | number | No | Filter by status code |
+| `includeMetrics` | boolean | No | Include performance metrics |
+
+---
+
+## Rating Patterns
+
+The NL parser (`src/shared/nl-parser.ts`) extracts ratings from natural language:
+
+| Pattern | Example | Extracted Rating |
+|---------|---------|------------------|
+| X/10 | "8/10" | 8 |
+| X out of 10 | "8 out of 10" | 8 |
+| X stars | "4 stars" | 8 (scaled ×2) |
+| rated X | "rated 9" | 9 |
+| loved it | "loved it" | 10 |
+| amazing | "amazing" | 10 |
+| good | "good" | 7 |
+| okay | "okay" | 5 |
+| bad | "bad" | 3 |
+| hated it | "hated it" | 1 |
+
+**Usage in `log_watch`:**
+```
+User: "Watched Dune yesterday, 8/10"
+→ log_watch(...) then internally calls addRating() with rating: 8
+```
+
+**Usage with `rate_media`:**
+```
+User: "Rate Breaking Bad 10 out of 10"
+→ rate_media({ type: "show", showName: "Breaking Bad", rating: 10 })
+```
+
+---
+
 ## Related Documentation
 
 - **[CONTRIBUTING.md](./CONTRIBUTING.md)** - How to contribute to this project, including adding new patterns
@@ -743,4 +974,4 @@ Would you like me to search for "Breaking Bad" instead?
 
 **Maintained by:** Development Team
 **For questions or updates:** Submit PR or open issue
-**Last Validated:** 2025-12-09
+**Last Validated:** 2025-12-22

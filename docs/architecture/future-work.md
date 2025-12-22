@@ -63,6 +63,7 @@ Ideas surfaced from automated code reviews worth revisiting.
 
 | Item | Source | Priority | Status | Notes |
 |------|--------|----------|--------|-------|
+| `/review-pipeline` skill | PR #29 discussion | Medium | 📋 Spec drafted | Orchestrate comment-validate → error-classify → code-reviewer with feedback loops. See [spec](../../.claude/skills/review-pipeline.md) |
 | `/error-classify` skill | PR #28 review | Low | 📋 Spec drafted | Categorize errors before review. See [spec](../../.claude/skills/error-classify.md) |
 | `/comment-validate` skill | PR #27 false positive | Low | 📋 Spec drafted | Pre-validate comment syntax to reduce review noise. See [spec](../../.claude/skills/comment-validate.md) |
 
