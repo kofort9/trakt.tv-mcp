@@ -1,8 +1,15 @@
 # Phase 0 Test Plan: sync_logwatch_queue Stabilization
 
 **Created:** 2025-12-22
-**Status:** Ready for Implementation
+**Status:** ✅ Implemented - PRs Ready to Merge
 **PR Strategy:** PR-1 (0.1 + 0.2), PR-2 (0.3 + 0.4)
+
+## Implementation Status
+
+| PR | Branch | Status | Tests Added |
+|----|--------|--------|-------------|
+| #27 | `fix/sync-stabilization` | ✅ Ready | 23 tests (8 observability + 15 retry) |
+| #28 | `feat/smart-type-inference` | ✅ Ready | 26 tests (19 type inference + 7 auto-confirm) |
 
 ---
 
@@ -14,10 +21,10 @@ This test plan addresses the 100% failure rate documented in the [2025-12-16 cas
 
 | Task | Code Status | Test Status |
 |------|-------------|-------------|
-| 0.1 Observability | Outer traceToolCall exists (index.ts:880) | ❌ No internal span tests |
-| 0.2 _retryCount fix | Already fixed (trakt-client.ts:111-112) | ⚠️ Mock-level test only |
-| 0.3 Search-first type | Already implemented (tools.ts:1529-1550) | ⚠️ Needs case study regression |
-| 0.4 Smart auto-confirm | Already implemented (tools.ts:1563-1604) | ✅ Good coverage |
+| 0.1 Observability | ✅ createChildSpan added (langfuse.ts) | ✅ 8 tests (langfuse-spans.test.ts) |
+| 0.2 _retryCount fix | ✅ Verified (trakt-client.ts:111-112) | ✅ 15 tests (trakt-client-retry.test.ts) |
+| 0.3 Search-first type | ✅ Implemented (tools.ts:1529-1550) | ✅ 19 tests (type-inference.test.ts) |
+| 0.4 Smart auto-confirm | ✅ Mixed-type detection added | ✅ 7 edge case tests |
 
 ---
 
