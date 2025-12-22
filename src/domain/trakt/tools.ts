@@ -29,6 +29,8 @@ import {
   TraktHistorySummary,
   DisambiguationResponse,
   LogPreviewResponse,
+  TraktRatingPayload,
+  TraktRatingResponse,
 } from '../../types/trakt.js';
 
 // Constants for tool operations
@@ -122,6 +124,7 @@ export async function logWatch(
     traktId?: number;
     preview?: boolean;
     allowDuplicates?: boolean;
+    rating?: number; // Optional rating 1-10, triggers second API call to /sync/ratings
   }
 ): Promise<
   | ToolSuccess<TraktHistoryAddResponse>
@@ -141,12 +144,25 @@ export async function logWatch(
       traktId,
       preview,
       allowDuplicates,
+      rating,
     } = args;
     const toolName = 'log_watch';
     const duplicateDetector = new DuplicateDetector(client);
 
     // Validate ISO 8601 format for watchedAt
     validateISO8601Date(watchedAt, 'watchedAt');
+
+    // Validate rating if provided
+    if (rating !== undefined) {
+      if (!Number.isInteger(rating) || rating < 1 || rating > 10) {
+        return createToolError(
+          'VALIDATION_ERROR',
+          'Rating must be an integer between 1 and 10',
+          undefined,
+          ['Use a whole number from 1 (worst) to 10 (best)']
+        );
+      }
+    }
 
     // watchedAt accepts ISO 8601 format only (YYYY-MM-DD or full timestamp)
     // Claude handles natural language → ISO conversion
@@ -251,7 +267,41 @@ export async function logWatch(
       };
 
       const response = await client.addToHistory(historyData, { toolName });
-      return createToolSuccess<TraktHistoryAddResponse>(response as TraktHistoryAddResponse);
+
+      // If rating provided, make second API call to add rating
+      let ratingWarning: string | undefined;
+      if (rating !== undefined) {
+        try {
+          const ratingPayload: TraktRatingPayload = {
+            shows: [
+              {
+                ids: { trakt: show.ids.trakt },
+                rating,
+                rated_at: watched_at,
+              },
+            ],
+          };
+          await client.addRating(ratingPayload, { toolName });
+        } catch (ratingError) {
+          // Watch was logged successfully, but rating failed
+          ratingWarning = `Watch logged successfully, but rating failed: ${sanitizeError(ratingError, 'logWatch.rating')}. Use rate_media to add rating separately.`;
+        }
+      }
+
+      const successMessage = rating
+        ? `Logged and rated ${show.title}${show.year ? ` (${show.year})` : ''} S${season}E${episode} (${rating}/10)`
+        : undefined;
+
+      if (ratingWarning) {
+        return createToolSuccess<TraktHistoryAddResponse & { ratingWarning?: string }>(
+          { ...(response as TraktHistoryAddResponse), ratingWarning },
+          successMessage
+        );
+      }
+      return createToolSuccess<TraktHistoryAddResponse>(
+        response as TraktHistoryAddResponse,
+        successMessage
+      );
     } else {
       // Movie
       if (!movieName) {
@@ -337,7 +387,41 @@ export async function logWatch(
       };
 
       const response = await client.addToHistory(historyData, { toolName });
-      return createToolSuccess<TraktHistoryAddResponse>(response as TraktHistoryAddResponse);
+
+      // If rating provided, make second API call to add rating
+      let ratingWarning: string | undefined;
+      if (rating !== undefined) {
+        try {
+          const ratingPayload: TraktRatingPayload = {
+            movies: [
+              {
+                ids: { trakt: movie.ids.trakt },
+                rating,
+                rated_at: watched_at,
+              },
+            ],
+          };
+          await client.addRating(ratingPayload, { toolName });
+        } catch (ratingError) {
+          // Watch was logged successfully, but rating failed
+          ratingWarning = `Watch logged successfully, but rating failed: ${sanitizeError(ratingError, 'logWatch.rating')}. Use rate_media to add rating separately.`;
+        }
+      }
+
+      const successMessage = rating
+        ? `Logged and rated ${movie.title}${movie.year ? ` (${movie.year})` : ''} (${rating}/10)`
+        : undefined;
+
+      if (ratingWarning) {
+        return createToolSuccess<TraktHistoryAddResponse & { ratingWarning?: string }>(
+          { ...(response as TraktHistoryAddResponse), ratingWarning },
+          successMessage
+        );
+      }
+      return createToolSuccess<TraktHistoryAddResponse>(
+        response as TraktHistoryAddResponse,
+        successMessage
+      );
     }
   } catch (error) {
     const message = sanitizeError(error, 'logWatch');
@@ -989,6 +1073,210 @@ export async function unfollowShow(
     });
   } catch (error) {
     const message = sanitizeError(error, 'unfollowShow');
+    return createToolError('TRAKT_API_ERROR', message);
+  }
+}
+
+/**
+ * Rate a movie, show, or episode without logging a watch.
+ *
+ * Use this for:
+ * - Rating content you've already watched
+ * - Updating an existing rating
+ * - Rating content without adding to watch history
+ *
+ * @param rating - Rating from 1 (worst) to 10 (best)
+ * @param ratedAt - Optional. ISO 8601 date when rating was made
+ */
+export async function rateMedia(
+  client: TraktClient,
+  args: {
+    type: 'episode' | 'movie' | 'show';
+    showName?: string;
+    movieName?: string;
+    season?: number;
+    episode?: number;
+    rating: number;
+    ratedAt?: string;
+    year?: number;
+    traktId?: number;
+  }
+): Promise<ToolSuccess<TraktRatingResponse> | ToolError | DisambiguationResponse> {
+  try {
+    const { type, showName, movieName, season, episode, rating, ratedAt, year, traktId } = args;
+    const toolName = 'rate_media';
+
+    // Validate rating
+    if (!Number.isInteger(rating) || rating < 1 || rating > 10) {
+      return createToolError(
+        'VALIDATION_ERROR',
+        'Rating must be an integer between 1 and 10',
+        undefined,
+        ['Use a whole number from 1 (worst) to 10 (best)']
+      );
+    }
+
+    // Validate ISO 8601 format for ratedAt
+    validateISO8601Date(ratedAt, 'ratedAt');
+    const rated_at = ratedAt || new Date().toISOString();
+
+    if (type === 'episode') {
+      if (!showName || season === undefined || episode === undefined) {
+        return createToolError(
+          'VALIDATION_ERROR',
+          'For episodes, showName, season, and episode are required'
+        );
+      }
+
+      validateNonEmptyString(showName, 'showName');
+      validateSeasonNumber(season);
+      validateEpisodeNumber(episode);
+
+      // Search for the show
+      const searchResults = await client.search(showName, 'show', year, { toolName });
+      if (!Array.isArray(searchResults) || searchResults.length === 0) {
+        return createToolError('NOT_FOUND', `No show found matching "${showName}"`, undefined, [
+          'Check the spelling of the show name',
+          'Try using search_show to browse available titles',
+        ]);
+      }
+
+      // Handle disambiguation
+      const disambiguationResult = handleSearchDisambiguation(
+        searchResults,
+        showName,
+        'show',
+        year,
+        traktId
+      );
+
+      if (disambiguationResult.needsDisambiguation) {
+        return disambiguationResult.response;
+      }
+
+      const show = disambiguationResult.selected.show;
+      if (!show) {
+        return createToolError('NOT_FOUND', 'Show data not found');
+      }
+
+      // Get episode Trakt ID for rating
+      const episodeData = (await client.searchEpisode(show.ids.slug, season, episode, {
+        toolName,
+      })) as TraktEpisode;
+
+      const ratingPayload: TraktRatingPayload = {
+        episodes: [
+          {
+            ids: { trakt: episodeData.ids.trakt },
+            rating,
+            rated_at,
+          },
+        ],
+      };
+
+      const response = await client.addRating(ratingPayload, { toolName });
+      return createToolSuccess<TraktRatingResponse>(
+        response,
+        `Rated ${show.title} S${season}E${episode} as ${rating}/10`
+      );
+    } else if (type === 'show') {
+      if (!showName) {
+        return createToolError('VALIDATION_ERROR', 'For shows, showName is required');
+      }
+
+      validateNonEmptyString(showName, 'showName');
+
+      const searchResults = await client.search(showName, 'show', year, { toolName });
+      if (!Array.isArray(searchResults) || searchResults.length === 0) {
+        return createToolError('NOT_FOUND', `No show found matching "${showName}"`, undefined, [
+          'Check the spelling of the show name',
+          'Try using search_show to browse available titles',
+        ]);
+      }
+
+      const disambiguationResult = handleSearchDisambiguation(
+        searchResults,
+        showName,
+        'show',
+        year,
+        traktId
+      );
+
+      if (disambiguationResult.needsDisambiguation) {
+        return disambiguationResult.response;
+      }
+
+      const show = disambiguationResult.selected.show;
+      if (!show) {
+        return createToolError('NOT_FOUND', 'Show data not found');
+      }
+
+      const ratingPayload: TraktRatingPayload = {
+        shows: [
+          {
+            ids: { trakt: show.ids.trakt },
+            rating,
+            rated_at,
+          },
+        ],
+      };
+
+      const response = await client.addRating(ratingPayload, { toolName });
+      return createToolSuccess<TraktRatingResponse>(
+        response,
+        `Rated ${show.title}${show.year ? ` (${show.year})` : ''} as ${rating}/10`
+      );
+    } else {
+      // Movie
+      if (!movieName) {
+        return createToolError('VALIDATION_ERROR', 'For movies, movieName is required');
+      }
+
+      validateNonEmptyString(movieName, 'movieName');
+
+      const searchResults = await client.search(movieName, 'movie', year, { toolName });
+      if (!Array.isArray(searchResults) || searchResults.length === 0) {
+        return createToolError('NOT_FOUND', `No movie found matching "${movieName}"`, undefined, [
+          'Check the spelling of the movie name',
+          'Try using search_show to browse available movies',
+        ]);
+      }
+
+      const disambiguationResult = handleSearchDisambiguation(
+        searchResults,
+        movieName,
+        'movie',
+        year,
+        traktId
+      );
+
+      if (disambiguationResult.needsDisambiguation) {
+        return disambiguationResult.response;
+      }
+
+      const movie = disambiguationResult.selected.movie;
+      if (!movie) {
+        return createToolError('NOT_FOUND', 'Movie data not found');
+      }
+
+      const ratingPayload: TraktRatingPayload = {
+        movies: [
+          {
+            ids: { trakt: movie.ids.trakt },
+            rating,
+            rated_at,
+          },
+        ],
+      };
+
+      const response = await client.addRating(ratingPayload, { toolName });
+      return createToolSuccess<TraktRatingResponse>(
+        response,
+        `Rated ${movie.title}${movie.year ? ` (${movie.year})` : ''} as ${rating}/10`
+      );
+    }
+  } catch (error) {
+    const message = sanitizeError(error, 'rateMedia');
     return createToolError('TRAKT_API_ERROR', message);
   }
 }

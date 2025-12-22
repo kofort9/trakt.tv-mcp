@@ -413,6 +413,122 @@ describe('parseWatchNote', () => {
     });
   });
 
+  describe('Rating Patterns', () => {
+    it('should extract "8/10" format', () => {
+      const result = parseWatchNote('watched Dune 8/10', testCapturedAt);
+
+      expect(result.rating).toBe(8);
+      expect(result.ratingSource).toBe('parsed');
+      expect(result.ratingExpression).toBe('8/10');
+      expect(result.title).toContain('Dune');
+    });
+
+    it('should extract "7 out of 10" format', () => {
+      const result = parseWatchNote('watched Dune 7 out of 10', testCapturedAt);
+
+      expect(result.rating).toBe(7);
+      expect(result.ratingSource).toBe('parsed');
+      expect(result.ratingExpression).toBe('7 out of 10');
+    });
+
+    it('should convert "4 stars" to 8/10', () => {
+      const result = parseWatchNote('watched Dune 4 stars', testCapturedAt);
+
+      expect(result.rating).toBe(8); // 4 stars * 2 = 8
+      expect(result.ratingSource).toBe('parsed');
+      expect(result.ratingExpression).toBe('4 stars');
+    });
+
+    it('should convert "3 star" to 6/10', () => {
+      const result = parseWatchNote('watched Dune 3 star', testCapturedAt);
+
+      expect(result.rating).toBe(6); // 3 stars * 2 = 6
+      expect(result.ratingSource).toBe('parsed');
+    });
+
+    it('should convert "5 stars" to 10/10', () => {
+      const result = parseWatchNote('watched Dune 5 stars', testCapturedAt);
+
+      expect(result.rating).toBe(10); // 5 stars * 2 = 10
+      expect(result.ratingSource).toBe('parsed');
+    });
+
+    it('should extract "rated 9" format', () => {
+      const result = parseWatchNote('watched Dune, rated 9', testCapturedAt);
+
+      expect(result.rating).toBe(9);
+      expect(result.ratingSource).toBe('parsed');
+    });
+
+    it('should extract "gave it a 7" format', () => {
+      const result = parseWatchNote('watched Dune, gave it a 7', testCapturedAt);
+
+      expect(result.rating).toBe(7);
+      expect(result.ratingSource).toBe('parsed');
+    });
+
+    it('should extract "loved it" as 10', () => {
+      const result = parseWatchNote('watched Dune loved it', testCapturedAt);
+
+      expect(result.rating).toBe(10);
+      expect(result.ratingSource).toBe('parsed');
+      expect(result.ratingExpression).toContain('loved');
+    });
+
+    it('should extract "hated it" as 1', () => {
+      const result = parseWatchNote('watched Dune hated it', testCapturedAt);
+
+      expect(result.rating).toBe(1);
+      expect(result.ratingSource).toBe('parsed');
+    });
+
+    it('should extract "really good" as 9', () => {
+      const result = parseWatchNote('watched Dune, really good', testCapturedAt);
+
+      expect(result.rating).toBe(9);
+      expect(result.ratingSource).toBe('parsed');
+    });
+
+    it('should extract rating with episode info', () => {
+      const result = parseWatchNote('watched The Bear S2E5 8/10', testCapturedAt);
+
+      expect(result.rating).toBe(8);
+      expect(result.season).toBe(2);
+      expect(result.episode).toBe(5);
+      expect(result.type).toBe('episode');
+    });
+
+    it('should extract rating with year', () => {
+      const result = parseWatchNote('watched Dune (2021) 9/10', testCapturedAt);
+
+      expect(result.rating).toBe(9);
+      expect(result.year).toBe(2021);
+    });
+
+    it('should not extract invalid rating 11/10', () => {
+      const result = parseWatchNote('watched Dune 11/10', testCapturedAt);
+
+      // 11 is outside 1-10 range, should not be extracted
+      expect(result.rating).toBeUndefined();
+      expect(result.ratingSource).toBe('none');
+    });
+
+    it('should not extract rating 0/10', () => {
+      const result = parseWatchNote('watched Dune 0/10', testCapturedAt);
+
+      // 0 is outside 1-10 range, should not be extracted
+      expect(result.rating).toBeUndefined();
+      expect(result.ratingSource).toBe('none');
+    });
+
+    it('should set ratingSource to none when no rating found', () => {
+      const result = parseWatchNote('watched Dune yesterday', testCapturedAt);
+
+      expect(result.rating).toBeUndefined();
+      expect(result.ratingSource).toBe('none');
+    });
+  });
+
   describe('Complete Scenarios', () => {
     it('should parse: "just watched Dune"', () => {
       const result = parseWatchNote('just watched Dune', testCapturedAt);

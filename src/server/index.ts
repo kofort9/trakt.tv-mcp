@@ -254,6 +254,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description:
                 'Optional: Allow logging duplicate entries (for rewatches). Default: false - prevents duplicate logs within 48 hours',
             },
+            rating: {
+              type: 'number',
+              description:
+                'Optional: Rating 1-10 for the content. If provided, adds rating after logging watch (2 API calls).',
+            },
           },
           required: ['type'],
         },
@@ -435,6 +440,55 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
           },
           required: ['showName'],
+        },
+      },
+      {
+        name: 'rate_media',
+        description:
+          'Add a rating (1-10) to a movie, show, or episode. Use for rating already-watched content or when log_watch rating failed.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            type: {
+              type: 'string',
+              enum: ['episode', 'movie', 'show'],
+              description: 'Content type to rate',
+            },
+            showName: {
+              type: 'string',
+              description: 'Show name (required for episodes and shows)',
+            },
+            movieName: {
+              type: 'string',
+              description: 'Movie name (required for movies)',
+            },
+            season: {
+              type: 'number',
+              description: 'Season number (required for episodes)',
+            },
+            episode: {
+              type: 'number',
+              description: 'Episode number (required for episodes)',
+            },
+            rating: {
+              type: 'number',
+              description: 'Rating from 1-10 (required)',
+            },
+            ratedAt: {
+              type: 'string',
+              description: 'When the rating was made. ISO 8601 format. Defaults to current time.',
+            },
+            year: {
+              type: 'number',
+              description: 'Optional: Release year to disambiguate content with the same name',
+            },
+            traktId: {
+              type: 'number',
+              description:
+                'Optional: Trakt ID for exact identification (obtained from search_show)',
+            },
+          },
+          required: ['type', 'rating'],
         },
       },
       {
@@ -735,6 +789,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         watchedAt: args?.watchedAt as string | undefined,
         year: args?.year as number | undefined,
         traktId: args?.traktId as number | undefined,
+        preview: args?.preview as boolean | undefined,
+        allowDuplicates: args?.allowDuplicates as boolean | undefined,
+        rating: args?.rating as number | undefined,
       });
 
       return {
@@ -861,6 +918,30 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (name === 'unfollow_show') {
       const result = await tools.unfollowShow(traktClient, {
         showName: args?.showName as string,
+        year: args?.year as number | undefined,
+        traktId: args?.traktId as number | undefined,
+      });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+        isError: !result.success,
+      };
+    }
+
+    if (name === 'rate_media') {
+      const result = await tools.rateMedia(traktClient, {
+        type: args?.type as 'episode' | 'movie' | 'show',
+        showName: args?.showName as string | undefined,
+        movieName: args?.movieName as string | undefined,
+        season: args?.season as number | undefined,
+        episode: args?.episode as number | undefined,
+        rating: args?.rating as number,
+        ratedAt: args?.ratedAt as string | undefined,
         year: args?.year as number | undefined,
         traktId: args?.traktId as number | undefined,
       });
