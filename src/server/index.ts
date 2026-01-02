@@ -674,6 +674,32 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ['entryId', 'action'],
         },
       },
+      {
+        name: 'lookup_by_slug',
+        description:
+          'Look up a movie or show directly by slug or Trakt URL. Use when search_show fails to find content that exists on Trakt. Bypasses search API for direct lookup.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            slug: {
+              type: 'string',
+              description:
+                'Content slug (e.g., "columbus-2017"). Requires type parameter when used alone.',
+            },
+            url: {
+              type: 'string',
+              description:
+                'Full Trakt URL (e.g., "https://trakt.tv/movies/columbus-2017"). Type is auto-detected from URL.',
+            },
+            type: {
+              type: 'string',
+              enum: ['movie', 'show'],
+              description:
+                'Content type. Required when using slug parameter. Optional with url (auto-detected).',
+            },
+          },
+        },
+      },
     ],
   };
 });
@@ -1071,6 +1097,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           selectedTraktId: args?.selectedTraktId as number | undefined,
           selectedType: args?.selectedType as 'movie' | 'episode' | undefined,
           allowDuplicates: args?.allowDuplicates as boolean | undefined,
+        });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+          isError: !result.success,
+        };
+      });
+    }
+
+    if (name === 'lookup_by_slug') {
+      return await traceToolCall('lookup_by_slug', args || {}, async () => {
+        const result = await tools.lookupBySlug(traktClient, {
+          slug: args?.slug as string | undefined,
+          url: args?.url as string | undefined,
+          type: args?.type as 'movie' | 'show' | undefined,
         });
 
         return {

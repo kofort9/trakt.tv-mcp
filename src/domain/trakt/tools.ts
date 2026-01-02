@@ -37,6 +37,123 @@ import {
 export const MAX_UNDO_LIMIT = 10;
 
 /**
+ * Extract slug from a trakt.tv URL
+ * Supports formats like:
+ *   - https://trakt.tv/movies/columbus-2017
+ *   - https://trakt.tv/shows/breaking-bad
+ *   - trakt.tv/movies/columbus-2017
+ */
+function extractSlugFromUrl(input: string): { slug: string; type: 'movie' | 'show' } | null {
+  // Remove protocol if present
+  const cleaned = input.replace(/^https?:\/\//, '');
+
+  // Match trakt.tv URL pattern
+  const match = cleaned.match(/^trakt\.tv\/(movies?|shows?)\/([a-z0-9-]+)/i);
+  if (!match) return null;
+
+  const pathType = match[1].toLowerCase();
+  const type = pathType.startsWith('movie') ? 'movie' : 'show';
+  const slug = match[2];
+
+  return { slug, type };
+}
+
+/**
+ * Look up a movie or show by slug (direct API lookup).
+ *
+ * Use this when search_show doesn't find a title that exists on Trakt.
+ * Accepts:
+ *   - Slug directly (e.g., "columbus-2017")
+ *   - Trakt.tv URL (e.g., "https://trakt.tv/movies/columbus-2017")
+ *
+ * This bypasses the search API and fetches the content directly.
+ */
+export async function lookupBySlug(
+  client: TraktClient,
+  args: {
+    slug?: string;
+    url?: string;
+    type?: 'movie' | 'show';
+  }
+): Promise<ToolSuccess | ToolError> {
+  try {
+    const { slug: inputSlug, url, type: inputType } = args;
+    const toolName = 'lookup_by_slug';
+
+    let slug: string;
+    let type: 'movie' | 'show';
+
+    // Parse URL if provided
+    if (url) {
+      const parsed = extractSlugFromUrl(url);
+      if (!parsed) {
+        return createToolError(
+          'VALIDATION_ERROR',
+          'Invalid Trakt URL. Expected format: https://trakt.tv/movies/slug or https://trakt.tv/shows/slug',
+          undefined,
+          ['Example: https://trakt.tv/movies/columbus-2017']
+        );
+      }
+      slug = parsed.slug;
+      type = inputType || parsed.type; // Allow override
+    } else if (inputSlug) {
+      slug = inputSlug;
+      if (!inputType) {
+        return createToolError(
+          'VALIDATION_ERROR',
+          'When using slug directly, type parameter is required',
+          undefined,
+          ['Specify type: "movie" or "show"']
+        );
+      }
+      type = inputType;
+    } else {
+      return createToolError(
+        'VALIDATION_ERROR',
+        'Either slug or url parameter is required',
+        undefined,
+        [
+          'Use url: "https://trakt.tv/movies/columbus-2017"',
+          'Or use slug: "columbus-2017" with type: "movie"',
+        ]
+      );
+    }
+
+    // Fetch directly by slug
+    try {
+      let content;
+      if (type === 'movie') {
+        content = await client.getMovie(slug, 'full', { toolName });
+      } else {
+        content = await client.getShow(slug, 'full', { toolName });
+      }
+
+      return createToolSuccess(
+        {
+          type,
+          content,
+          message: `Found ${type}: ${(content as { title?: string }).title || slug}`,
+        },
+        `Successfully looked up ${type} by slug: ${slug}`
+      );
+    } catch (error) {
+      // Handle 404 specifically
+      if (error instanceof Error && error.message.includes('404')) {
+        return createToolError('NOT_FOUND', `No ${type} found with slug "${slug}"`, undefined, [
+          'Double-check the slug from the URL',
+          'Verify the content type (movie vs show)',
+          'Try search_show with different terms',
+        ]);
+      }
+      throw error;
+    }
+  } catch (error) {
+    const message = sanitizeError(error, 'lookupBySlug');
+    return createToolError('TRAKT_API_ERROR', message);
+  }
+}
+
+/**
  * Search for a specific episode by show name, season, and episode number
  */
 export async function searchEpisode(

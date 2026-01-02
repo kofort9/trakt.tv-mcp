@@ -331,6 +331,17 @@ export class TraktClient {
   }
 
   /**
+   * Get movie information by ID or slug
+   *
+   * Useful for direct lookup when search API doesn't surface the movie.
+   * Accepts Trakt ID, IMDB ID, TMDB ID, or slug (e.g., "columbus-2017").
+   */
+  async getMovie(id: string | number, extended?: 'full', options?: { toolName?: string }) {
+    const params = extended ? { extended } : {};
+    return this.get(`/movies/${id}`, { params }, options?.toolName);
+  }
+
+  /**
    * Get episodes for a season
    */
   async getSeasonEpisodes(showId: string, season: number, options?: { toolName?: string }) {
