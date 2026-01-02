@@ -853,5 +853,210 @@ describe('tools', () => {
         expect(mockClient.addToHistory).toHaveBeenCalled();
       });
     });
+
+    describe('logWatch with rating', () => {
+      it('should log movie with rating successfully', async () => {
+        vi.spyOn(mockClient, 'search').mockResolvedValue([
+          {
+            score: 100,
+            movie: {
+              title: 'Dune',
+              year: 2021,
+              ids: { trakt: 12345, slug: 'dune-2021', imdb: 'tt123', tmdb: 456 },
+            },
+          },
+        ]);
+
+        vi.spyOn(mockClient, 'getHistory').mockResolvedValue([]); // No duplicates
+
+        vi.spyOn(mockClient, 'addToHistory').mockResolvedValue({
+          added: { movies: 1, episodes: 0 },
+          not_found: { movies: [], shows: [], seasons: [], episodes: [] },
+        });
+
+        vi.spyOn(mockClient, 'addRating').mockResolvedValue({
+          added: { movies: 1, shows: 0, episodes: 0 },
+          not_found: { movies: [], shows: [], episodes: [] },
+        });
+
+        const result = await tools.logWatch(mockClient, {
+          type: 'movie',
+          movieName: 'Dune',
+          rating: 8,
+        });
+
+        expect(result.success).toBe(true);
+        expect(mockClient.addRating).toHaveBeenCalled();
+      });
+
+      it('should validate rating range', async () => {
+        const result = await tools.logWatch(mockClient, {
+          type: 'movie',
+          movieName: 'Dune',
+          rating: 11, // Invalid - out of range
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error?.code).toBe('VALIDATION_ERROR');
+      });
+
+      it('should return success with warning if rating fails', async () => {
+        vi.spyOn(mockClient, 'search').mockResolvedValue([
+          {
+            score: 100,
+            movie: {
+              title: 'Dune',
+              year: 2021,
+              ids: { trakt: 12345, slug: 'dune-2021', imdb: 'tt123', tmdb: 456 },
+            },
+          },
+        ]);
+
+        vi.spyOn(mockClient, 'getHistory').mockResolvedValue([]); // No duplicates
+
+        vi.spyOn(mockClient, 'addToHistory').mockResolvedValue({
+          added: { movies: 1, episodes: 0 },
+          not_found: { movies: [], shows: [], seasons: [], episodes: [] },
+        });
+
+        vi.spyOn(mockClient, 'addRating').mockRejectedValue(new Error('API Error'));
+
+        const result = await tools.logWatch(mockClient, {
+          type: 'movie',
+          movieName: 'Dune',
+          rating: 8,
+        });
+
+        // Should still succeed because watch was logged
+        expect(result.success).toBe(true);
+        expect(result.data.ratingWarning).toBeTruthy();
+        expect(result.data.ratingWarning).toContain('rate_media');
+      });
+    });
+
+    describe('rateMedia', () => {
+      it('should rate movie successfully', async () => {
+        vi.spyOn(mockClient, 'search').mockResolvedValue([
+          {
+            score: 100,
+            movie: {
+              title: 'Dune',
+              year: 2021,
+              ids: { trakt: 12345, slug: 'dune-2021', imdb: 'tt123', tmdb: 456 },
+            },
+          },
+        ]);
+
+        vi.spyOn(mockClient, 'addRating').mockResolvedValue({
+          added: { movies: 1, shows: 0, episodes: 0 },
+          not_found: { movies: [], shows: [], episodes: [] },
+        });
+
+        const result = await tools.rateMedia(mockClient, {
+          type: 'movie',
+          movieName: 'Dune',
+          rating: 9,
+        });
+
+        expect(result.success).toBe(true);
+        expect(mockClient.addRating).toHaveBeenCalled();
+      });
+
+      it('should rate show successfully', async () => {
+        vi.spyOn(mockClient, 'search').mockResolvedValue([
+          {
+            score: 100,
+            show: {
+              title: 'The Bear',
+              year: 2022,
+              ids: { trakt: 54321, slug: 'the-bear', imdb: 'tt456', tmdb: 789 },
+            },
+          },
+        ]);
+
+        vi.spyOn(mockClient, 'addRating').mockResolvedValue({
+          added: { movies: 0, shows: 1, episodes: 0 },
+          not_found: { movies: [], shows: [], episodes: [] },
+        });
+
+        const result = await tools.rateMedia(mockClient, {
+          type: 'show',
+          showName: 'The Bear',
+          rating: 10,
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.data.added.shows).toBe(1);
+      });
+
+      it('should rate episode successfully', async () => {
+        vi.spyOn(mockClient, 'search').mockResolvedValue([
+          {
+            score: 100,
+            show: {
+              title: 'The Bear',
+              year: 2022,
+              ids: { trakt: 54321, slug: 'the-bear', imdb: 'tt456', tmdb: 789 },
+            },
+          },
+        ]);
+
+        vi.spyOn(mockClient, 'searchEpisode').mockResolvedValue({
+          season: 2,
+          number: 5,
+          title: 'Pop',
+          ids: { trakt: 67890, tvdb: 111, imdb: 'tt789', tmdb: 222 },
+        });
+
+        vi.spyOn(mockClient, 'addRating').mockResolvedValue({
+          added: { movies: 0, shows: 0, episodes: 1 },
+          not_found: { movies: [], shows: [], episodes: [] },
+        });
+
+        const result = await tools.rateMedia(mockClient, {
+          type: 'episode',
+          showName: 'The Bear',
+          season: 2,
+          episode: 5,
+          rating: 10,
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.data.added.episodes).toBe(1);
+      });
+
+      it('should validate rating is 1-10', async () => {
+        const result = await tools.rateMedia(mockClient, {
+          type: 'movie',
+          movieName: 'Dune',
+          rating: 0, // Invalid
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error?.code).toBe('VALIDATION_ERROR');
+      });
+
+      it('should require showName for episode type', async () => {
+        const result = await tools.rateMedia(mockClient, {
+          type: 'episode',
+          season: 1,
+          episode: 1,
+          rating: 8,
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error?.code).toBe('VALIDATION_ERROR');
+      });
+
+      it('should require movieName for movie type', async () => {
+        const result = await tools.rateMedia(mockClient, {
+          type: 'movie',
+          rating: 8,
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error?.code).toBe('VALIDATION_ERROR');
+      });
+    });
   });
 });

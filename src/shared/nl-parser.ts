@@ -24,6 +24,9 @@ export interface ParsedWatchEntry {
   dateSource: 'parsed' | 'fallback'; // Track if date came from text or capturedAt
   dateExpression?: string; // Original expression like "last night"
   isRecallPattern: boolean; // true if "I've seen"/"seen" pattern detected
+  rating?: number; // 1-10 scale
+  ratingSource?: 'parsed' | 'none'; // Track if rating came from text
+  ratingExpression?: string; // Original expression like "8/10" or "4 stars"
 }
 
 /**
@@ -127,6 +130,17 @@ export function parseWatchNote(rawText: string, capturedAt: string): ParsedWatch
       text = yearResult.remainingText;
     }
     // Otherwise, keep the year as part of the title (it IS the title, like "2046")
+  }
+
+  // 7.5. Extract rating patterns ("8/10", "4 stars", "loved it")
+  const ratingResult = extractRating(text);
+  if (ratingResult.found) {
+    result.rating = ratingResult.rating;
+    result.ratingSource = 'parsed';
+    result.ratingExpression = ratingResult.expression;
+    text = ratingResult.remainingText;
+  } else {
+    result.ratingSource = 'none';
   }
 
   // 8. Clean up and set the title
@@ -336,6 +350,88 @@ function extractYear(text: string): { found: boolean; year?: number; remainingTe
           remainingText: text.replace(match[0], '').trim(),
         };
       }
+    }
+  }
+
+  return { found: false, remainingText: text };
+}
+
+/**
+ * Extract rating from text
+ *
+ * Supports formats:
+ * - "8/10", "9 / 10", "7/10" (X/10 format)
+ * - "8 out of 10" (word format)
+ * - "4 stars", "4 star", "4*", "5 stars" (star ratings, scaled to 1-10)
+ * - "rated 8", "rating 8", "gave it an 8" (explicit rating)
+ * - Sentiment: "loved it" (10), "hated it" (1), "it was okay" (5)
+ */
+function extractRating(text: string): {
+  found: boolean;
+  rating?: number;
+  expression?: string;
+  remainingText: string;
+} {
+  // Numeric patterns (ordered by specificity)
+  const numericPatterns: Array<{
+    regex: RegExp;
+    scale: number;
+  }> = [
+    // X/10 format: "8/10", "9 / 10"
+    { regex: /\b(\d{1,2})\s*\/\s*10\b/i, scale: 10 },
+    // X out of 10: "8 out of 10"
+    { regex: /\b(\d{1,2})\s+out\s+of\s+10\b/i, scale: 10 },
+    // Star ratings: "4 stars", "4 star", "4*"
+    { regex: /\b([1-5])\s*(?:stars?|\*)\b/i, scale: 5 },
+    // "rated X", "rating X", "gave it X"
+    { regex: /\b(?:rated|rating|gave\s+it\s+(?:a|an)?)\s+(\d{1,2})\b/i, scale: 10 },
+    // "X rating"
+    { regex: /\b(\d{1,2})\s+rating\b/i, scale: 10 },
+  ];
+
+  for (const pattern of numericPatterns) {
+    const match = text.match(pattern.regex);
+    if (match) {
+      let rating = parseInt(match[1], 10);
+
+      // Convert star ratings (1-5) to 1-10 scale
+      if (pattern.scale === 5) {
+        rating = rating * 2; // 1 star = 2, 5 stars = 10
+      }
+
+      // Validate rating is in valid range
+      if (rating >= 1 && rating <= 10) {
+        return {
+          found: true,
+          rating,
+          expression: match[0],
+          remainingText: text.replace(match[0], '').trim(),
+        };
+      }
+    }
+  }
+
+  // Sentiment-based ratings (ordered from positive to negative)
+  const sentimentPatterns: Array<{ regex: RegExp; rating: number }> = [
+    { regex: /\b(loved\s+it|amazing|incredible|masterpiece|perfect)\b/i, rating: 10 },
+    { regex: /\b(really\s+good|great|excellent|fantastic)\b/i, rating: 9 },
+    { regex: /\b(good|enjoyed\s+it|solid|liked\s+it)\b/i, rating: 8 },
+    { regex: /\b(decent|pretty\s+good|fine|not\s+bad)\b/i, rating: 7 },
+    { regex: /\b(okay|alright|it\s+was\s+okay|meh)\b/i, rating: 5 },
+    { regex: /\b(mediocre|forgettable|not\s+great)\b/i, rating: 4 },
+    { regex: /\b(bad|didn['']t\s+like|disappointing|weak)\b/i, rating: 3 },
+    { regex: /\b(terrible|awful|hated\s+it|waste\s+of\s+time)\b/i, rating: 1 },
+  ];
+
+  for (const pattern of sentimentPatterns) {
+    const match = text.match(pattern.regex);
+    if (match) {
+      return {
+        found: true,
+        rating: pattern.rating,
+        expression: match[0],
+        remainingText: text.replace(match[0], '').trim(),
+      };
     }
   }
 

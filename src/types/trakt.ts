@@ -77,6 +77,46 @@ export interface TraktHistoryAddResponse {
   };
 }
 
+// Rating types for POST /sync/ratings
+export interface TraktRatingItem {
+  ids: { trakt?: number; imdb?: string; tmdb?: number };
+  rating: number; // 1-10
+  rated_at?: string; // ISO 8601
+}
+
+export interface TraktRatingPayload {
+  movies?: TraktRatingItem[];
+  shows?: TraktRatingItem[];
+  episodes?: TraktRatingItem[];
+}
+
+export interface TraktRatingResponse {
+  added: {
+    movies: number;
+    shows: number;
+    episodes: number;
+  };
+  not_found: {
+    movies: unknown[];
+    shows: unknown[];
+    episodes: unknown[];
+  };
+}
+
+// Response from POST /sync/ratings/remove
+export interface TraktRatingRemoveResponse {
+  deleted: {
+    movies: number;
+    shows: number;
+    episodes: number;
+  };
+  not_found: {
+    movies: unknown[];
+    shows: unknown[];
+    episodes: unknown[];
+  };
+}
+
 // Preview response for log_watch and bulk_log preview mode
 export interface LogPreviewResponse {
   action_required: 'confirm';

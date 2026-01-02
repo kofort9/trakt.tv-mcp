@@ -4,7 +4,13 @@ import axios, {
   AxiosError,
   InternalAxiosRequestConfig,
 } from 'axios';
-import { TraktConfig, TraktSettings } from '../../types/trakt.js';
+import {
+  TraktConfig,
+  TraktSettings,
+  TraktRatingPayload,
+  TraktRatingResponse,
+  TraktRatingRemoveResponse,
+} from '../../types/trakt.js';
 import { TraktOAuth } from './oauth.js';
 import { logger } from '../../core/logger.js';
 import { LRUCache, generateSearchCacheKey, generateEpisodeCacheKey } from './cache.js';
@@ -325,6 +331,17 @@ export class TraktClient {
   }
 
   /**
+   * Get movie information by ID or slug
+   *
+   * Useful for direct lookup when search API doesn't surface the movie.
+   * Accepts Trakt ID, IMDB ID, TMDB ID, or slug (e.g., "columbus-2017").
+   */
+  async getMovie(id: string | number, extended?: 'full', options?: { toolName?: string }) {
+    const params = extended ? { extended } : {};
+    return this.get(`/movies/${id}`, { params }, options?.toolName);
+  }
+
+  /**
    * Get episodes for a season
    */
   async getSeasonEpisodes(showId: string, season: number, options?: { toolName?: string }) {
@@ -361,6 +378,47 @@ export class TraktClient {
    */
   async addToHistory(items: unknown, options?: { toolName?: string }) {
     return this.post('/sync/history', items, undefined, options?.toolName);
+  }
+
+  /**
+   * Add ratings to items
+   * Trakt API: POST /sync/ratings
+   *
+   * @param items - Object containing movies, shows, and/or episodes arrays
+   *                Each item needs: ids (trakt/imdb/tmdb), rating (1-10), rated_at (optional ISO 8601)
+   */
+  async addRating(
+    items: TraktRatingPayload,
+    options?: { toolName?: string }
+  ): Promise<TraktRatingResponse> {
+    return this.post<TraktRatingResponse>('/sync/ratings', items, undefined, options?.toolName);
+  }
+
+  /**
+   * Remove ratings from items
+   * Trakt API: POST /sync/ratings/remove
+   */
+  async removeRating(
+    items: TraktRatingPayload,
+    options?: { toolName?: string }
+  ): Promise<TraktRatingRemoveResponse> {
+    return this.post<TraktRatingRemoveResponse>(
+      '/sync/ratings/remove',
+      items,
+      undefined,
+      options?.toolName
+    );
+  }
+
+  /**
+   * Get user's ratings
+   * Trakt API: GET /users/me/ratings/{type}
+   *
+   * @param type - Optional filter by content type (movies, shows, episodes)
+   */
+  async getRatings(type?: 'movies' | 'shows' | 'episodes', options?: { toolName?: string }) {
+    const endpoint = type ? `/users/me/ratings/${type}` : '/users/me/ratings';
+    return this.get(endpoint, undefined, options?.toolName);
   }
 
   /**
