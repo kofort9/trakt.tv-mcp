@@ -6,8 +6,6 @@
 
 MCP server for Trakt.tv API - enables AI assistants to track watched shows, movies, and anime using natural language
 
-![Demo](demo.gif)
-
 ## Project Links
 - Repository: https://github.com/kofort9/trakt.tv-mcp
 - Issues: https://github.com/kofort9/trakt.tv-mcp/issues
