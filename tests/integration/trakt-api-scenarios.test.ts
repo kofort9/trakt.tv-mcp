@@ -203,7 +203,9 @@ describe('Disambiguation Scenarios', () => {
       }
     });
 
-    it('should return disambiguation when multiple shows match', async () => {
+    it('should require disambiguation when multiple shows have same title', async () => {
+      // All 3 Office shows have exact same title "The Office"
+      // handleSearchDisambiguation requires disambiguation when exact title matches > 1
       vi.spyOn(client, 'search').mockResolvedValue(REALISTIC_SEARCH_RESPONSES.theOffice);
 
       const result = await searchEpisode(client, {
@@ -212,14 +214,18 @@ describe('Disambiguation Scenarios', () => {
         episode: 1,
       });
 
-      // When multiple shows match and no traktId provided, returns disambiguation
-      // The response tells user they need to specify which version
-      if ('needsDisambiguation' in result) {
-        expect(result.needsDisambiguation).toBe(true);
-        expect(result.candidates.length).toBeGreaterThan(1);
-      } else {
-        // If disambiguation isn't triggered (single clear match), success is fine
-        expect(result.success).toBeDefined();
+      // When multiple shows share exact title, disambiguation is required
+      // User must provide traktId or year to specify which version
+      // Response uses snake_case: needs_disambiguation, options
+      expect('needs_disambiguation' in result).toBe(true);
+      if ('needs_disambiguation' in result) {
+        expect(result.needs_disambiguation).toBe(true);
+        expect(result.options.length).toBe(3);
+        // Verify all years are present (US 2005, UK 2001, AU 2024)
+        const years = result.options.map((o: { year?: number }) => o.year);
+        expect(years).toContain(2005);
+        expect(years).toContain(2001);
+        expect(years).toContain(2024);
       }
     });
   });
@@ -279,8 +285,8 @@ describe('Rate Limiting Scenarios', () => {
       }
     });
 
-    it('should expose rate limit headers for monitoring', async () => {
-      // Successful response with rate limit headers
+    it('should succeed normally when not rate limited', async () => {
+      // Verify normal operation when rate limits are not exceeded
       vi.spyOn(client, 'search').mockResolvedValue(REALISTIC_SEARCH_RESPONSES.breakingBad);
       vi.spyOn(client, 'searchEpisode').mockResolvedValue({
         season: 1,
@@ -296,6 +302,9 @@ describe('Rate Limiting Scenarios', () => {
       });
 
       expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.title).toBe('Pilot');
+      }
     });
   });
 });
@@ -373,8 +382,12 @@ describe('Error Handling Scenarios', () => {
 
       expect(result.success).toBe(false);
       if (!result.success && 'error' in result) {
-        // Error code depends on where the error occurs
+        // Error code varies based on error propagation path:
+        // - NOT_FOUND: when searchEpisode throws episode-specific not found
+        // - TRAKT_API_ERROR: when the error is caught and wrapped at tools layer
+        // Both are valid - the key behavior is the operation fails gracefully
         expect(['NOT_FOUND', 'TRAKT_API_ERROR']).toContain(result.error.code);
+        expect(result.error.message).toContain('Episode not found');
       }
     });
   });
@@ -395,7 +408,10 @@ describe('Error Handling Scenarios', () => {
 
       expect(result.success).toBe(false);
       if (!result.success && 'error' in result) {
-        // Server errors are wrapped as TRAKT_API_ERROR
+        // Server errors (5xx) are caught at different layers:
+        // - SEARCH_ERROR: when searchEpisode's internal search fails
+        // - TRAKT_API_ERROR: when the Axios error is wrapped at tools layer
+        // Key assertion: we get a meaningful error, not an unhandled exception
         expect(['SEARCH_ERROR', 'TRAKT_API_ERROR']).toContain(result.error.code);
       }
     });
@@ -565,7 +581,10 @@ describe('Edge Cases', () => {
 
     expect(result.success).toBe(false);
     if (!result.success && 'error' in result) {
-      // Validation errors may be wrapped differently
+      // Validation can fail at multiple layers:
+      // - VALIDATION_ERROR: caught by input validation before API call
+      // - TRAKT_API_ERROR: if validation happens server-side
+      // Key behavior: invalid input is rejected before making real API calls
       expect(['VALIDATION_ERROR', 'TRAKT_API_ERROR']).toContain(result.error.code);
     }
   });
