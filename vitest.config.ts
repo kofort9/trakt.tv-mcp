@@ -8,8 +8,17 @@ export default defineConfig({
     exclude: ['dist/**', 'node_modules/**'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      exclude: ['**/*.test.ts', '**/*.spec.ts', 'dist/**', 'node_modules/**'],
+      reporter: ['text', 'json', 'json-summary', 'lcov', 'html'],
+      exclude: [
+        '**/*.test.ts',
+        '**/*.spec.ts',
+        'dist/**',
+        'node_modules/**',
+        'scripts/**',
+        '**/*.config.ts',
+        '**/*.config.js',
+        '.husky/**',
+      ],
     },
   },
 });
