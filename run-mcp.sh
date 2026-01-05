@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # MCP wrapper script for Claude Desktop integration
 # Suppresses dotenv banner to ensure clean JSON-RPC stdout
 
@@ -14,6 +14,14 @@ if [ ! -f "dist/index.js" ]; then
   exit 1
 fi
 
+# Warn if .env is missing (don't fail - allows running for testing)
+if [ ! -f ".env" ]; then
+  echo "Warning: .env file not found. Copy .env.example to .env and configure credentials." >&2
+fi
+
 # Suppress dotenv banner for clean MCP protocol output
 export DOTENV_CONFIG_QUIET=true
+
+# Use exec to replace shell process - ensures proper signal handling for MCP
+# and prevents orphan shell processes when Claude Desktop manages the server
 exec node dist/index.js

@@ -901,4 +901,84 @@ describe('Duplicate Detection Integration', () => {
       expect(result.error.message).toContain('Already logged');
     }
   });
+
+  it('should handle getHistory() error gracefully during duplicate check', async () => {
+    // Mock search to succeed
+    vi.spyOn(client, 'search').mockResolvedValue([
+      {
+        type: 'movie',
+        score: 1000,
+        movie: {
+          title: 'Columbus',
+          year: 2017,
+          ids: { trakt: 276047, slug: 'columbus-2017', imdb: 'tt123', tmdb: 456 },
+        },
+      },
+    ]);
+
+    // Mock getHistory to fail (API timeout, network error, etc.)
+    vi.spyOn(client, 'getHistory').mockRejectedValue(new Error('API timeout'));
+
+    // Mock addToHistory to succeed (actual log attempt)
+    vi.spyOn(client, 'addToHistory').mockResolvedValue({
+      added: { movies: 1, episodes: 0 },
+      not_found: { movies: [], episodes: [], shows: [] },
+    });
+
+    const result = await logWatch(client, {
+      type: 'movie',
+      movieName: 'Columbus',
+      year: 2017,
+    });
+
+    // Should proceed with log attempt despite duplicate check failure
+    // (duplicate detection is defensive, shouldn't block legitimate logs)
+    expect(result.success).toBe(true);
+  });
+
+  it('should allow duplicate movie when allowDuplicates=true (for rewatches)', async () => {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+    vi.spyOn(client, 'search').mockResolvedValue([
+      {
+        type: 'movie',
+        score: 1000,
+        movie: {
+          title: 'Columbus',
+          year: 2017,
+          ids: { trakt: 276047, slug: 'columbus-2017', imdb: 'tt123', tmdb: 456 },
+        },
+      },
+    ]);
+
+    // Mock getHistory with recent movie entry
+    vi.spyOn(client, 'getHistory').mockResolvedValue([
+      {
+        watched_at: oneHourAgo,
+        action: 'watch',
+        type: 'movie',
+        movie: {
+          title: 'Columbus',
+          year: 2017,
+          ids: { trakt: 276047, slug: 'columbus-2017', imdb: 'tt123', tmdb: 456 },
+        },
+      },
+    ]);
+
+    // Mock addToHistory to succeed
+    vi.spyOn(client, 'addToHistory').mockResolvedValue({
+      added: { movies: 1, episodes: 0 },
+      not_found: { movies: [], episodes: [], shows: [] },
+    });
+
+    const result = await logWatch(client, {
+      type: 'movie',
+      movieName: 'Columbus',
+      year: 2017,
+      allowDuplicates: true, // Explicitly allow for rewatch
+    });
+
+    // Should succeed despite being within 48-hour window
+    expect(result.success).toBe(true);
+  });
 });

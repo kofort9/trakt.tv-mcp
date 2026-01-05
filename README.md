@@ -146,7 +146,7 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 }
 ```
 
-> **Note**: Always use the wrapper script instead of running `node dist/index.js` directly to ensure proper stdio handling for MCP protocol communication.
+> **Note**: Always use the wrapper script instead of running `node dist/index.js` directly. The wrapper ensures clean stdio (MCP protocol requires JSON-only stdout, but dotenv outputs a banner on load). Direct execution will cause protocol errors in Claude Desktop.
 
 ### Available Scripts
 
