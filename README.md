@@ -125,6 +125,29 @@ cp .env.example .env
 # TRAKT_CLIENT_SECRET=your_client_secret
 ```
 
+### Claude Desktop Integration
+
+Use the `run-mcp.sh` wrapper script for Claude Desktop integration. This wrapper:
+- Suppresses dotenv banner output for clean JSON-RPC communication
+- Uses dynamic path resolution (works from any directory)
+- Validates that the build exists before running
+
+**Configuration Example:**
+
+Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+
+```json
+{
+  "mcpServers": {
+    "trakt": {
+      "command": "/absolute/path/to/trakt.tv-mcp/run-mcp.sh"
+    }
+  }
+}
+```
+
+> **Note**: Always use the wrapper script instead of running `node dist/index.js` directly. Direct execution will cause protocol errors in Claude Desktop. The wrapper sets `DOTENV_CONFIG_QUIET=true` to suppress the dotenv banner that would otherwise pollute stdout, breaking the MCP JSON-RPC protocol.
+
 ### Available Scripts
 
 ```bash

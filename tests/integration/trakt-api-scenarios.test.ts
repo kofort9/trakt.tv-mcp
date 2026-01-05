@@ -659,3 +659,207 @@ describe('logWatch Integration', () => {
     }
   });
 });
+
+/**
+ * Duplicate Detection Integration Tests
+ *
+ * Tests the 48-hour duplicate prevention feature at the tools layer.
+ * This complements the unit tests in duplicate-detector.test.ts by testing
+ * the full flow through logWatch() with the allowDuplicates parameter.
+ */
+describe('Duplicate Detection Integration', () => {
+  let client: TraktClient;
+
+  // Shared mock data factories to reduce duplication across tests
+  const theBearShow = {
+    title: 'The Bear',
+    year: 2022,
+    ids: { trakt: 12345, slug: 'the-bear', tvdb: 123, imdb: 'tt123', tmdb: 456 },
+  };
+
+  const theBearEpisode = {
+    season: 2,
+    number: 5,
+    title: 'Pop',
+    ids: { trakt: 67890 },
+  };
+
+  const columbusMovie = {
+    title: 'Columbus',
+    year: 2017,
+    ids: { trakt: 276047, slug: 'columbus-2017', imdb: 'tt123', tmdb: 456 },
+  };
+
+  const createTheBearMocks = (watchedAt: string) => ({
+    searchResult: [{ type: 'show', score: 1000, show: theBearShow }],
+    episode: theBearEpisode,
+    historyEntry: [
+      {
+        watched_at: watchedAt,
+        action: 'watch',
+        type: 'episode',
+        show: theBearShow,
+        episode: { ...theBearEpisode, tvdb: 789, imdb: 'tt456', tmdb: 789 },
+      },
+    ],
+  });
+
+  const createColumbusMocks = (watchedAt: string) => ({
+    searchResult: [{ type: 'movie', score: 1000, movie: columbusMovie }],
+    historyEntry: [
+      {
+        watched_at: watchedAt,
+        action: 'watch',
+        type: 'movie',
+        movie: columbusMovie,
+      },
+    ],
+  });
+
+  beforeEach(() => {
+    client = new TraktClient(createTestConfig(), createMockOAuth());
+    vi.clearAllMocks();
+  });
+
+  it('should prevent logging same episode within 48 hours by default', async () => {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const mocks = createTheBearMocks(oneHourAgo);
+
+    vi.spyOn(client, 'search').mockResolvedValue(mocks.searchResult);
+    vi.spyOn(client, 'searchEpisode').mockResolvedValue(mocks.episode);
+    vi.spyOn(client, 'getHistory').mockResolvedValue(mocks.historyEntry);
+
+    const result = await logWatch(client, {
+      type: 'episode',
+      showName: 'The Bear',
+      season: 2,
+      episode: 5,
+    });
+
+    // Should be blocked as duplicate
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('DUPLICATE_ENTRY');
+      // Error message format: "Already logged {title} S{s}E{e} on {date}"
+      expect(result.error.message).toContain('Already logged');
+    }
+  });
+
+  it('should allow duplicate when allowDuplicates=true (for rewatches)', async () => {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const mocks = createTheBearMocks(oneHourAgo);
+
+    vi.spyOn(client, 'search').mockResolvedValue(mocks.searchResult);
+    vi.spyOn(client, 'searchEpisode').mockResolvedValue(mocks.episode);
+    vi.spyOn(client, 'getHistory').mockResolvedValue(mocks.historyEntry);
+    vi.spyOn(client, 'addToHistory').mockResolvedValue({
+      added: { episodes: 1, movies: 0 },
+      not_found: { movies: [], shows: [], seasons: [], episodes: [] },
+    });
+
+    const result = await logWatch(client, {
+      type: 'episode',
+      showName: 'The Bear',
+      season: 2,
+      episode: 5,
+      allowDuplicates: true, // Explicitly allow for rewatch
+    });
+
+    // Should succeed despite existing entry
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.added.episodes).toBe(1);
+    }
+  });
+
+  it('should not flag as duplicate outside 48-hour window', async () => {
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+    const mocks = createTheBearMocks(threeDaysAgo);
+
+    vi.spyOn(client, 'search').mockResolvedValue(mocks.searchResult);
+    vi.spyOn(client, 'searchEpisode').mockResolvedValue(mocks.episode);
+    vi.spyOn(client, 'getHistory').mockResolvedValue(mocks.historyEntry);
+    vi.spyOn(client, 'addToHistory').mockResolvedValue({
+      added: { episodes: 1, movies: 0 },
+      not_found: { movies: [], shows: [], seasons: [], episodes: [] },
+    });
+
+    const result = await logWatch(client, {
+      type: 'episode',
+      showName: 'The Bear',
+      season: 2,
+      episode: 5,
+    });
+
+    // Should succeed - entry is outside 48-hour window
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.added.episodes).toBe(1);
+    }
+  });
+
+  it('should prevent logging same movie within 48 hours', async () => {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const mocks = createColumbusMocks(oneHourAgo);
+
+    vi.spyOn(client, 'search').mockResolvedValue(mocks.searchResult);
+    vi.spyOn(client, 'getHistory').mockResolvedValue(mocks.historyEntry);
+
+    const result = await logWatch(client, {
+      type: 'movie',
+      movieName: 'Columbus',
+      year: 2017,
+    });
+
+    // Should be blocked as duplicate
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('DUPLICATE_ENTRY');
+      // Error message format: "Already logged {title} on {date}"
+      expect(result.error.message).toContain('Already logged');
+    }
+  });
+
+  it('should handle getHistory() error gracefully during duplicate check', async () => {
+    const mocks = createColumbusMocks(new Date().toISOString());
+
+    vi.spyOn(client, 'search').mockResolvedValue(mocks.searchResult);
+    vi.spyOn(client, 'getHistory').mockRejectedValue(new Error('API timeout'));
+    vi.spyOn(client, 'addToHistory').mockResolvedValue({
+      added: { movies: 1, episodes: 0 },
+      not_found: { movies: [], episodes: [], shows: [] },
+    });
+
+    const result = await logWatch(client, {
+      type: 'movie',
+      movieName: 'Columbus',
+      year: 2017,
+    });
+
+    // Should proceed with log attempt despite duplicate check failure
+    // (duplicate detection is defensive, shouldn't block legitimate logs)
+    expect(result.success).toBe(true);
+  });
+
+  it('should allow duplicate movie when allowDuplicates=true (for rewatches)', async () => {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const mocks = createColumbusMocks(oneHourAgo);
+
+    vi.spyOn(client, 'search').mockResolvedValue(mocks.searchResult);
+    vi.spyOn(client, 'getHistory').mockResolvedValue(mocks.historyEntry);
+    vi.spyOn(client, 'addToHistory').mockResolvedValue({
+      added: { movies: 1, episodes: 0 },
+      not_found: { movies: [], episodes: [], shows: [] },
+    });
+
+    const result = await logWatch(client, {
+      type: 'movie',
+      movieName: 'Columbus',
+      year: 2017,
+      allowDuplicates: true, // Explicitly allow for rewatch
+    });
+
+    // Should succeed despite being within 48-hour window
+    expect(result.success).toBe(true);
+  });
+});
