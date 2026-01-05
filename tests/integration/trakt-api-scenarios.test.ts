@@ -670,6 +670,52 @@ describe('logWatch Integration', () => {
 describe('Duplicate Detection Integration', () => {
   let client: TraktClient;
 
+  // Shared mock data factories to reduce duplication across tests
+  const theBearShow = {
+    title: 'The Bear',
+    year: 2022,
+    ids: { trakt: 12345, slug: 'the-bear', tvdb: 123, imdb: 'tt123', tmdb: 456 },
+  };
+
+  const theBearEpisode = {
+    season: 2,
+    number: 5,
+    title: 'Pop',
+    ids: { trakt: 67890 },
+  };
+
+  const columbusMovie = {
+    title: 'Columbus',
+    year: 2017,
+    ids: { trakt: 276047, slug: 'columbus-2017', imdb: 'tt123', tmdb: 456 },
+  };
+
+  const createTheBearMocks = (watchedAt: string) => ({
+    searchResult: [{ type: 'show', score: 1000, show: theBearShow }],
+    episode: theBearEpisode,
+    historyEntry: [
+      {
+        watched_at: watchedAt,
+        action: 'watch',
+        type: 'episode',
+        show: theBearShow,
+        episode: { ...theBearEpisode, tvdb: 789, imdb: 'tt456', tmdb: 789 },
+      },
+    ],
+  });
+
+  const createColumbusMocks = (watchedAt: string) => ({
+    searchResult: [{ type: 'movie', score: 1000, movie: columbusMovie }],
+    historyEntry: [
+      {
+        watched_at: watchedAt,
+        action: 'watch',
+        type: 'movie',
+        movie: columbusMovie,
+      },
+    ],
+  });
+
   beforeEach(() => {
     client = new TraktClient(createTestConfig(), createMockOAuth());
     vi.clearAllMocks();
@@ -677,46 +723,11 @@ describe('Duplicate Detection Integration', () => {
 
   it('should prevent logging same episode within 48 hours by default', async () => {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const mocks = createTheBearMocks(oneHourAgo);
 
-    // Mock search to find the show
-    vi.spyOn(client, 'search').mockResolvedValue([
-      {
-        type: 'show',
-        score: 1000,
-        show: {
-          title: 'The Bear',
-          year: 2022,
-          ids: { trakt: 12345, slug: 'the-bear', tvdb: 123, imdb: 'tt123', tmdb: 456 },
-        },
-      },
-    ]);
-
-    vi.spyOn(client, 'searchEpisode').mockResolvedValue({
-      season: 2,
-      number: 5,
-      title: 'Pop',
-      ids: { trakt: 67890 },
-    });
-
-    // Mock getHistory to return the same episode watched 1 hour ago
-    vi.spyOn(client, 'getHistory').mockResolvedValue([
-      {
-        watched_at: oneHourAgo,
-        action: 'watch',
-        type: 'episode',
-        show: {
-          title: 'The Bear',
-          year: 2022,
-          ids: { trakt: 12345, slug: 'the-bear', tvdb: 123, imdb: 'tt123', tmdb: 456 },
-        },
-        episode: {
-          season: 2,
-          number: 5,
-          title: 'Pop',
-          ids: { trakt: 67890, tvdb: 789, imdb: 'tt456', tmdb: 789 },
-        },
-      },
-    ]);
+    vi.spyOn(client, 'search').mockResolvedValue(mocks.searchResult);
+    vi.spyOn(client, 'searchEpisode').mockResolvedValue(mocks.episode);
+    vi.spyOn(client, 'getHistory').mockResolvedValue(mocks.historyEntry);
 
     const result = await logWatch(client, {
       type: 'episode',
@@ -736,47 +747,11 @@ describe('Duplicate Detection Integration', () => {
 
   it('should allow duplicate when allowDuplicates=true (for rewatches)', async () => {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const mocks = createTheBearMocks(oneHourAgo);
 
-    vi.spyOn(client, 'search').mockResolvedValue([
-      {
-        type: 'show',
-        score: 1000,
-        show: {
-          title: 'The Bear',
-          year: 2022,
-          ids: { trakt: 12345, slug: 'the-bear', tvdb: 123, imdb: 'tt123', tmdb: 456 },
-        },
-      },
-    ]);
-
-    vi.spyOn(client, 'searchEpisode').mockResolvedValue({
-      season: 2,
-      number: 5,
-      title: 'Pop',
-      ids: { trakt: 67890 },
-    });
-
-    // Mock getHistory with recent entry
-    vi.spyOn(client, 'getHistory').mockResolvedValue([
-      {
-        watched_at: oneHourAgo,
-        action: 'watch',
-        type: 'episode',
-        show: {
-          title: 'The Bear',
-          year: 2022,
-          ids: { trakt: 12345, slug: 'the-bear', tvdb: 123, imdb: 'tt123', tmdb: 456 },
-        },
-        episode: {
-          season: 2,
-          number: 5,
-          title: 'Pop',
-          ids: { trakt: 67890, tvdb: 789, imdb: 'tt456', tmdb: 789 },
-        },
-      },
-    ]);
-
-    // Mock addToHistory for success
+    vi.spyOn(client, 'search').mockResolvedValue(mocks.searchResult);
+    vi.spyOn(client, 'searchEpisode').mockResolvedValue(mocks.episode);
+    vi.spyOn(client, 'getHistory').mockResolvedValue(mocks.historyEntry);
     vi.spyOn(client, 'addToHistory').mockResolvedValue({
       added: { episodes: 1, movies: 0 },
       not_found: { movies: [], shows: [], seasons: [], episodes: [] },
@@ -799,46 +774,11 @@ describe('Duplicate Detection Integration', () => {
 
   it('should not flag as duplicate outside 48-hour window', async () => {
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+    const mocks = createTheBearMocks(threeDaysAgo);
 
-    vi.spyOn(client, 'search').mockResolvedValue([
-      {
-        type: 'show',
-        score: 1000,
-        show: {
-          title: 'The Bear',
-          year: 2022,
-          ids: { trakt: 12345, slug: 'the-bear', tvdb: 123, imdb: 'tt123', tmdb: 456 },
-        },
-      },
-    ]);
-
-    vi.spyOn(client, 'searchEpisode').mockResolvedValue({
-      season: 2,
-      number: 5,
-      title: 'Pop',
-      ids: { trakt: 67890 },
-    });
-
-    // Mock getHistory with old entry (outside 48-hour window)
-    vi.spyOn(client, 'getHistory').mockResolvedValue([
-      {
-        watched_at: threeDaysAgo,
-        action: 'watch',
-        type: 'episode',
-        show: {
-          title: 'The Bear',
-          year: 2022,
-          ids: { trakt: 12345, slug: 'the-bear', tvdb: 123, imdb: 'tt123', tmdb: 456 },
-        },
-        episode: {
-          season: 2,
-          number: 5,
-          title: 'Pop',
-          ids: { trakt: 67890, tvdb: 789, imdb: 'tt456', tmdb: 789 },
-        },
-      },
-    ]);
-
+    vi.spyOn(client, 'search').mockResolvedValue(mocks.searchResult);
+    vi.spyOn(client, 'searchEpisode').mockResolvedValue(mocks.episode);
+    vi.spyOn(client, 'getHistory').mockResolvedValue(mocks.historyEntry);
     vi.spyOn(client, 'addToHistory').mockResolvedValue({
       added: { episodes: 1, movies: 0 },
       not_found: { movies: [], shows: [], seasons: [], episodes: [] },
@@ -860,32 +800,10 @@ describe('Duplicate Detection Integration', () => {
 
   it('should prevent logging same movie within 48 hours', async () => {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const mocks = createColumbusMocks(oneHourAgo);
 
-    vi.spyOn(client, 'search').mockResolvedValue([
-      {
-        type: 'movie',
-        score: 1000,
-        movie: {
-          title: 'Columbus',
-          year: 2017,
-          ids: { trakt: 276047, slug: 'columbus-2017', imdb: 'tt123', tmdb: 456 },
-        },
-      },
-    ]);
-
-    // Mock getHistory with recent movie entry
-    vi.spyOn(client, 'getHistory').mockResolvedValue([
-      {
-        watched_at: oneHourAgo,
-        action: 'watch',
-        type: 'movie',
-        movie: {
-          title: 'Columbus',
-          year: 2017,
-          ids: { trakt: 276047, slug: 'columbus-2017', imdb: 'tt123', tmdb: 456 },
-        },
-      },
-    ]);
+    vi.spyOn(client, 'search').mockResolvedValue(mocks.searchResult);
+    vi.spyOn(client, 'getHistory').mockResolvedValue(mocks.historyEntry);
 
     const result = await logWatch(client, {
       type: 'movie',
@@ -903,23 +821,10 @@ describe('Duplicate Detection Integration', () => {
   });
 
   it('should handle getHistory() error gracefully during duplicate check', async () => {
-    // Mock search to succeed
-    vi.spyOn(client, 'search').mockResolvedValue([
-      {
-        type: 'movie',
-        score: 1000,
-        movie: {
-          title: 'Columbus',
-          year: 2017,
-          ids: { trakt: 276047, slug: 'columbus-2017', imdb: 'tt123', tmdb: 456 },
-        },
-      },
-    ]);
+    const mocks = createColumbusMocks(new Date().toISOString());
 
-    // Mock getHistory to fail (API timeout, network error, etc.)
+    vi.spyOn(client, 'search').mockResolvedValue(mocks.searchResult);
     vi.spyOn(client, 'getHistory').mockRejectedValue(new Error('API timeout'));
-
-    // Mock addToHistory to succeed (actual log attempt)
     vi.spyOn(client, 'addToHistory').mockResolvedValue({
       added: { movies: 1, episodes: 0 },
       not_found: { movies: [], episodes: [], shows: [] },
@@ -938,34 +843,10 @@ describe('Duplicate Detection Integration', () => {
 
   it('should allow duplicate movie when allowDuplicates=true (for rewatches)', async () => {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const mocks = createColumbusMocks(oneHourAgo);
 
-    vi.spyOn(client, 'search').mockResolvedValue([
-      {
-        type: 'movie',
-        score: 1000,
-        movie: {
-          title: 'Columbus',
-          year: 2017,
-          ids: { trakt: 276047, slug: 'columbus-2017', imdb: 'tt123', tmdb: 456 },
-        },
-      },
-    ]);
-
-    // Mock getHistory with recent movie entry
-    vi.spyOn(client, 'getHistory').mockResolvedValue([
-      {
-        watched_at: oneHourAgo,
-        action: 'watch',
-        type: 'movie',
-        movie: {
-          title: 'Columbus',
-          year: 2017,
-          ids: { trakt: 276047, slug: 'columbus-2017', imdb: 'tt123', tmdb: 456 },
-        },
-      },
-    ]);
-
-    // Mock addToHistory to succeed
+    vi.spyOn(client, 'search').mockResolvedValue(mocks.searchResult);
+    vi.spyOn(client, 'getHistory').mockResolvedValue(mocks.historyEntry);
     vi.spyOn(client, 'addToHistory').mockResolvedValue({
       added: { movies: 1, episodes: 0 },
       not_found: { movies: [], episodes: [], shows: [] },

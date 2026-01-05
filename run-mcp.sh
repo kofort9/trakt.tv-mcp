@@ -8,6 +8,12 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# Verify Node.js is available
+if ! command -v node &> /dev/null; then
+  echo "Error: Node.js not found. Install Node.js 20.x or later." >&2
+  exit 1
+fi
+
 # Verify build exists
 if [ ! -f "dist/index.js" ]; then
   echo "Error: dist/index.js not found. Run 'npm run build' first." >&2

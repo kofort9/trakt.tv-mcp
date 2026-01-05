@@ -146,7 +146,7 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 }
 ```
 
-> **Note**: Always use the wrapper script instead of running `node dist/index.js` directly. The wrapper ensures clean stdio (MCP protocol requires JSON-only stdout, but dotenv outputs a banner on load). Direct execution will cause protocol errors in Claude Desktop.
+> **Note**: Always use the wrapper script instead of running `node dist/index.js` directly. Direct execution will cause protocol errors in Claude Desktop. The wrapper sets `DOTENV_CONFIG_QUIET=true` to suppress the dotenv banner that would otherwise pollute stdout, breaking the MCP JSON-RPC protocol.
 
 ### Available Scripts
 
