@@ -2,8 +2,11 @@
 
 [![CI](https://github.com/kofort9/trakt.tv-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/kofort9/trakt.tv-mcp/actions/workflows/ci.yml)
 [![Security Audit](https://github.com/kofort9/trakt.tv-mcp/actions/workflows/security.yml/badge.svg)](https://github.com/kofort9/trakt.tv-mcp/actions/workflows/security.yml)
+[![codecov](https://codecov.io/gh/kofort9/trakt.tv-mcp/graph/badge.svg)](https://codecov.io/gh/kofort9/trakt.tv-mcp)
 
 MCP server for Trakt.tv API - enables AI assistants to track watched shows, movies, and anime using natural language
+
+![Demo](demo.gif)
 
 ## Project Links
 - Repository: https://github.com/kofort9/trakt.tv-mcp
