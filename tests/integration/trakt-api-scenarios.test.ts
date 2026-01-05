@@ -659,3 +659,246 @@ describe('logWatch Integration', () => {
     }
   });
 });
+
+/**
+ * Duplicate Detection Integration Tests
+ *
+ * Tests the 48-hour duplicate prevention feature at the tools layer.
+ * This complements the unit tests in duplicate-detector.test.ts by testing
+ * the full flow through logWatch() with the allowDuplicates parameter.
+ */
+describe('Duplicate Detection Integration', () => {
+  let client: TraktClient;
+
+  beforeEach(() => {
+    client = new TraktClient(createTestConfig(), createMockOAuth());
+    vi.clearAllMocks();
+  });
+
+  it('should prevent logging same episode within 48 hours by default', async () => {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+    // Mock search to find the show
+    vi.spyOn(client, 'search').mockResolvedValue([
+      {
+        type: 'show',
+        score: 1000,
+        show: {
+          title: 'The Bear',
+          year: 2022,
+          ids: { trakt: 12345, slug: 'the-bear', tvdb: 123, imdb: 'tt123', tmdb: 456 },
+        },
+      },
+    ]);
+
+    vi.spyOn(client, 'searchEpisode').mockResolvedValue({
+      season: 2,
+      number: 5,
+      title: 'Pop',
+      ids: { trakt: 67890 },
+    });
+
+    // Mock getHistory to return the same episode watched 1 hour ago
+    vi.spyOn(client, 'getHistory').mockResolvedValue([
+      {
+        watched_at: oneHourAgo,
+        action: 'watch',
+        type: 'episode',
+        show: {
+          title: 'The Bear',
+          year: 2022,
+          ids: { trakt: 12345, slug: 'the-bear', tvdb: 123, imdb: 'tt123', tmdb: 456 },
+        },
+        episode: {
+          season: 2,
+          number: 5,
+          title: 'Pop',
+          ids: { trakt: 67890, tvdb: 789, imdb: 'tt456', tmdb: 789 },
+        },
+      },
+    ]);
+
+    const result = await logWatch(client, {
+      type: 'episode',
+      showName: 'The Bear',
+      season: 2,
+      episode: 5,
+    });
+
+    // Should be blocked as duplicate
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('DUPLICATE_ENTRY');
+      // Error message format: "Already logged {title} S{s}E{e} on {date}"
+      expect(result.error.message).toContain('Already logged');
+    }
+  });
+
+  it('should allow duplicate when allowDuplicates=true (for rewatches)', async () => {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+    vi.spyOn(client, 'search').mockResolvedValue([
+      {
+        type: 'show',
+        score: 1000,
+        show: {
+          title: 'The Bear',
+          year: 2022,
+          ids: { trakt: 12345, slug: 'the-bear', tvdb: 123, imdb: 'tt123', tmdb: 456 },
+        },
+      },
+    ]);
+
+    vi.spyOn(client, 'searchEpisode').mockResolvedValue({
+      season: 2,
+      number: 5,
+      title: 'Pop',
+      ids: { trakt: 67890 },
+    });
+
+    // Mock getHistory with recent entry
+    vi.spyOn(client, 'getHistory').mockResolvedValue([
+      {
+        watched_at: oneHourAgo,
+        action: 'watch',
+        type: 'episode',
+        show: {
+          title: 'The Bear',
+          year: 2022,
+          ids: { trakt: 12345, slug: 'the-bear', tvdb: 123, imdb: 'tt123', tmdb: 456 },
+        },
+        episode: {
+          season: 2,
+          number: 5,
+          title: 'Pop',
+          ids: { trakt: 67890, tvdb: 789, imdb: 'tt456', tmdb: 789 },
+        },
+      },
+    ]);
+
+    // Mock addToHistory for success
+    vi.spyOn(client, 'addToHistory').mockResolvedValue({
+      added: { episodes: 1, movies: 0 },
+      not_found: { movies: [], shows: [], seasons: [], episodes: [] },
+    });
+
+    const result = await logWatch(client, {
+      type: 'episode',
+      showName: 'The Bear',
+      season: 2,
+      episode: 5,
+      allowDuplicates: true, // Explicitly allow for rewatch
+    });
+
+    // Should succeed despite existing entry
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.added.episodes).toBe(1);
+    }
+  });
+
+  it('should not flag as duplicate outside 48-hour window', async () => {
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+
+    vi.spyOn(client, 'search').mockResolvedValue([
+      {
+        type: 'show',
+        score: 1000,
+        show: {
+          title: 'The Bear',
+          year: 2022,
+          ids: { trakt: 12345, slug: 'the-bear', tvdb: 123, imdb: 'tt123', tmdb: 456 },
+        },
+      },
+    ]);
+
+    vi.spyOn(client, 'searchEpisode').mockResolvedValue({
+      season: 2,
+      number: 5,
+      title: 'Pop',
+      ids: { trakt: 67890 },
+    });
+
+    // Mock getHistory with old entry (outside 48-hour window)
+    vi.spyOn(client, 'getHistory').mockResolvedValue([
+      {
+        watched_at: threeDaysAgo,
+        action: 'watch',
+        type: 'episode',
+        show: {
+          title: 'The Bear',
+          year: 2022,
+          ids: { trakt: 12345, slug: 'the-bear', tvdb: 123, imdb: 'tt123', tmdb: 456 },
+        },
+        episode: {
+          season: 2,
+          number: 5,
+          title: 'Pop',
+          ids: { trakt: 67890, tvdb: 789, imdb: 'tt456', tmdb: 789 },
+        },
+      },
+    ]);
+
+    vi.spyOn(client, 'addToHistory').mockResolvedValue({
+      added: { episodes: 1, movies: 0 },
+      not_found: { movies: [], shows: [], seasons: [], episodes: [] },
+    });
+
+    const result = await logWatch(client, {
+      type: 'episode',
+      showName: 'The Bear',
+      season: 2,
+      episode: 5,
+    });
+
+    // Should succeed - entry is outside 48-hour window
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.added.episodes).toBe(1);
+    }
+  });
+
+  it('should prevent logging same movie within 48 hours', async () => {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+    vi.spyOn(client, 'search').mockResolvedValue([
+      {
+        type: 'movie',
+        score: 1000,
+        movie: {
+          title: 'Columbus',
+          year: 2017,
+          ids: { trakt: 276047, slug: 'columbus-2017', imdb: 'tt123', tmdb: 456 },
+        },
+      },
+    ]);
+
+    // Mock getHistory with recent movie entry
+    vi.spyOn(client, 'getHistory').mockResolvedValue([
+      {
+        watched_at: oneHourAgo,
+        action: 'watch',
+        type: 'movie',
+        movie: {
+          title: 'Columbus',
+          year: 2017,
+          ids: { trakt: 276047, slug: 'columbus-2017', imdb: 'tt123', tmdb: 456 },
+        },
+      },
+    ]);
+
+    const result = await logWatch(client, {
+      type: 'movie',
+      movieName: 'Columbus',
+      year: 2017,
+    });
+
+    // Should be blocked as duplicate
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('DUPLICATE_ENTRY');
+      // Error message format: "Already logged {title} on {date}"
+      expect(result.error.message).toContain('Already logged');
+    }
+  });
+});
